@@ -20,12 +20,22 @@ const projectRoot = process.cwd();
 const PORT = process.env.PORT || 3000;
 const HOST = "127.0.0.1"; // Tuyệt đối chỉ lắng nghe trên 127.0.0.1
 
-// Middleware phân tích JSON và dữ liệu gửi lên
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+// Middleware phân tích JSON và dữ liệu gửi lên (Hỗ trợ Base64 lớn không bị lỗi PayloadTooLarge)
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 
-// Phục vụ giao diện tĩnh và tài nguyên an toàn
-app.use(express.static(path.join(projectRoot, "app/ui")));
+// Phục vụ giao diện tĩnh và tài nguyên an toàn (Chống cache để client luôn nhận bản mới nhất)
+app.use(
+  express.static(path.join(projectRoot, "app/ui"), {
+    etag: false,
+    maxAge: 0,
+    setHeaders: (res) => {
+      res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.set("Pragma", "no-cache");
+      res.set("Expires", "0");
+    }
+  })
+);
 app.use("/public", express.static(path.join(projectRoot, "public")));
 app.use("/out", express.static(path.join(projectRoot, "out")));
 

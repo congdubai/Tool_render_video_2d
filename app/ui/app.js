@@ -420,7 +420,12 @@ async function validateScenesData() {
 
     renderAssetChecklist(data.requiredAssets || []);
   } catch (err) {
-    showToast("Lỗi kiểm tra dữ liệu: " + err.message);
+    console.error("Lỗi kiểm tra dữ liệu:", err);
+    if (err.message && (err.message.includes("Failed to fetch") || err.message.includes("NetworkError"))) {
+      showToast("❌ Không thể kết nối tới máy chủ Local! Vui lòng đảm bảo cửa sổ start.bat đang mở.");
+    } else {
+      showToast("Lỗi kiểm tra dữ liệu: " + err.message);
+    }
   }
 }
 
@@ -440,8 +445,60 @@ function openSlotPicker(sceneIndex, role) {
   }
 }
 
+// Đọc file ảnh từ máy và tự động tối ưu hóa kích thước (Full HD, nén nhẹ để Base64 siêu nhanh, siêu nhẹ)
+function readFileAsOptimizedDataUrl(file) {
+  return new Promise((resolve) => {
+    if (!file.type || !file.type.startsWith("image/") || file.type.includes("svg")) {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX_WIDTH = 1920;
+      const MAX_HEIGHT = 1080;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+        const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const isPng = file.type === "image/png" || file.name.toLowerCase().endsWith(".png");
+      const mimeType = isPng ? "image/png" : "image/jpeg";
+      const quality = isPng ? undefined : 0.88;
+
+      resolve(canvas.toDataURL(mimeType, quality));
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(file);
+    };
+
+    img.src = url;
+  });
+}
+
 // Xử lý khi người dùng chọn file ảnh từ máy (Đọc thẳng vào RAM dạng Base64 Data URL, KHÔNG lưu ổ đĩa)
-function handleSlotFileChange(event) {
+async function handleSlotFileChange(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
@@ -457,14 +514,19 @@ function handleSlotFileChange(event) {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const dataUrl = e.target.result;
+  try {
+    showToast("⏳ Đang nạp ảnh...");
+    const dataUrl = await readFileAsOptimizedDataUrl(file);
+    if (!dataUrl) {
+      showToast("❌ Không thể đọc file ảnh này!");
+      return;
+    }
+
     const targetScene = appState.scenesData.scenes[sceneIndex];
 
     if (role === "bg") {
       targetScene.bg = dataUrl;
-      showToast(`✅ Đã nạp ảnh nền cho Cảnh ${sceneIndex + 1} (Lưu vào RAM, không tốn ổ đĩa)`);
+      showToast(`✅ Đã nạp ảnh nền cho Cảnh ${sceneIndex + 1} (RAM - Không lưu ổ đĩa)`);
     } else if (role === "character") {
       if (!targetScene.character) {
         targetScene.character = {
@@ -476,13 +538,13 @@ function handleSlotFileChange(event) {
       } else {
         targetScene.character.image = dataUrl;
       }
-      showToast(`✅ Đã nạp nhân vật cho Cảnh ${sceneIndex + 1} (Lưu vào RAM, không tốn ổ đĩa)`);
+      showToast(`✅ Đã nạp nhân vật cho Cảnh ${sceneIndex + 1} (RAM - Không lưu ổ đĩa)`);
     }
 
     syncScenesToInputAndValidate();
-  };
-
-  reader.readAsDataURL(file);
+  } catch (err) {
+    showToast("Lỗi khi nạp ảnh: " + err.message);
+  }
 }
 
 // Xóa ảnh khỏi slot cảnh (ảnh nền hoặc nhân vật)
@@ -522,7 +584,7 @@ function triggerQuickUpload(role) {
   openSlotPicker(targetIndex, role);
 }
 
-// Đảm bảo đối tượng appState.scenesData luôn hợp lệ
+// Đảm bảo đối tượng appState.scenesData luôn hợp lệ và khớp với Timeline
 function ensureScenesDataInitialized() {
   if (!appState.scenesData || !Array.isArray(appState.scenesData.scenes) || appState.scenesData.scenes.length === 0) {
     const raw = document.getElementById("scenesJsonInput").value.trim();
@@ -531,16 +593,30 @@ function ensureScenesDataInitialized() {
         appState.scenesData = JSON.parse(raw);
       } catch (e) {}
     }
-    if (!appState.scenesData || !Array.isArray(appState.scenesData.scenes)) {
-      appState.scenesData = {
-        scenes: [
-          {
-            id: "scene_001",
+
+    if (!appState.scenesData || !Array.isArray(appState.scenesData.scenes) || appState.scenesData.scenes.length === 0) {
+      // Nếu đã có timeline từ Tab 1, tự động sinh số cảnh khớp 100% với từng dòng
+      if (appState.timelineData && Array.isArray(appState.timelineData.lines) && appState.timelineData.lines.length > 0) {
+        appState.scenesData = {
+          scenes: appState.timelineData.lines.map((l, idx) => ({
+            id: `scene_${String(idx + 1).padStart(3, "0")}`,
+            line: l.id,
             bg: null,
             character: null
-          }
-        ]
-      };
+          }))
+        };
+      } else {
+        appState.scenesData = {
+          scenes: [
+            {
+              id: "scene_001",
+              line: "line_001",
+              bg: null,
+              character: null
+            }
+          ]
+        };
+      }
     }
   }
 }
@@ -570,7 +646,7 @@ function setupDropZone() {
     });
   });
 
-  dropZone.addEventListener("drop", (e) => {
+  dropZone.addEventListener("drop", async (e) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files || []);
     if (files.length === 0) return;
@@ -578,7 +654,7 @@ function setupDropZone() {
     ensureScenesDataInitialized();
     const scenes = appState.scenesData.scenes;
 
-    files.forEach((file) => {
+    for (const file of files) {
       const isChar = /char|nhanvat|nhân vật|stick|ngac|vui|buon/i.test(file.name);
       const role = isChar ? "character" : "bg";
 
@@ -594,9 +670,10 @@ function setupDropZone() {
         }
       }
 
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const dataUrl = ev.target.result;
+      try {
+        const dataUrl = await readFileAsOptimizedDataUrl(file);
+        if (!dataUrl) continue;
+
         if (role === "bg") {
           scenes[targetIndex].bg = dataUrl;
         } else {
@@ -606,11 +683,13 @@ function setupDropZone() {
             scenes[targetIndex].character.image = dataUrl;
           }
         }
-        syncScenesToInputAndValidate();
         showToast(`✅ Đã nạp ${isChar ? "nhân vật" : "ảnh nền"} vào Cảnh ${targetIndex + 1} (RAM)`);
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (err) {
+        showToast("Lỗi nạp ảnh: " + err.message);
+      }
+    }
+
+    syncScenesToInputAndValidate();
   });
 }
 
