@@ -538,15 +538,245 @@ body {
 
 /* Asset Checklist Visual Cards */
 .asset-checklist {
-  max-height: 280px;
+  max-height: 480px;
   overflow-y: auto;
   border: 1px solid #334155;
   border-radius: 8px;
-  padding: 8px;
+  padding: 10px;
   background-color: #0b1120;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+.scene-card-manager {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s ease;
+}
+
+.scene-card-manager:hover {
+  border-color: #0284c7;
+}
+
+.scene-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 6px;
+}
+
+.scene-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.scene-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .scene-slots {
+    grid-template-columns: 1fr;
+  }
+}
+
+.slot-box {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slot-box.empty {
+  border-style: dashed;
+  border-color: #475569;
+}
+
+.slot-thumb {
+  width: 68px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid #475569;
+  background-color: #1e293b;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.slot-thumb:hover {
+  transform: scale(1.08);
+}
+
+.slot-thumb-empty {
+  width: 68px;
+  height: 48px;
+  border-radius: 4px;
+  border: 1px dashed #64748b;
+  background-color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #94a3b8;
+  flex-shrink: 0;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.slot-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.slot-role {
+  font-size: 11px;
+  font-weight: 700;
+  color: #cbd5e1;
+  text-transform: uppercase;
+}
+
+.slot-status {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot-status.in-memory {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.slot-status.missing {
+  color: #f87171;
+}
+
+.slot-actions {
+  display: flex;
+  gap: 4px;
+  flex-direction: column;
+}
+
+.btn-slot-edit {
+  background-color: #0284c7;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+
+.btn-slot-edit:hover {
+  background-color: #0369a1;
+}
+
+.btn-slot-delete {
+  background-color: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+
+.btn-slot-delete:hover {
+  background-color: #b91c1c;
+}
+
+.btn-slot-add {
+  background-color: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+
+.btn-slot-add:hover {
+  background-color: #059669;
+}
+
+/* Modal xem ảnh lớn */
+.image-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.image-modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.image-modal-content img {
+  max-width: 100%;
+  max-height: 85vh;
+  border-radius: 8px;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+}
+
+.image-modal-close {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  background-color: #ef4444;
+  color: #fff;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .asset-card {

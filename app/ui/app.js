@@ -414,142 +414,330 @@ async function validateScenesData() {
       `;
     }
 
+    if (data.scenesData) {
+      appState.scenesData = data.scenesData;
+    }
+
     renderAssetChecklist(data.requiredAssets || []);
   } catch (err) {
     showToast("Lỗi kiểm tra dữ liệu: " + err.message);
   }
 }
 
-let uploadTargetType = "background";
+// Quản lý trạng thái sửa/thay ảnh cho từng vị trí
+let activeSlotEdit = {
+  sceneIndex: null,
+  role: null // 'bg' | 'character'
+};
 
-function triggerFilePicker(type) {
-  uploadTargetType = type;
-  document.getElementById("filePickerInput").click();
-}
-
-// Mở thư mục chứa file trên máy
-async function openFolder(type) {
-  try {
-    const res = await fetch("/api/open-folder", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type })
-    });
-    const data = await res.json();
-    if (data.success) {
-      showToast(`Đã mở thư mục: ${type}`);
-    }
-  } catch (err) {
-    showToast("Không thể mở thư mục: " + err.message);
+// Mở hộp thoại chọn file cho từng slot cảnh cụ thể
+function openSlotPicker(sceneIndex, role) {
+  activeSlotEdit = { sceneIndex, role };
+  const input = document.getElementById("slotFilePicker");
+  if (input) {
+    input.value = "";
+    input.click();
   }
 }
 
-// Hiển thị danh sách kiểm tra ảnh (Checklist Trực Quan có Thumbnail)
-function renderAssetChecklist(assets) {
-  const container = document.getElementById("assetChecklist");
-  if (!assets || assets.length === 0) {
-    container.innerHTML = `<div class="empty-state">Chưa có ảnh nào được khai báo trong cảnh.</div>`;
+// Xử lý khi người dùng chọn file ảnh từ máy (Đọc thẳng vào RAM dạng Base64 Data URL, KHÔNG lưu ổ đĩa)
+function handleSlotFileChange(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const { sceneIndex, role } = activeSlotEdit;
+  if (sceneIndex === null) {
+    showToast("Không xác định được cảnh cần cập nhật ảnh!");
     return;
   }
 
-  const assetTypeLabels = {
-    bg: "Ảnh Nền (Background)",
-    character: "Ảnh Nhân Vật (PNG Trong Suốt)",
-    foreground: "Ảnh Tiền Cảnh (Foreground)"
+  ensureScenesDataInitialized();
+  if (!appState.scenesData.scenes[sceneIndex]) {
+    showToast(`Không tìm thấy cảnh số ${sceneIndex + 1}!`);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    const targetScene = appState.scenesData.scenes[sceneIndex];
+
+    if (role === "bg") {
+      targetScene.bg = dataUrl;
+      showToast(`✅ Đã nạp ảnh nền cho Cảnh ${sceneIndex + 1} (Lưu vào RAM, không tốn ổ đĩa)`);
+    } else if (role === "character") {
+      if (!targetScene.character) {
+        targetScene.character = {
+          image: dataUrl,
+          position: "right",
+          scale: 0.8,
+          flip: false
+        };
+      } else {
+        targetScene.character.image = dataUrl;
+      }
+      showToast(`✅ Đã nạp nhân vật cho Cảnh ${sceneIndex + 1} (Lưu vào RAM, không tốn ổ đĩa)`);
+    }
+
+    syncScenesToInputAndValidate();
   };
 
-  container.innerHTML = assets
-    .map((a) => {
-      const fileName = a.path.split("/").pop();
-      const typeLabel = assetTypeLabels[a.type] || a.type.toUpperCase();
-      const imageUrl = `/public/${a.path}?t=${Date.now()}`;
+  reader.readAsDataURL(file);
+}
 
-      const thumbHtml = a.exists
-        ? `<img src="${imageUrl}" class="asset-thumb" title="Click để xem ảnh to" onclick="window.open('${imageUrl}', '_blank')" alt="${fileName}" />`
-        : `<div class="asset-thumb asset-thumb-missing" title="Chưa có file">Chưa có</div>`;
+// Xóa ảnh khỏi slot cảnh (ảnh nền hoặc nhân vật)
+function deleteSlotAsset(sceneIndex, role) {
+  ensureScenesDataInitialized();
+  if (!appState.scenesData || !appState.scenesData.scenes || !appState.scenesData.scenes[sceneIndex]) {
+    return;
+  }
 
-      const badgeHtml = a.exists
-        ? `<span class="asset-badge asset-ok">✓ Đã có trong thư mục</span>`
-        : `<span class="asset-badge asset-missing">✗ Chưa tìm thấy file</span>`;
+  const targetScene = appState.scenesData.scenes[sceneIndex];
+  if (role === "bg") {
+    targetScene.bg = null;
+    showToast(`🗑️ Đã xóa ảnh nền Cảnh ${sceneIndex + 1}`);
+  } else if (role === "character") {
+    targetScene.character = null;
+    showToast(`🗑️ Đã xóa nhân vật Cảnh ${sceneIndex + 1}`);
+  }
 
-      return `
-      <div class="asset-card">
-        <div class="asset-left">
-          ${thumbHtml}
-          <div class="asset-details">
-            <span class="asset-type-tag">${typeLabel}</span>
-            <span class="asset-name" title="${fileName}">${fileName}</span>
-            <span class="asset-path-hint">📁 Vị trí lưu: <code>public/${a.path}</code></span>
+  syncScenesToInputAndValidate();
+}
+
+// Nút nhanh thêm ảnh nền hoặc nhân vật cho cảnh đầu tiên còn thiếu
+function triggerQuickUpload(role) {
+  ensureScenesDataInitialized();
+  let targetIndex = 0;
+  const scenes = appState.scenesData.scenes;
+  for (let i = 0; i < scenes.length; i++) {
+    if (role === "bg" && !scenes[i].bg) {
+      targetIndex = i;
+      break;
+    }
+    if (role === "character" && (!scenes[i].character || !scenes[i].character.image)) {
+      targetIndex = i;
+      break;
+    }
+  }
+  openSlotPicker(targetIndex, role);
+}
+
+// Đảm bảo đối tượng appState.scenesData luôn hợp lệ
+function ensureScenesDataInitialized() {
+  if (!appState.scenesData || !Array.isArray(appState.scenesData.scenes) || appState.scenesData.scenes.length === 0) {
+    const raw = document.getElementById("scenesJsonInput").value.trim();
+    if (raw) {
+      try {
+        appState.scenesData = JSON.parse(raw);
+      } catch (e) {}
+    }
+    if (!appState.scenesData || !Array.isArray(appState.scenesData.scenes)) {
+      appState.scenesData = {
+        scenes: [
+          {
+            id: "scene_001",
+            bg: null,
+            character: null
+          }
+        ]
+      };
+    }
+  }
+}
+
+// Đồng bộ đối tượng scenesData ra textarea và gọi validate
+function syncScenesToInputAndValidate() {
+  document.getElementById("scenesJsonInput").value = JSON.stringify(appState.scenesData, null, 2);
+  validateScenesData();
+}
+
+// Thiết lập Drag and Drop đọc trực tiếp vào RAM (In-Memory)
+function setupDropZone() {
+  const dropZone = document.getElementById("dropZone");
+  if (!dropZone) return;
+
+  ["dragenter", "dragover"].forEach((evt) => {
+    dropZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+  });
+
+  ["dragleave", "drop"].forEach((evt) => {
+    dropZone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+    });
+  });
+
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files || []);
+    if (files.length === 0) return;
+
+    ensureScenesDataInitialized();
+    const scenes = appState.scenesData.scenes;
+
+    files.forEach((file) => {
+      const isChar = /char|nhanvat|nhân vật|stick|ngac|vui|buon/i.test(file.name);
+      const role = isChar ? "character" : "bg";
+
+      let targetIndex = 0;
+      for (let i = 0; i < scenes.length; i++) {
+        if (role === "bg" && !scenes[i].bg) {
+          targetIndex = i;
+          break;
+        }
+        if (role === "character" && (!scenes[i].character || !scenes[i].character.image)) {
+          targetIndex = i;
+          break;
+        }
+      }
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target.result;
+        if (role === "bg") {
+          scenes[targetIndex].bg = dataUrl;
+        } else {
+          if (!scenes[targetIndex].character) {
+            scenes[targetIndex].character = { image: dataUrl, position: "right", scale: 0.8, flip: false };
+          } else {
+            scenes[targetIndex].character.image = dataUrl;
+          }
+        }
+        syncScenesToInputAndValidate();
+        showToast(`✅ Đã nạp ${isChar ? "nhân vật" : "ảnh nền"} vào Cảnh ${targetIndex + 1} (RAM)`);
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+}
+
+// Mở modal xem ảnh phóng to sắc nét
+function viewLargeImage(src) {
+  const existing = document.getElementById("imageModalOverlay");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "imageModalOverlay";
+  overlay.className = "image-modal-overlay";
+  overlay.onclick = (e) => {
+    if (e.target === overlay || e.target.classList.contains("image-modal-close")) {
+      overlay.remove();
+    }
+  };
+
+  overlay.innerHTML = `
+    <div class="image-modal-content">
+      <button class="image-modal-close" title="Đóng">✕</button>
+      <img src="${src}" alt="Xem ảnh phóng to" />
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+// Hiển thị danh sách kiểm tra & quản lý ảnh trực quan theo từng cảnh
+function renderAssetChecklist(assets) {
+  const container = document.getElementById("assetChecklist");
+  if (!container) return;
+
+  const scenes = appState.scenesData?.scenes;
+  if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
+    container.innerHTML = `<div class="empty-state">Chưa có dữ liệu cảnh. Hãy dán <code>scenes.json</code> hoặc bấm "Dán mẫu kịch bản" rồi bấm "Kiểm tra dữ liệu".</div>`;
+    return;
+  }
+
+  container.innerHTML = scenes
+    .map((scene, idx) => {
+      const sceneNum = idx + 1;
+      const sceneId = scene.id || `scene_${String(sceneNum).padStart(3, "0")}`;
+
+      // 1. Slot Ảnh nền
+      const hasBg = Boolean(scene.bg);
+      const isBgBase64 = hasBg && scene.bg.startsWith("data:");
+      const bgSrc = hasBg ? (isBgBase64 ? scene.bg : `/public/${scene.bg}?t=${Date.now()}`) : null;
+      const bgLabel = hasBg
+        ? (isBgBase64 ? "⚡ Lưu trong RAM (Base64)" : scene.bg.split("/").pop())
+        : "Chưa chọn ảnh nền";
+
+      const bgHtml = hasBg
+        ? `
+        <div class="slot-box">
+          <img src="${bgSrc}" class="slot-thumb" title="Click để phóng to ảnh nền" onclick="viewLargeImage('${bgSrc}')" alt="Nền cảnh ${sceneNum}" />
+          <div class="slot-info">
+            <span class="slot-role">🖼️ Ảnh Nền</span>
+            <span class="slot-status ${isBgBase64 ? 'in-memory' : ''}">${escapeHtml(bgLabel)}</span>
+          </div>
+          <div class="slot-actions">
+            <button class="btn-slot-edit" onclick="openSlotPicker(${idx}, 'bg')" title="Chọn ảnh khác thay thế">✏️ Đổi</button>
+            <button class="btn-slot-delete" onclick="deleteSlotAsset(${idx}, 'bg')" title="Xóa ảnh nền khỏi cảnh này">🗑️ Xóa</button>
           </div>
         </div>
-        ${badgeHtml}
+      `
+        : `
+        <div class="slot-box empty">
+          <div class="slot-thumb-empty">🖼️<br>Trống</div>
+          <div class="slot-info">
+            <span class="slot-role">🖼️ Ảnh Nền</span>
+            <span class="slot-status missing">Chưa có ảnh</span>
+          </div>
+          <div class="slot-actions">
+            <button class="btn-slot-add" onclick="openSlotPicker(${idx}, 'bg')" title="Chọn ảnh nền từ máy">➕ Chọn</button>
+          </div>
+        </div>
+      `;
+
+      // 2. Slot Nhân vật
+      const hasChar = Boolean(scene.character && scene.character.image);
+      const isCharBase64 = hasChar && scene.character.image.startsWith("data:");
+      const charSrc = hasChar ? (isCharBase64 ? scene.character.image : `/public/${scene.character.image}?t=${Date.now()}`) : null;
+      const charPos = scene.character?.position ? `(${scene.character.position})` : "";
+      const charLabel = hasChar
+        ? (isCharBase64 ? `⚡ Lưu trong RAM ${charPos}` : `${scene.character.image.split("/").pop()} ${charPos}`)
+        : "Không có nhân vật";
+
+      const charHtml = hasChar
+        ? `
+        <div class="slot-box">
+          <img src="${charSrc}" class="slot-thumb" style="background-color: #334155;" title="Click để phóng to nhân vật" onclick="viewLargeImage('${charSrc}')" alt="Nhân vật cảnh ${sceneNum}" />
+          <div class="slot-info">
+            <span class="slot-role">👤 Nhân Vật</span>
+            <span class="slot-status ${isCharBase64 ? 'in-memory' : ''}">${escapeHtml(charLabel)}</span>
+          </div>
+          <div class="slot-actions">
+            <button class="btn-slot-edit" onclick="openSlotPicker(${idx}, 'character')" title="Chọn ảnh nhân vật khác thay thế">✏️ Đổi</button>
+            <button class="btn-slot-delete" onclick="deleteSlotAsset(${idx}, 'character')" title="Xóa nhân vật khỏi cảnh này">🗑️ Xóa</button>
+          </div>
+        </div>
+      `
+        : `
+        <div class="slot-box empty">
+          <div class="slot-thumb-empty">👤<br>Trống</div>
+          <div class="slot-info">
+            <span class="slot-role">👤 Nhân Vật</span>
+            <span class="slot-status" style="color: #64748b;">(Tùy chọn)</span>
+          </div>
+          <div class="slot-actions">
+            <button class="btn-slot-add" onclick="openSlotPicker(${idx}, 'character')" title="Thêm nhân vật cho cảnh này">➕ Thêm</button>
+          </div>
+        </div>
+      `;
+
+      return `
+      <div class="scene-card-manager">
+        <div class="scene-card-header">
+          <span class="scene-title">🎬 Cảnh ${sceneNum}: <code>${escapeHtml(sceneId)}</code></span>
+          <span class="hint-small" style="color: #94a3b8;">${scene.line ? 'Khớp: ' + escapeHtml(scene.line) : ''}</span>
+        </div>
+        <div class="scene-slots">
+          ${bgHtml}
+          ${charHtml}
+        </div>
       </div>
     `;
     })
     .join("");
-}
-
-// Tải file lên server và hiển thị danh sách vừa tải
-async function uploadFiles(fileList) {
-  const recentBox = document.getElementById("recentUploadsBox");
-  const recentList = document.getElementById("recentUploadsList");
-
-  for (let i = 0; i < fileList.length; i++) {
-    const file = fileList[i];
-    const reader = new FileReader();
-
-    reader.onload = async (event) => {
-      const base64Data = event.target.result;
-      // Xác định loại thư mục đích
-      let type = uploadTargetType;
-      if (/char|nhanvat|ngac|vui|buon/i.test(file.name)) {
-        type = "character";
-      } else if (/bg|scene|nen|room|phong/i.test(file.name)) {
-        type = "background";
-      }
-
-      try {
-        const res = await fetch("/api/assets/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ filename: file.name, base64Data, type, overwrite: false })
-        });
-        const data = await res.json();
-
-        if (data.fileExists) {
-          if (confirm(data.message)) {
-            await fetch("/api/assets/upload", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ filename: file.name, base64Data, type, overwrite: true })
-            });
-            showToast(`Đã ghi đè ảnh: ${file.name}`);
-          }
-        } else if (data.success) {
-          showToast(`✅ Đã lưu ảnh vào: public/${data.path}`);
-
-          // Cập nhật danh sách ảnh vừa tải
-          recentBox.classList.remove("hidden");
-          const item = document.createElement("div");
-          item.className = "recent-upload-item";
-          item.innerHTML = `
-            <img src="${base64Data}" class="recent-upload-thumb" />
-            <span><strong>${file.name}</strong> ➔ <code>public/${data.path}</code></span>
-          `;
-          recentList.prepend(item);
-        } else {
-          showToast(`❌ ${data.error}`);
-        }
-
-        // Tự động kiểm tra lại để cập nhật checklist
-        validateScenesData();
-      } catch (err) {
-        showToast("Lỗi tải ảnh: " + err.message);
-      }
-    };
-
-    reader.readAsDataURL(file);
-  }
 }
 
 // ================= RENDER ENGINE =================

@@ -59,7 +59,10 @@ export const SceneView: React.FC<SceneViewProps> = ({
     });
   }
 
-  const bgSrc = staticFile(scene.bg);
+  // Nếu ảnh là dạng Base64 Data URL hoặc link HTTP thì dùng trực tiếp, ngược lại dùng staticFile
+  const bgSrc = scene.bg && (scene.bg.startsWith("data:") || scene.bg.startsWith("http"))
+    ? scene.bg
+    : staticFile(scene.bg);
 
   return (
     <div

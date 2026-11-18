@@ -52,7 +52,9 @@ export const Character: React.FC<CharacterProps> = ({ character, foreground, sce
   const jumpY = (1 - enterProgress) * 80 + bobOffsetPx;
   const scale = Math.max(0, enterProgress);
 
-  const charSrc = staticFile(character.image);
+  const charSrc = character.image && (character.image.startsWith("data:") || character.image.startsWith("http"))
+    ? character.image
+    : staticFile(character.image);
 
   return (
     <>
@@ -114,7 +116,11 @@ export const Character: React.FC<CharacterProps> = ({ character, foreground, sce
           }}
         >
           <img
-            src={staticFile(foreground.image)}
+            src={
+              foreground.image.startsWith("data:") || foreground.image.startsWith("http")
+                ? foreground.image
+                : staticFile(foreground.image)
+            }
             alt="Foreground"
             style={{
               height: "100%",
