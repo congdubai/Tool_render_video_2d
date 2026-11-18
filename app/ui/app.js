@@ -862,7 +862,136 @@ async function runGpuBenchmark() {
   }
 }
 
-// Bắt đầu Render video (Toàn bộ hoặc Dựng thử 10s)
+// 1. Dựng riêng 1 cảnh thành 1 video độc lập để xem thử (Nút Xem thử)
+async function startRenderScene(sceneIndex = 0, isTest = true) {
+  ensureScenesDataInitialized();
+  const scenes = appState.scenesData?.scenes || [];
+  if (scenes.length === 0) {
+    showToast("Chưa có dữ liệu cảnh nào để dựng thử!");
+    return;
+  }
+
+  const gpuMode = document.getElementById("gpuModeSelect").value;
+  const concurrency = parseInt(document.getElementById("concurrencyInput").value, 10) || 4;
+
+  const btnTest = document.getElementById("btnRenderTest");
+  const btnFull = document.getElementById("btnRenderFull");
+  const btnCancel = document.getElementById("btnCancelRender");
+  const progressWrap = document.getElementById("renderProgressWrap");
+
+  btnTest.disabled = true;
+  btnFull.disabled = true;
+  btnCancel.classList.remove("hidden");
+  progressWrap.classList.remove("hidden");
+
+  document.getElementById("renderProgressBar").style.width = "0%";
+  document.getElementById("renderPercentText").textContent = "0%";
+  document.getElementById("renderFramesText").textContent = "0 khung hình";
+  document.getElementById("renderStatusText").textContent = `Đang dựng thử 1 video (Cảnh ${sceneIndex + 1})...`;
+
+  try {
+    const res = await fetch("/api/render/scene", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sceneIndex, isTest, accelerationMode: gpuMode, concurrency })
+    });
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error);
+    }
+    showToast(`▶️ Đang bắt đầu dựng thử 1 video cho Cảnh ${sceneIndex + 1}...`);
+  } catch (err) {
+    showToast("❌ Lỗi khi dựng thử: " + err.message);
+    btnTest.disabled = false;
+    btnFull.disabled = false;
+    btnCancel.classList.add("hidden");
+    progressWrap.classList.add("hidden");
+  }
+}
+
+// 2. Bắt đầu sinh HẾT tất cả video dựa theo kịch bản JSON (Có bao nhiêu cảnh sinh hết bấy nhiêu video)
+let isBatchGeneratingAll = false;
+
+async function startRenderAllScenes() {
+  ensureScenesDataInitialized();
+  const scenes = appState.scenesData?.scenes || [];
+  if (scenes.length === 0) {
+    showToast("Chưa có cảnh nào trong kịch bản JSON!");
+    return;
+  }
+
+  if (isBatchGeneratingAll) {
+    showToast("Đang trong quá trình sinh video hàng loạt!");
+    return;
+  }
+
+  const total = scenes.length;
+  if (!confirm(`Bạn có muốn bắt đầu sinh TOÀN BỘ ${total} video dựa theo ${total} cảnh trong JSON không?`)) {
+    return;
+  }
+
+  isBatchGeneratingAll = true;
+  const gpuMode = document.getElementById("gpuModeSelect").value;
+  const concurrency = parseInt(document.getElementById("concurrencyInput").value, 10) || 4;
+
+  const btnTest = document.getElementById("btnRenderTest");
+  const btnFull = document.getElementById("btnRenderFull");
+  const btnCancel = document.getElementById("btnCancelRender");
+  const progressWrap = document.getElementById("renderProgressWrap");
+
+  btnTest.disabled = true;
+  btnFull.disabled = true;
+  btnCancel.classList.remove("hidden");
+  progressWrap.classList.remove("hidden");
+
+  showToast(`🚀 Bắt đầu sinh ${total} video hàng loạt theo JSON...`);
+
+  for (let i = 0; i < total; i++) {
+    if (!isBatchGeneratingAll) {
+      showToast("⏹️ Quá trình sinh hàng loạt đã bị hủy.");
+      break;
+    }
+
+    const scene = scenes[i];
+    const sceneId = scene.id || `scene_${String(i + 1).padStart(3, "0")}`;
+
+    document.getElementById("renderProgressBar").style.width = "0%";
+    document.getElementById("renderPercentText").textContent = "0%";
+    document.getElementById("renderStatusText").textContent = `[${i + 1}/${total}] Đang dựng video: ${sceneId}...`;
+
+    try {
+      const res = await fetch("/api/render/scene", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sceneIndex: i,
+          isTest: false,
+          accelerationMode: gpuMode,
+          concurrency
+        })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      // Chờ video này render xong qua Promise SSE
+      await waitForRenderComplete();
+      loadVideosList();
+    } catch (err) {
+      console.error(err);
+      showToast(`❌ Lỗi tại video cảnh ${i + 1}: ${err.message}`);
+    }
+  }
+
+  isBatchGeneratingAll = false;
+  btnTest.disabled = false;
+  btnFull.disabled = false;
+  btnCancel.classList.add("hidden");
+  progressWrap.classList.add("hidden");
+  loadVideosList();
+  showToast(`🎉 Đã hoàn thành sinh tất cả ${total} video theo kịch bản JSON!`);
+}
+
+// 3. Dựng 1 file video gộp toàn bộ tất cả các cảnh (Full Video)
 async function startRender(isTest = false) {
   const gpuMode = document.getElementById("gpuModeSelect").value;
   const concurrency = parseInt(document.getElementById("concurrencyInput").value, 10) || 4;
@@ -882,7 +1011,7 @@ async function startRender(isTest = false) {
   document.getElementById("renderProgressBar").style.width = "0%";
   document.getElementById("renderPercentText").textContent = "0%";
   document.getElementById("renderFramesText").textContent = "0 khung hình";
-  document.getElementById("renderStatusText").textContent = isTest ? "Đang dựng thử 10 giây..." : `Đang dựng video ${videoName || ""}...`;
+  document.getElementById("renderStatusText").textContent = `Đang dựng video gộp hoàn chỉnh...`;
 
   try {
     const res = await fetch("/api/render/start", {
@@ -905,6 +1034,7 @@ async function startRender(isTest = false) {
 
 // Hủy Render
 async function cancelRender() {
+  isBatchGeneratingAll = false;
   try {
     await fetch("/api/render/cancel", { method: "POST" });
     showToast("Đã gửi yêu cầu dừng.");
@@ -930,6 +1060,18 @@ async function loadVideosList() {
 
   try {
     const res = await fetch("/api/videos");
+    const contentType = res.headers.get("content-type") || "";
+
+    if (!res.ok || !contentType.includes("application/json")) {
+      container.innerHTML = `
+        <div class="empty-state" style="color: #fbbf24; line-height: 1.6;">
+          ⚠️ Máy chủ chưa nạp API danh sách video mới.<br/>
+          <strong style="color: #38bdf8;">Hãy đóng cửa sổ CMD cũ và nhấp lại file start.bat</strong> để khởi động lại máy chủ local!
+        </div>
+      `;
+      return;
+    }
+
     const data = await res.json();
     if (!data.success) return;
 
@@ -937,7 +1079,7 @@ async function loadVideosList() {
     if (countLabel) countLabel.textContent = `${appState.videosList.length} video`;
 
     if (appState.videosList.length === 0) {
-      container.innerHTML = `<div class="empty-state">Chưa có video nào. Hãy bấm "Dựng video ngay" ở trên!</div>`;
+      container.innerHTML = `<div class="empty-state">Chưa có video nào. Hãy bấm "Dựng thử 1 video" hoặc "Dựng tất cả video"!</div>`;
       return;
     }
 
@@ -967,7 +1109,6 @@ async function loadVideosList() {
       })
       .join("");
 
-    // Nếu chưa phát video nào mà danh sách có video -> tự động nạp video mới nhất
     if (!appState.currentPlayingFilename && appState.videosList.length > 0) {
       playVideo(appState.videosList[0].url, appState.videosList[0].filename, false);
     }

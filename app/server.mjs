@@ -574,7 +574,142 @@ app.post("/api/render/start", async (req, res) => {
 });
 
 /**
- * 10. Gen lại (Dựng lại) video đã có dựa trên metadata snapshot
+ * Trích xuất và điều chỉnh dữ liệu để render riêng 1 cảnh thành 1 video độc lập
+ */
+export function createSingleSceneData(sceneIndex, scriptData, timelineData, scenesData) {
+  const scene = scenesData.scenes[sceneIndex];
+  if (!scene) throw new Error(`Không tìm thấy cảnh số ${sceneIndex + 1}`);
+
+  const sceneStart = Number(scene.start) || 0;
+  const sceneEnd = Number(scene.end) || 5;
+  const duration = Math.max(0.5, sceneEnd - sceneStart);
+
+  // 1. Cảnh con: đặt mốc thời gian từ 0 đến duration
+  const singleScene = {
+    ...scene,
+    start: 0,
+    end: duration
+  };
+
+  // 2. Lấy dòng lời đọc tương ứng
+  let matchingLines = [];
+  if (scene.line) {
+    matchingLines = (timelineData.lines || []).filter((l) => l.id === scene.line);
+  }
+  if (matchingLines.length === 0) {
+    matchingLines = (timelineData.lines || []).filter(
+      (l) => l.start >= sceneStart - 0.1 && l.end <= sceneEnd + 0.1
+    );
+  }
+  if (matchingLines.length === 0 && timelineData.lines && timelineData.lines[sceneIndex]) {
+    matchingLines = [timelineData.lines[sceneIndex]];
+  }
+
+  // Điều chỉnh mốc thời gian âm thanh và phụ đề về gốc 0
+  const shiftedLines = matchingLines.map((line) => {
+    const lineStart = Math.max(0, line.start - sceneStart);
+    const lineEnd = Math.max(lineStart + 0.2, line.end - sceneStart);
+    const shiftedWords = (line.words || []).map((w) => ({
+      ...w,
+      start: Math.max(0, w.start - sceneStart),
+      end: Math.max(0, w.end - sceneStart)
+    }));
+
+    return {
+      ...line,
+      start: lineStart,
+      end: lineEnd,
+      voiceEnd: line.voiceEnd ? Math.max(lineStart, line.voiceEnd - sceneStart) : undefined,
+      words: shiftedWords
+    };
+  });
+
+  const singleTimeline = {
+    totalSeconds: duration,
+    lines: shiftedLines
+  };
+
+  const lineIds = new Set(shiftedLines.map((l) => l.id));
+  const singleScript = {
+    meta: scriptData.meta,
+    lines: (scriptData.lines || []).filter((l) => lineIds.has(l.id))
+  };
+
+  return {
+    singleSceneData: { scenes: [singleScene] },
+    singleTimelineData: singleTimeline,
+    singleScriptData: singleScript,
+    duration
+  };
+}
+
+/**
+ * 10. Render riêng 1 cảnh cụ thể thành 1 video độc lập
+ */
+app.post("/api/render/scene", async (req, res) => {
+  if (isRendering) {
+    return res.status(400).json({ success: false, error: "Một tiến trình dựng video khác đang chạy. Vui lòng đợi hoặc bấm dừng." });
+  }
+
+  try {
+    const { sceneIndex = 0, isTest = false, accelerationMode = "cpu", concurrency = null, customVideoName = null } = req.body;
+
+    const scriptPath = path.join(projectRoot, "src/data/script.json");
+    const timelinePath = path.join(projectRoot, "src/data/timeline.json");
+    const scenesPath = path.join(projectRoot, "src/data/scenes.json");
+
+    if (!fs.existsSync(timelinePath) || !fs.existsSync(scenesPath)) {
+      return res.status(400).json({ success: false, error: "Thiếu dữ liệu kịch bản." });
+    }
+
+    const scriptData = JSON.parse(fs.readFileSync(scriptPath, "utf-8"));
+    const timelineData = JSON.parse(fs.readFileSync(timelinePath, "utf-8"));
+    const scenesData = JSON.parse(fs.readFileSync(scenesPath, "utf-8"));
+
+    if (!scenesData.scenes || !scenesData.scenes[sceneIndex]) {
+      return res.status(400).json({ success: false, error: `Không tìm thấy cảnh số ${sceneIndex + 1}.` });
+    }
+
+    const { singleSceneData, singleTimelineData, singleScriptData } = createSingleSceneData(
+      sceneIndex,
+      scriptData,
+      timelineData,
+      scenesData
+    );
+
+    const sceneObj = scenesData.scenes[sceneIndex];
+    const sceneId = sceneObj.id || `scene_${String(sceneIndex + 1).padStart(3, "0")}`;
+
+    let videoName = customVideoName;
+    if (!videoName) {
+      videoName = isTest ? `video_test_${sceneId}.mp4` : `video_${sceneId}.mp4`;
+    }
+    if (!videoName.toLowerCase().endsWith(".mp4")) {
+      videoName += ".mp4";
+    }
+
+    // Chuyển sang endpoint render/start với kịch bản con của cảnh này
+    req.body.videoName = videoName;
+    req.body.customScriptData = singleScriptData;
+    req.body.customTimelineData = singleTimelineData;
+    req.body.customScenesData = singleSceneData;
+    req.body.isTest = false;
+
+    return app._router.handle(
+      {
+        ...req,
+        url: "/api/render/start",
+        method: "POST"
+      },
+      res
+    );
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 11. Gen lại (Dựng lại) video đã có dựa trên metadata snapshot
  */
 app.post("/api/videos/regenerate", (req, res) => {
   try {
@@ -683,6 +818,14 @@ app.post("/api/open-folder", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// Đảm bảo mọi request /api/* không tìm thấy luôn trả về JSON (chống lỗi HTML DOCTYPE)
+app.all("/api/*", (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `Đường dẫn API ${req.method} ${req.path} không tồn tại trên máy chủ local.`
+  });
 });
 
 // Khởi động server với cơ chế tự động thử cổng tiếp theo nếu bị EACCES hoặc EADDRINUSE

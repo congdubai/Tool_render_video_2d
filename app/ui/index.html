@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Trình Dựng Video 2D Local - Remotion</title>
-  <link rel="stylesheet" href="style.css?v=2.3" />
+  <link rel="stylesheet" href="style.css?v=2.4" />
 </head>
 <body>
   <!-- Header chính -->
@@ -260,14 +260,14 @@
         <div id="benchResultBox" class="bench-box hidden"></div>
 
         <div class="action-bar" style="flex-wrap: wrap; gap: 10px;">
-          <button id="btnRenderTest" class="btn btn-secondary btn-lg" onclick="startRender(true)">
-            ▶️ Dựng thử 10 giây
+          <button id="btnRenderTest" class="btn btn-secondary btn-lg" onclick="startRenderScene(0, true)" title="Chỉ sinh duy nhất 1 video Cảnh 1 để xem thử trước chất lượng">
+            ▶️ Dựng thử 1 video (Xem thử)
           </button>
-          <button id="btnRenderFull" class="btn btn-primary btn-lg" onclick="startRender(false)">
-            🎬 Dựng video ngay
+          <button id="btnRenderFull" class="btn btn-primary btn-lg" onclick="startRenderAllScenes()" title="Tự động sinh tất cả các video theo danh sách cảnh trong JSON (có bao nhiêu sinh hết bấy nhiêu)">
+            🎬 Dựng tất cả video (Sinh hết theo JSON)
           </button>
-          <button id="btnAddToQueue" class="btn btn-outline btn-lg" onclick="addToBatchQueue()" style="border-color: #38bdf8; color: #38bdf8;">
-            ➕ Thêm vào hàng đợi hàng loạt
+          <button id="btnRenderCombined" class="btn btn-outline btn-lg" onclick="startRender(false)" title="Ghép tất cả các cảnh thành 1 file video dài hoàn chỉnh duy nhất" style="border-color: #38bdf8; color: #38bdf8;">
+            🎞️ Ghép 1 video gộp toàn bộ
           </button>
           <button id="btnCancelRender" class="btn btn-danger btn-lg hidden" onclick="cancelRender()">
             ⏹️ Hủy dựng
@@ -351,7 +351,7 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=2.3"></script>
+  <script src="app.js?v=2.4"></script>
 </body>
 </html>
 
