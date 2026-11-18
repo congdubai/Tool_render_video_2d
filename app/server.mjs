@@ -349,30 +349,160 @@ app.get("/api/render/progress", (req, res) => {
 });
 
 /**
- * 7. Bắt đầu Render video (Toàn bộ hoặc Dựng thử 10s)
+ * 7. Lấy danh sách toàn bộ video đã dựng (Thư viện Video)
+ */
+app.get("/api/videos", (req, res) => {
+  try {
+    const outDir = path.join(projectRoot, "out");
+    if (!fs.existsSync(outDir)) {
+      return res.json({ success: true, videos: [] });
+    }
+
+    const files = fs.readdirSync(outDir);
+    const videos = files
+      .filter((file) => file.toLowerCase().endsWith(".mp4"))
+      .map((file) => {
+        const fullPath = path.join(outDir, file);
+        const stats = fs.statSync(fullPath);
+        const baseName = path.parse(file).name;
+        const metaPath = path.join(projectRoot, "out/metadata", `${baseName}.json`);
+
+        let metadata = null;
+        if (fs.existsSync(metaPath)) {
+          try {
+            metadata = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+          } catch (e) {}
+        }
+
+        return {
+          filename: file,
+          url: `/out/${file}?t=${stats.mtimeMs}`,
+          sizeBytes: stats.size,
+          sizeMb: (stats.size / (1024 * 1024)).toFixed(2),
+          createdAt: stats.mtime,
+          formattedTime: new Date(stats.mtime).toLocaleString("vi-VN"),
+          hasMetadata: Boolean(metadata),
+          title: metadata?.title || file
+        };
+      })
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({ success: true, videos });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 8. Xóa video khỏi danh sách và ổ đĩa
+ */
+app.post("/api/videos/delete", (req, res) => {
+  try {
+    const { filename } = req.body;
+    if (!filename) {
+      return res.status(400).json({ success: false, error: "Thiếu tên file video cần xóa." });
+    }
+
+    const safeFilename = path.basename(filename);
+    const filePath = path.join(projectRoot, "out", safeFilename);
+    const baseName = path.parse(safeFilename).name;
+    const metaPath = path.join(projectRoot, "out/metadata", `${baseName}.json`);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    if (fs.existsSync(metaPath)) {
+      fs.unlinkSync(metaPath);
+    }
+
+    res.json({ success: true, message: `Đã xóa video ${safeFilename}` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 9. Bắt đầu Render video (Hỗ trợ đặt tên, lưu metadata để gen lại và sinh hàng loạt)
  */
 app.post("/api/render/start", async (req, res) => {
   if (isRendering) {
-    return res.status(400).json({ success: false, error: "Một tiến trình dựng video khác đang chạy." });
+    return res.status(400).json({ success: false, error: "Một tiến trình dựng video khác đang chạy. Vui lòng đợi hoặc bấm dừng." });
   }
 
   try {
-    const { isTest = false, accelerationMode = "cpu", concurrency = null } = req.body;
+    const {
+      isTest = false,
+      accelerationMode = "cpu",
+      concurrency = null,
+      videoName = null,
+      customScriptData = null,
+      customTimelineData = null,
+      customScenesData = null
+    } = req.body;
+
+    let scriptData = customScriptData;
+    let timelineData = customTimelineData;
+    let scenesData = customScenesData;
 
     const scriptPath = path.join(projectRoot, "src/data/script.json");
     const timelinePath = path.join(projectRoot, "src/data/timeline.json");
     const scenesPath = path.join(projectRoot, "src/data/scenes.json");
 
-    if (!fs.existsSync(timelinePath) || !fs.existsSync(scenesPath)) {
+    if (!scriptData && fs.existsSync(scriptPath)) {
+      try { scriptData = JSON.parse(fs.readFileSync(scriptPath, "utf-8")); } catch (e) {}
+    }
+    if (!timelineData && fs.existsSync(timelinePath)) {
+      try { timelineData = JSON.parse(fs.readFileSync(timelinePath, "utf-8")); } catch (e) {}
+    }
+    if (!scenesData && fs.existsSync(scenesPath)) {
+      try { scenesData = JSON.parse(fs.readFileSync(scenesPath, "utf-8")); } catch (e) {}
+    }
+
+    if (!timelineData || !scenesData) {
       return res.status(400).json({
         success: false,
         error: "Thiếu dữ liệu dựng video (timeline.json hoặc scenes.json)."
       });
     }
 
-    const scriptData = JSON.parse(fs.readFileSync(scriptPath, "utf-8"));
-    const timelineData = JSON.parse(fs.readFileSync(timelinePath, "utf-8"));
-    const scenesData = JSON.parse(fs.readFileSync(scenesPath, "utf-8"));
+    // Tự động tạo tên video độc nhất nếu không chỉ định
+    let safeVideoName = "";
+    if (videoName && videoName.trim()) {
+      safeVideoName = path.basename(videoName.trim());
+      if (!safeVideoName.toLowerCase().endsWith(".mp4")) {
+        safeVideoName += ".mp4";
+      }
+    } else {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const timeStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      safeVideoName = `video_${timeStr}.mp4`;
+    }
+
+    const finalOutputPath = path.join(projectRoot, "out", safeVideoName);
+    const baseName = path.parse(safeVideoName).name;
+    const metadataDir = path.join(projectRoot, "out/metadata");
+    fs.mkdirSync(metadataDir, { recursive: true });
+
+    // Lưu snapshot metadata để hỗ trợ tính năng "Gen lại"
+    const metaPath = path.join(metadataDir, `${baseName}.json`);
+    fs.writeFileSync(
+      metaPath,
+      JSON.stringify(
+        {
+          videoName: safeVideoName,
+          title: safeVideoName,
+          accelerationMode,
+          concurrency,
+          scriptData,
+          timelineData,
+          scenesData,
+          createdAt: new Date().toISOString()
+        },
+        null,
+        2
+      )
+    );
 
     const fps = scriptData.meta?.fps || 30;
     const totalFrames = Math.max(1, Math.round(timelineData.totalSeconds * fps));
@@ -382,7 +512,11 @@ app.post("/api/render/start", async (req, res) => {
     currentRenderCancellation = false;
 
     // Trả về response ngay để client theo dõi qua SSE
-    res.json({ success: true, message: "Bắt đầu dựng video..." });
+    res.json({
+      success: true,
+      videoName: safeVideoName,
+      message: `Bắt đầu dựng ${safeVideoName}...`
+    });
 
     // Chạy render ở tiến trình nền
     (async () => {
@@ -391,6 +525,7 @@ app.post("/api/render/start", async (req, res) => {
           scriptData,
           timelineData,
           scenesData,
+          outputPath: finalOutputPath,
           projectRoot,
           accelerationMode,
           frameRange,
@@ -400,6 +535,7 @@ app.post("/api/render/start", async (req, res) => {
           onProgress: (p) => {
             const pct = Math.round(p.progress * 100);
             broadcastSse("render_progress", {
+              videoName: safeVideoName,
               progress: pct,
               renderedFrames: p.renderedFrames,
               totalFrames: p.totalFrames,
@@ -408,15 +544,22 @@ app.post("/api/render/start", async (req, res) => {
           }
         });
 
+        // Copy thêm bản out/video.mp4 cho tương thích cũ
+        try {
+          fs.copyFileSync(finalOutputPath, path.join(projectRoot, "out/video.mp4"));
+        } catch (e) {}
+
         broadcastSse("render_complete", {
           success: true,
-          videoUrl: "/out/video.mp4?t=" + Date.now(),
+          videoName: safeVideoName,
+          videoUrl: `/out/${safeVideoName}?t=${Date.now()}`,
           executionTimeSec: renderResult.executionTimeSec,
           fallbackUsed: renderResult.fallbackUsed,
           fallbackReason: renderResult.fallbackReason
         });
       } catch (err) {
         broadcastSse("render_error", {
+          videoName: safeVideoName,
           error: err.message
         });
       } finally {
@@ -426,6 +569,67 @@ app.post("/api/render/start", async (req, res) => {
     })();
   } catch (err) {
     isRendering = false;
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 10. Gen lại (Dựng lại) video đã có dựa trên metadata snapshot
+ */
+app.post("/api/videos/regenerate", (req, res) => {
+  try {
+    const { filename, accelerationMode = "cpu", concurrency = null } = req.body;
+    if (!filename) {
+      return res.status(400).json({ success: false, error: "Thiếu tên file video cần gen lại." });
+    }
+
+    const safeFilename = path.basename(filename);
+    const baseName = path.parse(safeFilename).name;
+    const metaPath = path.join(projectRoot, "out/metadata", `${baseName}.json`);
+
+    let scriptData = null;
+    let timelineData = null;
+    let scenesData = null;
+
+    if (fs.existsSync(metaPath)) {
+      try {
+        const meta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+        scriptData = meta.scriptData;
+        timelineData = meta.timelineData;
+        scenesData = meta.scenesData;
+      } catch (e) {}
+    }
+
+    if (!timelineData || !scenesData) {
+      const scriptPath = path.join(projectRoot, "src/data/script.json");
+      const timelinePath = path.join(projectRoot, "src/data/timeline.json");
+      const scenesPath = path.join(projectRoot, "src/data/scenes.json");
+      if (fs.existsSync(scriptPath)) scriptData = JSON.parse(fs.readFileSync(scriptPath, "utf-8"));
+      if (fs.existsSync(timelinePath)) timelineData = JSON.parse(fs.readFileSync(timelinePath, "utf-8"));
+      if (fs.existsSync(scenesPath)) scenesData = JSON.parse(fs.readFileSync(scenesPath, "utf-8"));
+    }
+
+    if (!timelineData || !scenesData) {
+      return res.status(400).json({ success: false, error: "Không tìm thấy dữ liệu kịch bản để gen lại video này." });
+    }
+
+    // Gán dữ liệu vào body và gọi logic render
+    req.body.videoName = safeFilename;
+    req.body.customScriptData = scriptData;
+    req.body.customTimelineData = timelineData;
+    req.body.customScenesData = scenesData;
+    req.body.isTest = false;
+
+    // Chuyển quyền xử lý sang endpoint render
+    return app._router.handle(
+      {
+        ...req,
+        url: "/api/render/start",
+        method: "POST"
+      },
+      res
+    );
+  } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });

@@ -987,7 +987,7 @@ body {
   color: #94a3b8;
 }
 
-/* Video Result */
+/* Video Result & Gallery Layout */
 .video-result-box {
   margin-top: 24px;
   background-color: #182234;
@@ -1011,15 +1011,243 @@ body {
   border-radius: 8px;
   overflow: hidden;
   background-color: #000;
-  max-width: 800px;
+  width: 100%;
   margin: 0 auto;
 }
 
 .video-path-hint {
-  margin-top: 12px;
   font-size: 13px;
   color: #94a3b8;
-  text-align: center;
+}
+
+/* Hàng đợi sinh video hàng loạt */
+.batch-queue-box {
+  margin-top: 20px;
+  background-color: #0f172a;
+  border: 1px solid #0284c7;
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+
+.batch-queue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.batch-progress-info {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background-color: #1e293b;
+  border-radius: 6px;
+  border-left: 4px solid #fbbf24;
+}
+
+.batch-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.queue-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #1e293b;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  font-size: 13px;
+}
+
+.queue-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.queue-item-title {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.queue-item-meta {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* Gallery 2 Cột: Trình phát & List Video */
+.video-gallery-layout {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 900px) {
+  .video-gallery-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gallery-player-pane {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-header-title {
+  font-weight: 700;
+  color: #38bdf8;
+  font-size: 14px;
+  margin-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gallery-list-pane {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.list-pane-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 8px;
+}
+
+.videos-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.video-item-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 10px 12px;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.video-item-card:hover {
+  border-color: #0284c7;
+  background-color: #243248;
+}
+
+.video-item-card.active {
+  border-color: #38bdf8;
+  background-color: #172554;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+.video-card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.video-card-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.video-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.video-card-name {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.video-card-meta {
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  gap: 8px;
+}
+
+.video-card-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-card-action {
+  border: none;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.15s;
+}
+
+.btn-act-play {
+  background-color: #0284c7;
+  color: #fff;
+}
+.btn-act-play:hover {
+  background-color: #0369a1;
+}
+
+.btn-act-regen {
+  background-color: #d97706;
+  color: #fff;
+}
+.btn-act-regen:hover {
+  background-color: #b45309;
+}
+
+.btn-act-delete {
+  background-color: #dc2626;
+  color: #fff;
+}
+.btn-act-delete:hover {
+  background-color: #b91c1c;
+}
+
+.btn-act-download {
+  background-color: #10b981;
+  color: #fff;
+  text-decoration: none;
+}
+.btn-act-download:hover {
+  background-color: #059669;
 }
 
 /* Utilities */

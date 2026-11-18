@@ -9,7 +9,11 @@ let appState = {
   scriptData: null,
   scenesData: null,
   requiredAssets: [],
-  currentAudioPlayer: null
+  currentAudioPlayer: null,
+  batchQueue: [],
+  isBatchRunning: false,
+  videosList: [],
+  currentPlayingFilename: null
 };
 
 // ================= KHỞI TẠO ỨNG DỤNG =================
@@ -17,6 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initApp();
   setupDropZone();
   setupSse();
+  loadVideosList();
 });
 
 async function initApp() {
@@ -65,10 +70,8 @@ async function initApp() {
       renderAssetChecklist(data.requiredAssets || []);
     }
 
-    // 5. Kiểm tra nếu đã có video rendered sẵn
-    if (data.outFiles && data.outFiles.videoMp4) {
-      showVideoResult("/out/video.mp4");
-    }
+    // 5. Nạp danh sách video đã dựng
+    loadVideosList();
   } catch (err) {
     console.error("Lỗi khởi tạo:", err);
   }
@@ -859,33 +862,33 @@ async function runGpuBenchmark() {
   }
 }
 
-// Bắt đầu Render video
+// Bắt đầu Render video (Toàn bộ hoặc Dựng thử 10s)
 async function startRender(isTest = false) {
   const gpuMode = document.getElementById("gpuModeSelect").value;
   const concurrency = parseInt(document.getElementById("concurrencyInput").value, 10) || 4;
+  const videoNameInput = document.getElementById("videoNameInput");
+  const videoName = videoNameInput ? videoNameInput.value.trim() : "";
 
   const btnTest = document.getElementById("btnRenderTest");
   const btnFull = document.getElementById("btnRenderFull");
   const btnCancel = document.getElementById("btnCancelRender");
   const progressWrap = document.getElementById("renderProgressWrap");
-  const videoResultBox = document.getElementById("videoResultBox");
 
   btnTest.disabled = true;
   btnFull.disabled = true;
   btnCancel.classList.remove("hidden");
   progressWrap.classList.remove("hidden");
-  videoResultBox.classList.add("hidden");
 
   document.getElementById("renderProgressBar").style.width = "0%";
   document.getElementById("renderPercentText").textContent = "0%";
   document.getElementById("renderFramesText").textContent = "0 khung hình";
-  document.getElementById("renderStatusText").textContent = isTest ? "Đang dựng thử 10 giây..." : "Đang dựng video hoàn chỉnh...";
+  document.getElementById("renderStatusText").textContent = isTest ? "Đang dựng thử 10 giây..." : `Đang dựng video ${videoName || ""}...`;
 
   try {
     const res = await fetch("/api/render/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isTest, accelerationMode: gpuMode, concurrency })
+      body: JSON.stringify({ isTest, accelerationMode: gpuMode, concurrency, videoName })
     });
     const data = await res.json();
     if (!data.success) {
@@ -908,18 +911,6 @@ async function cancelRender() {
   } catch (err) {}
 }
 
-// Hiển thị kết quả video
-function showVideoResult(videoUrl) {
-  const box = document.getElementById("videoResultBox");
-  const player = document.getElementById("outputVideoPlayer");
-  const pathHint = document.getElementById("outputVideoPath");
-
-  box.classList.remove("hidden");
-  player.src = videoUrl;
-  player.load();
-  pathHint.textContent = "out/video.mp4";
-}
-
 // Mở thư mục out/
 async function openOutputFolder() {
   try {
@@ -927,6 +918,325 @@ async function openOutputFolder() {
   } catch (err) {
     showToast("Lỗi mở thư mục: " + err.message);
   }
+}
+
+// ================= THƯ VIỆN & DANH SÁCH VIDEO =================
+
+// Tải danh sách toàn bộ video đã tạo từ server
+async function loadVideosList() {
+  const container = document.getElementById("videosListContainer");
+  const countLabel = document.getElementById("totalVideosCount");
+  if (!container) return;
+
+  try {
+    const res = await fetch("/api/videos");
+    const data = await res.json();
+    if (!data.success) return;
+
+    appState.videosList = data.videos || [];
+    if (countLabel) countLabel.textContent = `${appState.videosList.length} video`;
+
+    if (appState.videosList.length === 0) {
+      container.innerHTML = `<div class="empty-state">Chưa có video nào. Hãy bấm "Dựng video ngay" ở trên!</div>`;
+      return;
+    }
+
+    container.innerHTML = appState.videosList
+      .map((v) => {
+        const isActive = appState.currentPlayingFilename === v.filename ? "active" : "";
+        return `
+        <div class="video-item-card ${isActive}" id="videoCard_${escapeHtml(v.filename)}">
+          <div class="video-card-left">
+            <span class="video-card-icon">🎬</span>
+            <div class="video-card-info">
+              <span class="video-card-name" title="${escapeHtml(v.filename)}">${escapeHtml(v.filename)}</span>
+              <div class="video-card-meta">
+                <span>📦 ${v.sizeMb} MB</span>
+                <span>🕒 ${v.formattedTime}</span>
+              </div>
+            </div>
+          </div>
+          <div class="video-card-actions">
+            <button class="btn-card-action btn-act-play" onclick="playVideo('${v.url}', '${escapeHtml(v.filename)}')" title="Xem video này">▶️ Xem</button>
+            <button class="btn-card-action btn-act-regen" onclick="regenerateVideo('${escapeHtml(v.filename)}')" title="Dựng lại video này với thông số ban đầu">🔄 Gen lại</button>
+            <a href="${v.url}" download="${escapeHtml(v.filename)}" class="btn-card-action btn-act-download" title="Tải file video về máy">⬇️ Tải</a>
+            <button class="btn-card-action btn-act-delete" onclick="deleteVideo('${escapeHtml(v.filename)}')" title="Xóa video khỏi danh sách">🗑️ Xóa</button>
+          </div>
+        </div>
+      `;
+      })
+      .join("");
+
+    // Nếu chưa phát video nào mà danh sách có video -> tự động nạp video mới nhất
+    if (!appState.currentPlayingFilename && appState.videosList.length > 0) {
+      playVideo(appState.videosList[0].url, appState.videosList[0].filename, false);
+    }
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state" style="color: #f87171;">Lỗi tải danh sách video: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// Chọn và phát video trên player chính
+function playVideo(url, filename, autoPlay = true) {
+  appState.currentPlayingFilename = filename;
+  const player = document.getElementById("outputVideoPlayer");
+  const title = document.getElementById("nowPlayingTitle");
+  const pathHint = document.getElementById("outputVideoPath");
+  const btnDownload = document.getElementById("btnDownloadCurrent");
+
+  if (title) title.textContent = `▶️ Đang phát: ${filename}`;
+  if (pathHint) pathHint.textContent = `out/${filename}`;
+  if (btnDownload) {
+    btnDownload.href = url;
+    btnDownload.download = filename;
+    btnDownload.classList.remove("hidden");
+  }
+
+  if (player) {
+    player.src = url;
+    player.load();
+    if (autoPlay) {
+      player.play().catch(() => {});
+    }
+  }
+
+  document.querySelectorAll(".video-item-card").forEach((c) => c.classList.remove("active"));
+  const activeCard = document.getElementById(`videoCard_${filename}`);
+  if (activeCard) {
+    activeCard.classList.add("active");
+  }
+}
+
+// Xóa video khỏi máy tính
+async function deleteVideo(filename) {
+  if (!confirm(`Bạn có chắc chắn muốn xóa video "${filename}"?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/videos/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`🗑️ Đã xóa video ${filename}`);
+      if (appState.currentPlayingFilename === filename) {
+        appState.currentPlayingFilename = null;
+        const player = document.getElementById("outputVideoPlayer");
+        if (player) {
+          player.pause();
+          player.src = "";
+        }
+        document.getElementById("nowPlayingTitle").textContent = "▶️ Chưa chọn video để phát";
+        document.getElementById("btnDownloadCurrent").classList.add("hidden");
+      }
+      loadVideosList();
+    } else {
+      showToast("❌ Không thể xóa video: " + data.error);
+    }
+  } catch (err) {
+    showToast("Lỗi khi xóa: " + err.message);
+  }
+}
+
+// Gen lại (Dựng lại) video đã có dựa trên snapshot metadata
+async function regenerateVideo(filename) {
+  if (!confirm(`Bạn có muốn dựng lại (Gen lại) video "${filename}" không?`)) {
+    return;
+  }
+
+  const gpuMode = document.getElementById("gpuModeSelect").value;
+  const concurrency = parseInt(document.getElementById("concurrencyInput").value, 10) || 4;
+
+  const btnCancel = document.getElementById("btnCancelRender");
+  const progressWrap = document.getElementById("renderProgressWrap");
+
+  btnCancel.classList.remove("hidden");
+  progressWrap.classList.remove("hidden");
+  document.getElementById("renderProgressBar").style.width = "0%";
+  document.getElementById("renderPercentText").textContent = "0%";
+  document.getElementById("renderFramesText").textContent = "0 khung hình";
+  document.getElementById("renderStatusText").textContent = `Đang gen lại: ${filename}...`;
+
+  try {
+    const res = await fetch("/api/videos/regenerate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename, accelerationMode: gpuMode, concurrency })
+    });
+    const data = await res.json();
+    if (!data.success) {
+      throw new Error(data.error);
+    }
+    showToast(`🔄 Đang tiến hành dựng lại video "${filename}"...`);
+  } catch (err) {
+    showToast("❌ Không thể gen lại video: " + err.message);
+    progressWrap.classList.add("hidden");
+    btnCancel.classList.add("hidden");
+  }
+}
+
+// ================= HÀNG ĐỢI DỰNG VIDEO HÀNG LOẠT =================
+
+// Thêm kịch bản hiện tại vào hàng đợi dựng hàng loạt
+function addToBatchQueue() {
+  ensureScenesDataInitialized();
+  if (!appState.scenesData || !appState.scenesData.scenes || appState.scenesData.scenes.length === 0) {
+    showToast("Vui lòng dán và kiểm tra kịch bản scenes trước khi thêm vào hàng đợi!");
+    return;
+  }
+
+  const nameInput = document.getElementById("videoNameInput");
+  const customName = nameInput.value.trim() || `video_tap_${String(appState.batchQueue.length + 1).padStart(2, "0")}`;
+  const gpuMode = document.getElementById("gpuModeSelect").value;
+  const concurrency = parseInt(document.getElementById("concurrencyInput").value, 10) || 4;
+
+  const queueItem = {
+    id: `queue_${Date.now()}`,
+    name: customName,
+    scriptData: JSON.parse(JSON.stringify(appState.scriptData || {})),
+    timelineData: JSON.parse(JSON.stringify(appState.timelineData || {})),
+    scenesData: JSON.parse(JSON.stringify(appState.scenesData || {})),
+    gpuMode,
+    concurrency,
+    status: "pending"
+  };
+
+  appState.batchQueue.push(queueItem);
+  renderBatchQueue();
+  nameInput.value = "";
+  showToast(`✅ Đã thêm "${customName}" vào hàng đợi dựng hàng loạt!`);
+}
+
+// Hiển thị danh sách hàng đợi
+function renderBatchQueue() {
+  const box = document.getElementById("batchQueueBox");
+  const countBadge = document.getElementById("queueCountBadge");
+  const container = document.getElementById("batchQueueList");
+  if (!box || !container) return;
+
+  if (appState.batchQueue.length === 0) {
+    box.classList.add("hidden");
+    return;
+  }
+
+  box.classList.remove("hidden");
+  countBadge.textContent = `${appState.batchQueue.length} video`;
+
+  const statusLabels = {
+    pending: '<span style="color: #94a3b8;">⏳ Đang chờ</span>',
+    rendering: '<span style="color: #38bdf8; font-weight: 700;">⚙️ Đang dựng...</span>',
+    done: '<span style="color: #34d399; font-weight: 700;">✅ Hoàn tất</span>',
+    error: '<span style="color: #f87171; font-weight: 700;">❌ Lỗi</span>'
+  };
+
+  container.innerHTML = appState.batchQueue
+    .map(
+      (item, idx) => `
+    <div class="queue-item">
+      <div class="queue-item-info">
+        <span class="queue-item-title">${idx + 1}. ${escapeHtml(item.name)}</span>
+        <span class="queue-item-meta">${item.scenesData.scenes.length} cảnh • GPU: ${item.gpuMode}</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        ${statusLabels[item.status] || ""}
+        ${
+          !appState.isBatchRunning
+            ? `<button class="btn btn-sm btn-outline" onclick="removeFromBatchQueue(${idx})" title="Xóa khỏi hàng đợi">🗑️</button>`
+            : ""
+        }
+      </div>
+    </div>
+  `
+    )
+    .join("");
+}
+
+// Xóa 1 video khỏi hàng đợi
+function removeFromBatchQueue(index) {
+  if (appState.isBatchRunning) return;
+  appState.batchQueue.splice(index, 1);
+  renderBatchQueue();
+}
+
+// Xóa sạch hàng đợi
+function clearBatchQueue() {
+  if (appState.isBatchRunning) return;
+  appState.batchQueue = [];
+  renderBatchQueue();
+}
+
+// Bắt đầu dựng toàn bộ video trong hàng đợi
+async function startBatchRender() {
+  if (appState.batchQueue.length === 0) {
+    showToast("Hàng đợi đang trống!");
+    return;
+  }
+  if (appState.isBatchRunning) return;
+
+  appState.isBatchRunning = true;
+  document.getElementById("btnStartBatch").disabled = true;
+  document.getElementById("batchProgressInfo").classList.remove("hidden");
+
+  const total = appState.batchQueue.length;
+
+  for (let i = 0; i < total; i++) {
+    const item = appState.batchQueue[i];
+    item.status = "rendering";
+    renderBatchQueue();
+
+    document.getElementById("batchProgressText").textContent = `Đang dựng video ${i + 1}/${total}: ${item.name}...`;
+
+    try {
+      const res = await fetch("/api/render/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoName: item.name,
+          customScriptData: item.scriptData,
+          customTimelineData: item.timelineData,
+          customScenesData: item.scenesData,
+          accelerationMode: item.gpuMode,
+          concurrency: item.concurrency,
+          isTest: false
+        })
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      // Chờ hoàn thành qua Promise
+      await waitForRenderComplete();
+      item.status = "done";
+    } catch (err) {
+      console.error(err);
+      item.status = "error";
+    }
+
+    renderBatchQueue();
+    loadVideosList();
+  }
+
+  appState.isBatchRunning = false;
+  document.getElementById("btnStartBatch").disabled = false;
+  document.getElementById("batchProgressInfo").classList.add("hidden");
+  showToast("🎉 Đã hoàn thành toàn bộ quá trình dựng video hàng loạt!");
+}
+
+function waitForRenderComplete() {
+  return new Promise((resolve) => {
+    const handler = () => {
+      window.removeEventListener("sse_render_complete", handler);
+      window.removeEventListener("sse_render_error", handler);
+      window.removeEventListener("sse_render_canceled", handler);
+      resolve();
+    };
+    window.addEventListener("sse_render_complete", handler);
+    window.addEventListener("sse_render_error", handler);
+    window.addEventListener("sse_render_canceled", handler);
+  });
 }
 
 // ================= LẮNG NGHE SSE =================
@@ -957,8 +1267,11 @@ function setupSse() {
     document.getElementById("btnCancelRender").classList.add("hidden");
     document.getElementById("renderProgressWrap").classList.add("hidden");
 
-    showVideoResult(data.videoUrl);
-    showToast(`🎉 Dựng video hoàn thành trong ${data.executionTimeSec}s!`);
+    loadVideosList();
+    playVideo(data.videoUrl, data.videoName || "video.mp4", true);
+    showToast(`🎉 Dựng xong video "${data.videoName || 'video'}" trong ${data.executionTimeSec}s!`);
+
+    window.dispatchEvent(new Event("sse_render_complete"));
 
     if (data.fallbackUsed) {
       alert(`⚠️ Lưu ý: Bộ tăng tốc GPU gặp lỗi nên hệ thống đã tự động quay về CPU an toàn:\n${data.fallbackReason}`);
@@ -973,6 +1286,7 @@ function setupSse() {
     document.getElementById("renderProgressWrap").classList.add("hidden");
 
     showToast("❌ Lỗi trong quá trình dựng: " + data.error);
+    window.dispatchEvent(new Event("sse_render_error"));
   });
 
   evtSource.addEventListener("render_canceled", () => {
@@ -982,6 +1296,7 @@ function setupSse() {
     document.getElementById("renderProgressWrap").classList.add("hidden");
 
     showToast("⏹️ Quá trình dựng video đã bị hủy.");
+    window.dispatchEvent(new Event("sse_render_canceled"));
   });
 }
 

@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Trình Dựng Video 2D Local - Remotion</title>
-  <link rel="stylesheet" href="style.css?v=2.2" />
+  <link rel="stylesheet" href="style.css?v=2.3" />
 </head>
 <body>
   <!-- Header chính -->
@@ -217,10 +217,16 @@
     <!-- Cài đặt Render & Hành động -->
     <section class="card">
       <div class="card-header">
-        <h2>3. Thiết Lập & Dựng Video</h2>
+        <h2>3. Thiết Lập & Sinh Video</h2>
       </div>
       <div class="card-body">
         <div class="render-settings-grid">
+          <div class="setting-item">
+            <label>Tên video kết xuất:</label>
+            <input type="text" id="videoNameInput" class="input-control" placeholder="Tùy chọn (ví dụ: video_tap_01)" />
+            <span class="hint-small">(Để trống sẽ tự đặt theo ngày giờ)</span>
+          </div>
+
           <div class="setting-item">
             <label>Độ phân giải:</label>
             <select id="resolutionSelect" class="select-control">
@@ -246,19 +252,22 @@
 
           <div class="setting-item">
             <label>&nbsp;</label>
-            <button class="btn btn-secondary" onclick="runGpuBenchmark()">⏱️ Đo thử tốc độ (5s)</button>
+            <button class="btn btn-secondary" onclick="runGpuBenchmark()">⏱️ Đo tốc độ (5s)</button>
           </div>
         </div>
 
         <!-- Bảng benchmark nhỏ -->
         <div id="benchResultBox" class="bench-box hidden"></div>
 
-        <div class="action-bar">
+        <div class="action-bar" style="flex-wrap: wrap; gap: 10px;">
           <button id="btnRenderTest" class="btn btn-secondary btn-lg" onclick="startRender(true)">
             ▶️ Dựng thử 10 giây
           </button>
           <button id="btnRenderFull" class="btn btn-primary btn-lg" onclick="startRender(false)">
-            🎬 Dựng video hoàn chỉnh
+            🎬 Dựng video ngay
+          </button>
+          <button id="btnAddToQueue" class="btn btn-outline btn-lg" onclick="addToBatchQueue()" style="border-color: #38bdf8; color: #38bdf8;">
+            ➕ Thêm vào hàng đợi hàng loạt
           </button>
           <button id="btnCancelRender" class="btn btn-danger btn-lg hidden" onclick="cancelRender()">
             ⏹️ Hủy dựng
@@ -280,16 +289,60 @@
           </div>
         </div>
 
-        <!-- Kết quả xem video -->
-        <div id="videoResultBox" class="video-result-box hidden">
-          <div class="result-header">
-            <h3>🎉 Dựng video thành công!</h3>
-            <button class="btn btn-sm btn-outline" onclick="openOutputFolder()">📂 Mở thư mục chứa video</button>
+        <!-- Khu vực Hàng Đợi Sinh Video Hàng Loạt -->
+        <div id="batchQueueBox" class="batch-queue-box hidden">
+          <div class="batch-queue-header">
+            <div style="font-weight: 700; color: #38bdf8; font-size: 14px;">
+              📦 Hàng Đợi Dựng Hàng Loạt: <span id="queueCountBadge" class="badge btn-primary" style="padding: 2px 8px;">0 video</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-sm btn-primary" id="btnStartBatch" onclick="startBatchRender()">🚀 Bắt đầu dựng tất cả</button>
+              <button class="btn btn-sm btn-outline" onclick="clearBatchQueue()">🧹 Xóa hàng đợi</button>
+            </div>
           </div>
-          <div class="video-player-wrap">
-            <video id="outputVideoPlayer" controls width="100%"></video>
+          <div id="batchProgressInfo" class="batch-progress-info hidden">
+            <span id="batchProgressText" style="font-weight: 600; color: #fbbf24;">Đang dựng video 1/3...</span>
           </div>
-          <p class="video-path-hint">File lưu tại: <code id="outputVideoPath">out/video.mp4</code></p>
+          <div id="batchQueueList" class="batch-queue-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Khu vực 4: Danh Sách Video Đã Dựng & Trình Xem Video -->
+    <section class="card" id="videoGallerySection">
+      <div class="card-header">
+        <h2>4. Danh Sách Video Đã Dựng & Xem Video</h2>
+        <div class="card-actions">
+          <button class="btn btn-sm btn-outline" onclick="loadVideosList()">🔄 Làm mới danh sách</button>
+          <button class="btn btn-sm btn-outline" onclick="openOutputFolder()">📂 Mở thư mục out/</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="video-gallery-layout">
+          <!-- Cột xem video chính -->
+          <div class="gallery-player-pane">
+            <div class="player-header-title">
+              <span id="nowPlayingTitle">▶️ Chưa chọn video để phát</span>
+            </div>
+            <div class="video-player-wrap">
+              <video id="outputVideoPlayer" controls width="100%" poster=""></video>
+            </div>
+            <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+              <p class="video-path-hint" style="margin: 0;">Đường dẫn: <code id="outputVideoPath">out/video.mp4</code></p>
+              <a id="btnDownloadCurrent" href="#" download class="btn btn-sm btn-outline hidden">⬇️ Tải video này</a>
+            </div>
+          </div>
+
+          <!-- Cột danh sách video (List Video) -->
+          <div class="gallery-list-pane">
+            <div class="list-pane-header">
+              <span style="font-weight: 700; color: #cbd5e1; font-size: 13px;">DANH SÁCH VIDEO ĐÃ TẠO:</span>
+              <span id="totalVideosCount" class="hint-small">0 video</span>
+            </div>
+            <div id="videosListContainer" class="videos-list-container">
+              <div class="empty-state">Đang tải danh sách video...</div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -298,7 +351,7 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=2.2"></script>
+  <script src="app.js?v=2.3"></script>
 </body>
 </html>
 

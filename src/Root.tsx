@@ -8,9 +8,9 @@ import defaultTimeline from "./data/timeline.json";
 import defaultScenes from "./data/scenes.json";
 
 export const Root: React.FC = () => {
-  const scriptData = defaultScript as ScriptData;
-  const timelineData = defaultTimeline as TimelineData;
-  const scenesData = defaultScenes as ScenesData;
+  const scriptData = defaultScript as unknown as ScriptData;
+  const timelineData = defaultTimeline as unknown as TimelineData;
+  const scenesData = defaultScenes as unknown as ScenesData;
 
   const fps = scriptData.meta?.fps || 30;
   const width = scriptData.meta?.width || 1280;
