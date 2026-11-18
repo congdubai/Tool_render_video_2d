@@ -1657,14 +1657,28 @@ async function loadAiProjectsList() {
   }
 }
 
-// Chọn nhanh Demo project 10s
+// Chọn nhanh Demo project 10s (Remotion)
 function selectDemoProject() {
   const select = document.getElementById("aiProjectSelect");
-  const demo = aiState.projects.find((p) => p.isDemo);
+  const demo = aiState.projects.find((p) => p.id === "sample_demo-10s" || (p.isDemo && p.engine === "remotion"));
   if (demo && select) {
     select.value = demo.id;
     handleAiProjectChanged();
-    showToast(`⭐ Đã chọn dự án mẫu: "${demo.name}"`);
+    showToast(`⭐ Đã chọn dự án mẫu Remotion: "${demo.name}"`);
+  } else {
+    showToast("Đang tải lại danh sách dự án...");
+    loadAiProjectsList();
+  }
+}
+
+// Chọn nhanh Demo project Thanh Hai 2D Studio (Reaction Time - 14 Shots)
+function selectThanhHaiDemoProject() {
+  const select = document.getElementById("aiProjectSelect");
+  const thDemo = aiState.projects.find((p) => p.id === "thanhhai_reaction-time" || p.id.includes("reaction-time"));
+  if (thDemo && select) {
+    select.value = thDemo.id;
+    handleAiProjectChanged();
+    showToast(`🎨 Đã chọn dự án mẫu Thanh Hai 2D Studio: "${thDemo.name}"`);
   } else {
     showToast("Đang tải lại danh sách dự án...");
     loadAiProjectsList();
@@ -1688,6 +1702,25 @@ function handleAiProjectChanged() {
 
   overviewBox.classList.remove("hidden");
 
+  const isTH = project.engine === "thanhhai_2d";
+  const engineBadge = document.getElementById("aiBadgeEngine");
+  const engineTag = document.getElementById("aiEngineTag");
+  const btnContactSheet = document.getElementById("btnContactSheet");
+
+  if (engineBadge) {
+    engineBadge.textContent = isTH ? "Engine: Thanh Hai 2D Studio" : "Engine: Remotion 2D";
+    engineBadge.style.color = isTH ? "#c084fc" : "#38bdf8";
+    engineBadge.style.borderColor = isTH ? "#a855f7" : "#0284c7";
+  }
+  if (engineTag) {
+    engineTag.textContent = isTH ? "CANVAS / THREE.JS" : "REMOTION TSX";
+    engineTag.style.backgroundColor = isTH ? "#7c3aed" : "#0284c7";
+  }
+  if (btnContactSheet) {
+    if (isTH) btnContactSheet.classList.remove("hidden");
+    else btnContactSheet.classList.add("hidden");
+  }
+
   // Hiển thị thông tin tổng quan
   document.getElementById("aiProjectNameTitle").textContent = project.name || project.folderName;
   document.getElementById("aiProjectTag").textContent = project.isDemo ? "MẪU KIỂM THỬ CHUẨN" : "DỰ ÁN ĐÃ IMPORT";
@@ -1697,7 +1730,9 @@ function handleAiProjectChanged() {
   document.getElementById("aiBadgeFps").textContent = `${cfg.fps || 30} FPS`;
   const durSec = ((cfg.durationInFrames || 300) / (cfg.fps || 30)).toFixed(1);
   document.getElementById("aiBadgeDuration").textContent = `${cfg.durationInFrames || 300} frames (~${durSec}s)`;
-  document.getElementById("aiBadgeComp").textContent = `Comp: ${cfg.compositionId || "MainVideo"}`;
+  document.getElementById("aiBadgeComp").textContent = isTH
+    ? `Shots: ${cfg.shotsCount || 14} cảnh (${cfg.style || 'dusk'})`
+    : `Comp: ${cfg.compositionId || "MainVideo"}`;
 
   // Cập nhật thanh timeline
   const slider = document.getElementById("previewFrameSlider");
@@ -1923,6 +1958,46 @@ async function inspectCurrentFrame() {
   } finally {
     btn.disabled = false;
     btn.textContent = "📷 Soi Khung Hình Này";
+  }
+}
+
+// Chụp và hiển thị Contact Sheet toàn bộ cảnh (Dành riêng cho Thanh Hai 2D Studio)
+async function inspectContactSheet() {
+  const projectId = aiState.selectedProjectId;
+  if (!projectId) {
+    showToast("Vui lòng chọn một dự án!");
+    return;
+  }
+
+  const btn = document.getElementById("btnContactSheet");
+  btn.disabled = true;
+  btn.textContent = "⏳ Đang tạo Contact Sheet...";
+
+  try {
+    const res = await fetch("/api/ai-code/contact-sheet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    const img = document.getElementById("previewFrameImage");
+    const video = document.getElementById("previewVideoPlayer");
+    const placeholder = document.getElementById("previewPlaceholder");
+
+    img.src = data.sheetUrl;
+    img.classList.remove("hidden");
+    video.classList.add("hidden");
+    placeholder.classList.add("hidden");
+
+    showToast("📋 Đã nạp thành công Contact Sheet toàn bộ 14 Shots!");
+  } catch (err) {
+    showToast("❌ Lỗi nạp Contact Sheet: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "📋 Xem Contact Sheet (Toàn Bộ Shots)";
   }
 }
 

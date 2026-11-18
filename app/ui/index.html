@@ -383,9 +383,12 @@
               </select>
               <button class="btn btn-secondary" onclick="loadAiProjectsList()">🔄</button>
             </div>
-            <div style="margin-top: 12px; display: flex; gap: 8px;">
+            <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; flex: 1;" onclick="selectDemoProject()">
-                ⭐ Nạp Dự Án Mẫu 10s (Hoạt hình 2D Chuẩn)
+                ⭐ Nạp Mẫu Remotion (10s)
+              </button>
+              <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; flex: 1;" onclick="selectThanhHaiDemoProject()">
+                🎨 Nạp Mẫu Thanh Hai 2D (Reaction Time)
               </button>
             </div>
           </div>
@@ -396,9 +399,11 @@
           <div class="overview-header">
             <div>
               <span class="project-tag" id="aiProjectTag">DỰ ÁN AI</span>
+              <span class="project-tag" id="aiEngineTag" style="background-color: #7c3aed; margin-left: 6px;">ENGINE</span>
               <h3 id="aiProjectNameTitle" style="display: inline-block; margin: 0 0 0 10px; color: #f8fafc; font-size: 18px;">Tên Dự Án</h3>
             </div>
             <div id="aiConfigBadges" class="overview-badges">
+              <span class="badge" id="aiBadgeEngine" style="border-color: #a855f7; color: #d8b4fe;">Engine: Remotion</span>
               <span class="badge" id="aiBadgeRes">1920×1080</span>
               <span class="badge" id="aiBadgeFps">30 FPS</span>
               <span class="badge" id="aiBadgeDuration">300 frames (10s)</span>
@@ -483,7 +488,10 @@
                   <button class="btn btn-sm btn-secondary" onclick="stepFrame(30)" title="Tiến 1 giây">+1s ⏭️</button>
                 </div>
 
-                <div class="preview-actions">
+                <div class="preview-actions" style="display: flex; gap: 8px;">
+                  <button id="btnContactSheet" class="btn btn-sm btn-outline hidden" style="border-color: #a855f7; color: #c084fc;" onclick="inspectContactSheet()">
+                    📋 Xem Contact Sheet (Toàn Bộ Shots)
+                  </button>
                   <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="startAiRender(true)">
                     ▶️ Dựng bản xem trước nhanh (5s)
                   </button>

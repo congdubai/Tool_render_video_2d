@@ -1,0 +1,20 @@
+{
+  "name": "thanh-hai-learn-ai-2d-studio",
+  "version": "0.2.0",
+  "description": "Thanh Hai Learn AI 2D Studio: biến giọng đọc thành video hoạt hình người que điện ảnh. Hỏi ngôn ngữ video trước, cảnh 2D + 3D vẽ bằng code, tự đánh mốc thời gian bằng Whisper, 5 phong cách hình ảnh, nhạc và hiệu ứng tự tạo, 16:9 hoặc 9:16 từ 720p đến 4K.",
+  "author": {
+    "name": "Thanh Hai Learn AI"
+  },
+  "keywords": [
+    "video",
+    "animation",
+    "faceless youtube",
+    "stick figure",
+    "explainer",
+    "whisper",
+    "three.js",
+    "motion graphics",
+    "vietnamese",
+    "thanh hai learn ai"
+  ]
+}

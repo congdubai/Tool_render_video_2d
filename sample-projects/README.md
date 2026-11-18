@@ -74,3 +74,4 @@ Tool chia sẻ toàn bộ hệ sinh thái Remotion có sẵn, bao gồm:
 5. Xem trước từng khung hình bằng thanh Timeline và nút **📷 Soi Khung Hình Này**.
 6. Chọn độ phân giải, FPS và nhấn **🚀 Render Video MP4 Hoàn Chỉnh**.
 7. Video MP4 sau khi hoàn tất sẽ được tự động lưu vào thư mục `out/` và nạp vào **Thư viện Video** để xem hoặc tải về.
+

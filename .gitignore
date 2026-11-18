@@ -1,5 +1,11 @@
 # Dependencies
 node_modules/
+thanhhai-2d-studio/node_modules/
+thanhhai-2d-studio/**/build/
+imported_projects/
+out/previews/
+out/metadata/
+*.plugin
 
 # Environment variables
 .env
