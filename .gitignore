@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Remotion cache & binaries
+.remotion/
+node_modules/.remotion/
+
+# Output media (video files)
+out/*.mp4
+out/bench/
+*.mp4
+
+# Audio lines & cache
+public/audio/lines/*.mp3
+src/data/.tts_cache.json
+
+# OS files
+.DS_Store
+Thumbs.db

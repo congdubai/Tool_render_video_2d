@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trình Dựng Video 2D Local - Remotion</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Header chính -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="logo-icon">🎬</div>
+      <div>
+        <h1 class="app-title">Trình Dựng Video 2D Local</h1>
+        <p class="app-subtitle">Ứng dụng Remotion local 2 chức năng (Chạy hoàn toàn trên 127.0.0.1)</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="gpuBadge" class="badge badge-gpu" title="Thông tin xử lý GPU/CPU">
+        <span class="dot"></span> <span id="gpuText">Đang kiểm tra phần cứng...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Thanh điều hướng 2 Tab -->
+  <nav class="tab-nav">
+    <button id="tabBtn1" class="tab-btn active" onclick="switchTab(1)">
+      <span class="tab-num">1</span> Giọng đọc & Timeline
+    </button>
+    <button id="tabBtn2" class="tab-btn" onclick="switchTab(2)">
+      <span class="tab-num">2</span> Dựng video & Ghép giọng
+    </button>
+  </nav>
+
+  <!-- ================= TAB 1: GIỌNG ĐỌC & TIMELINE ================= -->
+  <main id="tabContent1" class="tab-pane active">
+    <section class="card">
+      <div class="card-header">
+        <h2>1. Nhập Kịch Bản Lời Đọc</h2>
+        <span class="hint">Dán toàn bộ văn bản kịch bản để tạo giọng đọc tự động qua Edge TTS</span>
+      </div>
+      <div class="card-body">
+        <textarea
+          id="rawScriptInput"
+          class="code-textarea"
+          rows="5"
+          placeholder="Dán kịch bản vào đây. Ví dụ:&#10;Sáng hôm sau, bạn tỉnh dậy trong một căn phòng không phải của mình.&#10;Bạn nhìn xung quanh và nhận ra mọi đồ vật đều lơ lửng giữa không trung một cách kỳ lạ..."
+        ></textarea>
+
+        <div class="split-controls">
+          <label class="radio-label">
+            <input type="radio" name="splitMode" value="lines" checked /> Tách theo từng dòng xuống hàng
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="splitMode" value="sentences" /> Tự tách câu và gộp tối đa
+            <input type="number" id="maxWordsPerLine" value="25" min="5" max="100" class="input-mini" /> từ/dòng
+          </label>
+          <button class="btn btn-secondary" onclick="splitScriptText()">✂️ Tách kịch bản</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Danh sách xem trước và chỉnh sửa dòng -->
+    <section class="card">
+      <div class="card-header">
+        <h2>2. Danh Sách Dòng Lời Đọc (<span id="lineCountLabel">0</span> dòng)</h2>
+        <div class="card-actions">
+          <button class="btn btn-sm btn-outline" onclick="addNewLine()">➕ Thêm dòng</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="linesPreviewContainer" class="lines-list">
+          <div class="empty-state">Chưa có dòng lời đọc nào. Hãy nhập văn bản ở trên và bấm "Tách kịch bản".</div>
+        </div>
+
+        <div class="tts-settings-bar">
+          <div class="setting-item">
+            <label for="voiceSelect">Giọng đọc:</label>
+            <select id="voiceSelect" class="select-control">
+              <option value="vi-VN-HoaiMyNeural">Nữ - Hoài My (vi-VN-HoaiMyNeural)</option>
+              <option value="vi-VN-NamMinhNeural">Nam - Nam Minh (vi-VN-NamMinhNeural)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label for="rateSelect">Tốc độ:</label>
+            <select id="rateSelect" class="select-control">
+              <option value="-20%">Chậm (-20%)</option>
+              <option value="-10%">Hơi chậm (-10%)</option>
+              <option value="+0%" selected>Bình thường (+0%)</option>
+              <option value="+10%">Hơi nhanh (+10%)</option>
+              <option value="+20%">Nhanh (+20%)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label for="pauseInput">Nghỉ giữa dòng (giây):</label>
+            <input type="number" id="pauseInput" value="0.35" step="0.05" min="0" max="3" class="input-mini" />
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <button id="btnGenerateVoice" class="btn btn-primary btn-lg" onclick="startGenerateVoice()">
+            🎙️ Tạo giọng đọc & Timeline
+          </button>
+          <div id="voiceProgressWrap" class="progress-wrap hidden">
+            <div class="progress-bar-bg">
+              <div id="voiceProgressBar" class="progress-bar-fill" style="width: 0%"></div>
+            </div>
+            <span id="voiceProgressText" class="progress-text">Đang tạo... 0/0</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bảng kết quả Timeline -->
+    <section id="timelineResultSection" class="card hidden">
+      <div class="card-header">
+        <h2>3. Bảng Timeline & Phụ Đề Cho AI</h2>
+        <div class="card-actions">
+          <button class="btn btn-sm btn-success" onclick="copyTimelineForAi()">📋 Sao chép bảng cho AI</button>
+          <a id="btnDownloadVoiceFull" class="btn btn-sm btn-outline" href="/out/voice_full.mp3" download>⬇️ voice_full.mp3</a>
+          <a id="btnDownloadSrt" class="btn btn-sm btn-outline" href="/out/voice.srt" download>⬇️ voice.srt</a>
+          <a id="btnDownloadMd" class="btn btn-sm btn-outline" href="/out/timeline_for_ai.md" download>⬇️ timeline_for_ai.md</a>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- Visualizer Bar -->
+        <div class="timeline-visualizer-wrap">
+          <div class="visualizer-header">
+            <span>Toàn cảnh thời lượng: <strong id="totalDurationText">0s</strong> (<span id="totalLinesText">0</span> dòng)</span>
+          </div>
+          <div id="timelineVisualizerBar" class="timeline-visualizer-bar"></div>
+        </div>
+
+        <!-- Bảng chi tiết -->
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th width="40">STT</th>
+                <th width="90">ID</th>
+                <th width="120">Thời gian</th>
+                <th width="80">Độ dài</th>
+                <th>Lời đọc nguyên văn</th>
+                <th width="110">Nghe thử</th>
+                <th width="240">Gợi ý phân cảnh cho AI</th>
+              </tr>
+            </thead>
+            <tbody id="timelineTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= TAB 2: DỰNG VIDEO ================= -->
+  <main id="tabContent2" class="tab-pane">
+    <div class="grid-2-cols">
+      <!-- Cột 1: Dán scenes.json và kiểm tra -->
+      <section class="card">
+        <div class="card-header">
+          <h2>1. Cấu Hình Cảnh (scenes.json)</h2>
+          <div class="card-actions">
+            <button class="btn btn-sm btn-outline" onclick="loadSampleScenes()">📄 Nạp mẫu thử nghiệm</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="hint">Dán nội dung <code>scenes.json</code> do AI sinh ra dựa trên timeline ở Tab 1:</p>
+          <textarea id="scenesJsonInput" class="code-textarea" rows="14" placeholder='{ "scenes": [ { "id": "scene_001", "start": 0, "end": 4.72, ... } ] }'></textarea>
+
+          <div class="action-bar-left">
+            <button class="btn btn-primary" onclick="validateScenesData()">🔍 Kiểm tra dữ liệu</button>
+          </div>
+
+          <!-- Thông báo kiểm tra lỗi -->
+          <div id="validationResultBox" class="validation-box hidden"></div>
+        </div>
+      </section>
+
+      <!-- Cột 2: Danh sách ảnh & Kéo thả -->
+      <section class="card">
+        <div class="card-header">
+          <h2>2. Danh Sách Ảnh Cần Thiết</h2>
+          <span class="hint">Rút trích tự động từ scenes.json</span>
+        </div>
+        <div class="card-body">
+          <div id="assetChecklist" class="asset-checklist">
+            <div class="empty-state">Chưa có dữ liệu cảnh. Hãy dán <code>scenes.json</code> và bấm "Kiểm tra dữ liệu".</div>
+          </div>
+
+          <!-- Khu vực kéo thả ảnh -->
+          <div id="dropZone" class="drop-zone">
+            <div class="drop-icon">🖼️</div>
+            <div class="drop-title">Kéo & thả ảnh nền / nhân vật vào đây</div>
+            <div class="drop-subtitle">Hỗ trợ PNG, JPG, WebP. Tự động đưa vào <code>public/backgrounds/</code> hoặc <code>public/characters/</code></div>
+            <input type="file" id="filePickerInput" multiple accept="image/*" class="file-hidden" onchange="handleFileSelect(event)" />
+            <button class="btn btn-sm btn-outline" onclick="document.getElementById('filePickerInput').click()">Chọn file từ máy</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Cài đặt Render & Hành động -->
+    <section class="card">
+      <div class="card-header">
+        <h2>3. Thiết Lập & Dựng Video</h2>
+      </div>
+      <div class="card-body">
+        <div class="render-settings-grid">
+          <div class="setting-item">
+            <label>Độ phân giải:</label>
+            <select id="resolutionSelect" class="select-control">
+              <option value="720p" selected>720p (1280x720) - Khuyên dùng</option>
+              <option value="1080p">1080p (1920x1080)</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label>Số luồng render:</label>
+            <input type="number" id="concurrencyInput" value="4" min="1" max="8" class="input-mini" />
+            <span class="hint-small">(Tối đa 4 để tiết kiệm RAM 20GB)</span>
+          </div>
+
+          <div class="setting-item">
+            <label>Tăng tốc GPU:</label>
+            <select id="gpuModeSelect" class="select-control">
+              <option value="cpu" selected>Tắt (CPU, Mặc định ổn định nhất)</option>
+              <option value="gpu_nvenc">Mã hóa GPU (NVIDIA NVENC)</option>
+              <option value="gpu_angle">Mã hóa & Vẽ GPU (NVENC + ANGLE)</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label>&nbsp;</label>
+            <button class="btn btn-secondary" onclick="runGpuBenchmark()">⏱️ Đo thử tốc độ (5s)</button>
+          </div>
+        </div>
+
+        <!-- Bảng benchmark nhỏ -->
+        <div id="benchResultBox" class="bench-box hidden"></div>
+
+        <div class="action-bar">
+          <button id="btnRenderTest" class="btn btn-secondary btn-lg" onclick="startRender(true)">
+            ▶️ Dựng thử 10 giây
+          </button>
+          <button id="btnRenderFull" class="btn btn-primary btn-lg" onclick="startRender(false)">
+            🎬 Dựng video hoàn chỉnh
+          </button>
+          <button id="btnCancelRender" class="btn btn-danger btn-lg hidden" onclick="cancelRender()">
+            ⏹️ Hủy dựng
+          </button>
+        </div>
+
+        <!-- Thanh tiến độ Render -->
+        <div id="renderProgressWrap" class="render-progress-wrap hidden">
+          <div class="progress-info-row">
+            <span id="renderStatusText">Đang khởi động tiến trình Remotion...</span>
+            <span id="renderTimeRemainingText">Còn lại: ~...</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="renderProgressBar" class="progress-bar-fill progress-render" style="width: 0%"></div>
+          </div>
+          <div class="progress-frames-row">
+            <span id="renderFramesText">0 / 0 khung hình</span>
+            <span id="renderPercentText">0%</span>
+          </div>
+        </div>
+
+        <!-- Kết quả xem video -->
+        <div id="videoResultBox" class="video-result-box hidden">
+          <div class="result-header">
+            <h3>🎉 Dựng video thành công!</h3>
+            <button class="btn btn-sm btn-outline" onclick="openOutputFolder()">📂 Mở thư mục chứa video</button>
+          </div>
+          <div class="video-player-wrap">
+            <video id="outputVideoPlayer" controls width="100%"></video>
+          </div>
+          <p class="video-path-hint">File lưu tại: <code id="outputVideoPath">out/video.mp4</code></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast thông báo -->
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+

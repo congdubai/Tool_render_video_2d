@@ -1,0 +1,27 @@
+{
+  "meta": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "music": null,
+    "musicVolume": 0.08,
+    "fadeSeconds": 0.3,
+    "voice": {
+      "provider": "edge",
+      "name": "vi-VN-HoaiMyNeural",
+      "rate": "+0%"
+    }
+  },
+  "lines": [
+    {
+      "id": "line_001",
+      "narration": "Sáng hôm sau, bạn tỉnh dậy trong một căn phòng không phải của mình.",
+      "pause": 0.35
+    },
+    {
+      "id": "line_002",
+      "narration": "Bạn nhìn xung quanh và nhận ra mọi đồ vật đều lơ lửng giữa không trung một cách kỳ lạ, như thể trọng lực của cả căn phòng đã hoàn toàn biến mất không để lại dấu vết.",
+      "pause": 0.35
+    }
+  ]
+}
