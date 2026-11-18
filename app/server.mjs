@@ -287,35 +287,43 @@ app.post("/api/scenes/validate", (req, res) => {
 });
 
 /**
- * 5. Kéo thả tải ảnh lên an toàn (chống Path Traversal)
+ * Chuẩn hóa tên file: khử dấu tiếng Việt, khoảng trắng và ký tự lạ để lưu file an toàn
+ */
+function sanitizeFilename(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  const nameWithoutExt = path.basename(filename, ext);
+
+  const cleanName = nameWithoutExt
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .replace(/[^a-zA-Z0-9_\-]/g, "_")
+    .replace(/_+/g, "_")
+    .slice(0, 45);
+
+  const safeExt = [".png", ".jpg", ".jpeg", ".webp", ".gif"].includes(ext) ? ext : ".png";
+  const uniqueSuffix = Date.now().toString().slice(-4);
+  return `${cleanName || "asset"}_${uniqueSuffix}${safeExt}`;
+}
+
+/**
+ * 5. Tải ảnh lên an toàn và lưu vào folder public/ máy tính
  */
 app.post("/api/assets/upload", (req, res) => {
   try {
-    const { filename, base64Data, type, overwrite = false } = req.body;
+    const { filename, base64Data, type, overwrite = true } = req.body;
 
     if (!filename || !base64Data) {
       return res.status(400).json({ success: false, error: "Thiếu tên file hoặc dữ liệu ảnh." });
     }
 
-    // Bảo mật: Sử dụng path.basename() để triệt tiêu mọi ký tự ../ hay \
-    const safeFilename = path.basename(filename);
-    if (!safeFilename || safeFilename === "." || safeFilename.includes("..")) {
-      return res.status(400).json({ success: false, error: "Tên file không an toàn (phát hiện Path Traversal)." });
-    }
-
+    const safeFilename = sanitizeFilename(filename);
     const subDir = type === "character" ? "characters" : "backgrounds";
     const targetDir = path.join(projectRoot, "public", subDir);
     fs.mkdirSync(targetDir, { recursive: true });
 
     const targetPath = path.join(targetDir, safeFilename);
-
-    if (fs.existsSync(targetPath) && !overwrite) {
-      return res.json({
-        success: false,
-        fileExists: true,
-        message: `File '${safeFilename}' đã tồn tại trong ${subDir}/. Bạn có muốn ghi đè không?`
-      });
-    }
 
     // Gỡ bỏ header data:image/png;base64,... nếu có
     const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
@@ -324,7 +332,7 @@ app.post("/api/assets/upload", (req, res) => {
     res.json({
       success: true,
       path: `${subDir}/${safeFilename}`,
-      message: `Đã tải ảnh lên: public/${subDir}/${safeFilename}`
+      message: `Đã lưu ảnh vào: public/${subDir}/${safeFilename}`
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

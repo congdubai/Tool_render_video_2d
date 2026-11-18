@@ -500,7 +500,24 @@ function readFileAsOptimizedDataUrl(file) {
   });
 }
 
-// Xử lý khi người dùng chọn file ảnh từ máy (Đọc thẳng vào RAM dạng Base64 Data URL, KHÔNG lưu ổ đĩa)
+// Mở thư mục trên máy tính
+async function openFolder(type) {
+  try {
+    const res = await fetch("/api/open-folder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`📁 Đã mở thư mục: ${type}`);
+    }
+  } catch (err) {
+    showToast("Không thể mở thư mục: " + err.message);
+  }
+}
+
+// Xử lý khi người dùng chọn file ảnh từ máy (Tải lên server và lưu vào folder public/)
 async function handleSlotFileChange(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
@@ -518,35 +535,52 @@ async function handleSlotFileChange(event) {
   }
 
   try {
-    showToast("⏳ Đang nạp ảnh...");
+    showToast("⏳ Đang tải và lưu ảnh vào thư mục...");
     const dataUrl = await readFileAsOptimizedDataUrl(file);
     if (!dataUrl) {
       showToast("❌ Không thể đọc file ảnh này!");
       return;
     }
 
+    const uploadType = role === "character" ? "character" : "background";
+    const uploadRes = await fetch("/api/assets/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: file.name,
+        base64Data: dataUrl,
+        type: uploadType,
+        overwrite: true
+      })
+    });
+    const uploadData = await uploadRes.json();
+    if (!uploadData.success) {
+      throw new Error(uploadData.error || "Không thể lưu ảnh vào máy tính");
+    }
+
+    const savedPath = uploadData.path; // Ví dụ: "backgrounds/anh_nen_1234.jpg"
     const targetScene = appState.scenesData.scenes[sceneIndex];
 
     if (role === "bg") {
-      targetScene.bg = dataUrl;
-      showToast(`✅ Đã nạp ảnh nền cho Cảnh ${sceneIndex + 1} (RAM - Không lưu ổ đĩa)`);
+      targetScene.bg = savedPath;
+      showToast(`✅ Đã lưu vào public/${savedPath} và gán vào Cảnh ${sceneIndex + 1}`);
     } else if (role === "character") {
       if (!targetScene.character) {
         targetScene.character = {
-          image: dataUrl,
+          image: savedPath,
           position: "right",
           scale: 0.8,
           flip: false
         };
       } else {
-        targetScene.character.image = dataUrl;
+        targetScene.character.image = savedPath;
       }
-      showToast(`✅ Đã nạp nhân vật cho Cảnh ${sceneIndex + 1} (RAM - Không lưu ổ đĩa)`);
+      showToast(`✅ Đã lưu vào public/${savedPath} và gán vào Cảnh ${sceneIndex + 1}`);
     }
 
     syncScenesToInputAndValidate();
   } catch (err) {
-    showToast("Lỗi khi nạp ảnh: " + err.message);
+    showToast("Lỗi khi tải ảnh: " + err.message);
   }
 }
 
@@ -630,7 +664,7 @@ function syncScenesToInputAndValidate() {
   validateScenesData();
 }
 
-// Thiết lập Drag and Drop đọc trực tiếp vào RAM (In-Memory)
+// Thiết lập Drag and Drop lưu trực tiếp vào folder máy tính
 function setupDropZone() {
   const dropZone = document.getElementById("dropZone");
   if (!dropZone) return;
@@ -660,6 +694,7 @@ function setupDropZone() {
     for (const file of files) {
       const isChar = /char|nhanvat|nhân vật|stick|ngac|vui|buon/i.test(file.name);
       const role = isChar ? "character" : "bg";
+      const uploadType = isChar ? "character" : "background";
 
       let targetIndex = 0;
       for (let i = 0; i < scenes.length; i++) {
@@ -677,18 +712,32 @@ function setupDropZone() {
         const dataUrl = await readFileAsOptimizedDataUrl(file);
         if (!dataUrl) continue;
 
+        const uploadRes = await fetch("/api/assets/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filename: file.name,
+            base64Data: dataUrl,
+            type: uploadType,
+            overwrite: true
+          })
+        });
+        const uploadData = await uploadRes.json();
+        if (!uploadData.success) continue;
+
+        const savedPath = uploadData.path;
         if (role === "bg") {
-          scenes[targetIndex].bg = dataUrl;
+          scenes[targetIndex].bg = savedPath;
         } else {
           if (!scenes[targetIndex].character) {
-            scenes[targetIndex].character = { image: dataUrl, position: "right", scale: 0.8, flip: false };
+            scenes[targetIndex].character = { image: savedPath, position: "right", scale: 0.8, flip: false };
           } else {
-            scenes[targetIndex].character.image = dataUrl;
+            scenes[targetIndex].character.image = savedPath;
           }
         }
-        showToast(`✅ Đã nạp ${isChar ? "nhân vật" : "ảnh nền"} vào Cảnh ${targetIndex + 1} (RAM)`);
+        showToast(`✅ Đã lưu ${isChar ? "nhân vật" : "ảnh nền"} vào public/${savedPath}`);
       } catch (err) {
-        showToast("Lỗi nạp ảnh: " + err.message);
+        showToast("Lỗi tải ảnh: " + err.message);
       }
     }
 
@@ -740,7 +789,7 @@ function renderAssetChecklist(assets) {
       const isBgBase64 = hasBg && scene.bg.startsWith("data:");
       const bgSrc = hasBg ? (isBgBase64 ? scene.bg : `/public/${scene.bg}?t=${Date.now()}`) : null;
       const bgLabel = hasBg
-        ? (isBgBase64 ? "⚡ Lưu trong RAM (Base64)" : scene.bg.split("/").pop())
+        ? (isBgBase64 ? "⚡ RAM (Base64)" : `📁 public/${scene.bg}`)
         : "Chưa chọn ảnh nền";
 
       const bgHtml = hasBg
@@ -749,7 +798,7 @@ function renderAssetChecklist(assets) {
           <img src="${bgSrc}" class="slot-thumb" title="Click để phóng to ảnh nền" onclick="viewLargeImage('${bgSrc}')" alt="Nền cảnh ${sceneNum}" />
           <div class="slot-info">
             <span class="slot-role">🖼️ Ảnh Nền</span>
-            <span class="slot-status ${isBgBase64 ? 'in-memory' : ''}">${escapeHtml(bgLabel)}</span>
+            <span class="slot-status" title="${escapeHtml(bgLabel)}">${escapeHtml(bgLabel)}</span>
           </div>
           <div class="slot-actions">
             <button class="btn-slot-edit" onclick="openSlotPicker(${idx}, 'bg')" title="Chọn ảnh khác thay thế">✏️ Đổi</button>
@@ -776,7 +825,7 @@ function renderAssetChecklist(assets) {
       const charSrc = hasChar ? (isCharBase64 ? scene.character.image : `/public/${scene.character.image}?t=${Date.now()}`) : null;
       const charPos = scene.character?.position ? `(${scene.character.position})` : "";
       const charLabel = hasChar
-        ? (isCharBase64 ? `⚡ Lưu trong RAM ${charPos}` : `${scene.character.image.split("/").pop()} ${charPos}`)
+        ? (isCharBase64 ? `⚡ RAM ${charPos}` : `📁 public/${scene.character.image} ${charPos}`)
         : "Không có nhân vật";
 
       const charHtml = hasChar
@@ -785,7 +834,7 @@ function renderAssetChecklist(assets) {
           <img src="${charSrc}" class="slot-thumb" style="background-color: #334155;" title="Click để phóng to nhân vật" onclick="viewLargeImage('${charSrc}')" alt="Nhân vật cảnh ${sceneNum}" />
           <div class="slot-info">
             <span class="slot-role">👤 Nhân Vật</span>
-            <span class="slot-status ${isCharBase64 ? 'in-memory' : ''}">${escapeHtml(charLabel)}</span>
+            <span class="slot-status" title="${escapeHtml(charLabel)}">${escapeHtml(charLabel)}</span>
           </div>
           <div class="slot-actions">
             <button class="btn-slot-edit" onclick="openSlotPicker(${idx}, 'character')" title="Chọn ảnh nhân vật khác thay thế">✏️ Đổi</button>

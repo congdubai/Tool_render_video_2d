@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Trình Dựng Video 2D Local - Remotion</title>
-  <link rel="stylesheet" href="style.css?v=2.4" />
+  <link rel="stylesheet" href="style.css?v=2.5" />
 </head>
 <body>
   <!-- Header chính -->
@@ -183,13 +183,14 @@
       <!-- Cột 2: Danh sách ảnh & Kéo thả -->
       <section class="card">
         <div class="card-header">
-          <h2>2. Quản Lý Ảnh Trong Cảnh (Không cần lưu ổ đĩa)</h2>
+          <h2>2. Quản Lý Ảnh Trong Cảnh (Lưu vào folder máy)</h2>
           <div class="card-actions">
-            <span class="hint" style="color: #38bdf8;">⚡ Ảnh lưu trực tiếp trong bộ nhớ RAM</span>
+            <button class="btn btn-sm btn-outline" onclick="openFolder('backgrounds')" title="Mở thư mục ảnh nền trên máy tính">📁 Mở mục Nền</button>
+            <button class="btn btn-sm btn-outline" onclick="openFolder('characters')" title="Mở thư mục ảnh nhân vật trên máy tính">📁 Mở mục Nhân vật</button>
           </div>
         </div>
         <div class="card-body">
-          <p class="hint" style="margin-bottom: 12px;">Xem trước, đổi ảnh hoặc xóa ảnh trực tiếp cho từng cảnh:</p>
+          <p class="hint" style="margin-bottom: 12px;">Xem trước, đổi ảnh hoặc xóa ảnh trực tiếp cho từng cảnh (Tự động lưu vào folder <code>public/</code>):</p>
           <div id="assetChecklist" class="asset-checklist">
             <div class="empty-state">Chưa có dữ liệu cảnh. Hãy dán <code>scenes.json</code> và bấm "Kiểm tra dữ liệu".</div>
           </div>
@@ -200,10 +201,10 @@
           <!-- Khu vực kéo thả / chọn ảnh trực tiếp -->
           <div id="dropZone" class="drop-zone">
             <div class="drop-icon">🖼️</div>
-            <div class="drop-title">Chọn ảnh trực tiếp từ máy tính (Không lưu vào folder)</div>
+            <div class="drop-title">Kéo & thả hoặc chọn ảnh từ máy tính</div>
             <div class="drop-subtitle">
-              Ảnh được đọc trực tiếp vào bộ nhớ RAM và tự động gán vào cảnh.<br />
-              Không tạo file rác trên ổ cứng máy tính.
+              Ảnh nền được lưu tự động vào <code>public/backgrounds/</code><br />
+              Ảnh nhân vật được lưu tự động vào <code>public/characters/</code>
             </div>
             <div style="display: flex; justify-content: center; gap: 10px;">
               <button class="btn btn-sm btn-primary" onclick="triggerQuickUpload('bg')">🖼️ Thêm ảnh Nền cho Cảnh 1</button>
@@ -351,7 +352,7 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=2.4"></script>
+  <script src="app.js?v=2.5"></script>
 </body>
 </html>
 
