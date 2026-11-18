@@ -446,21 +446,26 @@ app.post("/api/render/bench", async (req, res) => {
 });
 
 /**
- * 10. Mở thư mục out/ trên File Explorer (Windows / macOS)
+ * 10. Mở thư mục out/ hoặc thư mục public assets trên File Explorer
  */
 app.post("/api/open-folder", async (req, res) => {
   try {
-    const outDir = path.join(projectRoot, "out");
-    fs.mkdirSync(outDir, { recursive: true });
+    const { type = "out" } = req.body || {};
+    let targetDir = path.join(projectRoot, "out");
+    if (type === "backgrounds") targetDir = path.join(projectRoot, "public/backgrounds");
+    if (type === "characters") targetDir = path.join(projectRoot, "public/characters");
+    if (type === "public") targetDir = path.join(projectRoot, "public");
+
+    fs.mkdirSync(targetDir, { recursive: true });
 
     if (process.platform === "win32") {
-      await execAsync(`explorer.exe "${outDir}"`);
+      await execAsync(`explorer.exe "${targetDir}"`);
     } else if (process.platform === "darwin") {
-      await execAsync(`open "${outDir}"`);
+      await execAsync(`open "${targetDir}"`);
     } else {
-      await execAsync(`xdg-open "${outDir}"`);
+      await execAsync(`xdg-open "${targetDir}"`);
     }
-    res.json({ success: true, message: "Đã mở thư mục out/" });
+    res.json({ success: true, message: `Đã mở thư mục ${type}` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

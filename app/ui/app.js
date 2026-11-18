@@ -420,7 +420,31 @@ async function validateScenesData() {
   }
 }
 
-// Hiển thị danh sách kiểm tra ảnh (Checklist)
+let uploadTargetType = "background";
+
+function triggerFilePicker(type) {
+  uploadTargetType = type;
+  document.getElementById("filePickerInput").click();
+}
+
+// Mở thư mục chứa file trên máy
+async function openFolder(type) {
+  try {
+    const res = await fetch("/api/open-folder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Đã mở thư mục: ${type}`);
+    }
+  } catch (err) {
+    showToast("Không thể mở thư mục: " + err.message);
+  }
+}
+
+// Hiển thị danh sách kiểm tra ảnh (Checklist Trực Quan có Thumbnail)
 function renderAssetChecklist(assets) {
   const container = document.getElementById("assetChecklist");
   if (!assets || assets.length === 0) {
@@ -428,71 +452,61 @@ function renderAssetChecklist(assets) {
     return;
   }
 
+  const assetTypeLabels = {
+    bg: "Ảnh Nền (Background)",
+    character: "Ảnh Nhân Vật (PNG Trong Suốt)",
+    foreground: "Ảnh Tiền Cảnh (Foreground)"
+  };
+
   container.innerHTML = assets
-    .map(
-      (a) => `
-    <div class="asset-row">
-      <div>
-        <span class="hint">${a.type.toUpperCase()}:</span>
-        <span class="asset-name">public/${a.path}</span>
+    .map((a) => {
+      const fileName = a.path.split("/").pop();
+      const typeLabel = assetTypeLabels[a.type] || a.type.toUpperCase();
+      const imageUrl = `/public/${a.path}?t=${Date.now()}`;
+
+      const thumbHtml = a.exists
+        ? `<img src="${imageUrl}" class="asset-thumb" title="Click để xem ảnh to" onclick="window.open('${imageUrl}', '_blank')" alt="${fileName}" />`
+        : `<div class="asset-thumb asset-thumb-missing" title="Chưa có file">Chưa có</div>`;
+
+      const badgeHtml = a.exists
+        ? `<span class="asset-badge asset-ok">✓ Đã có trong thư mục</span>`
+        : `<span class="asset-badge asset-missing">✗ Chưa tìm thấy file</span>`;
+
+      return `
+      <div class="asset-card">
+        <div class="asset-left">
+          ${thumbHtml}
+          <div class="asset-details">
+            <span class="asset-type-tag">${typeLabel}</span>
+            <span class="asset-name" title="${fileName}">${fileName}</span>
+            <span class="asset-path-hint">📁 Vị trí lưu: <code>public/${a.path}</code></span>
+          </div>
+        </div>
+        ${badgeHtml}
       </div>
-      <div>
-        ${
-          a.exists
-            ? `<span class="asset-badge asset-ok">✓ Đã có</span>`
-            : `<span class="asset-badge asset-missing">✗ Còn thiếu</span>`
-        }
-      </div>
-    </div>
-  `
-    )
+    `;
+    })
     .join("");
 }
 
-// Xử lý Kéo & Thả ảnh (Drop Zone)
-function setupDropZone() {
-  const dropZone = document.getElementById("dropZone");
-
-  ["dragenter", "dragover"].forEach((eventName) => {
-    dropZone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      dropZone.classList.add("dragover");
-    });
-  });
-
-  ["dragleave", "drop"].forEach((eventName) => {
-    dropZone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      dropZone.classList.remove("dragover");
-    });
-  });
-
-  dropZone.addEventListener("drop", (e) => {
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      uploadFiles(files);
-    }
-  });
-}
-
-function handleFileSelect(e) {
-  const files = e.target.files;
-  if (files && files.length > 0) {
-    uploadFiles(files);
-  }
-}
-
-// Tải file lên server
+// Tải file lên server và hiển thị danh sách vừa tải
 async function uploadFiles(fileList) {
+  const recentBox = document.getElementById("recentUploadsBox");
+  const recentList = document.getElementById("recentUploadsList");
+
   for (let i = 0; i < fileList.length; i++) {
     const file = fileList[i];
     const reader = new FileReader();
 
     reader.onload = async (event) => {
       const base64Data = event.target.result;
-      // Đoán loại thư mục: nếu tên chứa char/nhanvat -> characters, ngược lại backgrounds
-      const isChar = /char|nhanvat|ngac|vui|buon/i.test(file.name);
-      const type = isChar ? "character" : "background";
+      // Xác định loại thư mục đích
+      let type = uploadTargetType;
+      if (/char|nhanvat|ngac|vui|buon/i.test(file.name)) {
+        type = "character";
+      } else if (/bg|scene|nen|room|phong/i.test(file.name)) {
+        type = "background";
+      }
 
       try {
         const res = await fetch("/api/assets/upload", {
@@ -504,16 +518,25 @@ async function uploadFiles(fileList) {
 
         if (data.fileExists) {
           if (confirm(data.message)) {
-            // Xác nhận ghi đè
             await fetch("/api/assets/upload", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ filename: file.name, base64Data, type, overwrite: true })
             });
-            showToast(`Đã ghi đè: ${file.name}`);
+            showToast(`Đã ghi đè ảnh: ${file.name}`);
           }
         } else if (data.success) {
-          showToast(`✅ ${data.message}`);
+          showToast(`✅ Đã lưu ảnh vào: public/${data.path}`);
+
+          // Cập nhật danh sách ảnh vừa tải
+          recentBox.classList.remove("hidden");
+          const item = document.createElement("div");
+          item.className = "recent-upload-item";
+          item.innerHTML = `
+            <img src="${base64Data}" class="recent-upload-thumb" />
+            <span><strong>${file.name}</strong> ➔ <code>public/${data.path}</code></span>
+          `;
+          recentList.prepend(item);
         } else {
           showToast(`❌ ${data.error}`);
         }

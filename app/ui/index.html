@@ -181,20 +181,36 @@
       <section class="card">
         <div class="card-header">
           <h2>2. Danh Sách Ảnh Cần Thiết</h2>
-          <span class="hint">Rút trích tự động từ scenes.json</span>
+          <div class="card-actions">
+            <button class="btn btn-sm btn-outline" onclick="openFolder('backgrounds')" title="Mở thư mục chứa ảnh nền trên máy">📁 Mở mục Nền</button>
+            <button class="btn btn-sm btn-outline" onclick="openFolder('characters')" title="Mở thư mục chứa ảnh nhân vật trên máy">📁 Mở mục Nhân vật</button>
+          </div>
         </div>
         <div class="card-body">
+          <p class="hint" style="margin-bottom: 12px;">Xem trước ảnh và kiểm tra vị trí file được lưu:</p>
           <div id="assetChecklist" class="asset-checklist">
             <div class="empty-state">Chưa có dữ liệu cảnh. Hãy dán <code>scenes.json</code> và bấm "Kiểm tra dữ liệu".</div>
+          </div>
+
+          <!-- Danh sách ảnh vừa tải lên -->
+          <div id="recentUploadsBox" class="recent-uploads-box hidden">
+            <div class="recent-uploads-title">📸 Ảnh vừa tải lên thành công:</div>
+            <div id="recentUploadsList" class="recent-uploads-list"></div>
           </div>
 
           <!-- Khu vực kéo thả ảnh -->
           <div id="dropZone" class="drop-zone">
             <div class="drop-icon">🖼️</div>
             <div class="drop-title">Kéo & thả ảnh nền / nhân vật vào đây</div>
-            <div class="drop-subtitle">Hỗ trợ PNG, JPG, WebP. Tự động đưa vào <code>public/backgrounds/</code> hoặc <code>public/characters/</code></div>
+            <div class="drop-subtitle">
+              Ảnh nền tự động lưu vào <code>public/backgrounds/</code><br />
+              Ảnh nhân vật tự động lưu vào <code>public/characters/</code>
+            </div>
             <input type="file" id="filePickerInput" multiple accept="image/*" class="file-hidden" onchange="handleFileSelect(event)" />
-            <button class="btn btn-sm btn-outline" onclick="document.getElementById('filePickerInput').click()">Chọn file từ máy</button>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+              <button class="btn btn-sm btn-primary" onclick="triggerFilePicker('background')">➕ Thêm ảnh Nền</button>
+              <button class="btn btn-sm btn-secondary" onclick="triggerFilePicker('character')">➕ Thêm ảnh Nhân vật</button>
+            </div>
           </div>
         </div>
       </section>
