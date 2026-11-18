@@ -82,8 +82,14 @@ function switchTab(tabNum) {
   document.querySelectorAll(".tab-btn").forEach((btn) => btn.classList.remove("active"));
   document.querySelectorAll(".tab-pane").forEach((pane) => pane.classList.remove("active"));
 
-  document.getElementById(`tabBtn${tabNum}`).classList.add("active");
-  document.getElementById(`tabContent${tabNum}`).classList.add("active");
+  const btn = document.getElementById(`tabBtn${tabNum}`);
+  const pane = document.getElementById(`tabContent${tabNum}`);
+  if (btn) btn.classList.add("active");
+  if (pane) pane.classList.add("active");
+
+  if (tabNum === 3) {
+    loadAiProjectsList();
+  }
 }
 
 // ================= TAB 1: GIỌNG ĐỌC & TIMELINE =================
@@ -1442,48 +1448,131 @@ function setupSse() {
 
   evtSource.addEventListener("render_progress", (e) => {
     const p = JSON.parse(e.data);
-    document.getElementById("renderProgressBar").style.width = `${p.progress}%`;
-    document.getElementById("renderPercentText").textContent = `${p.progress}%`;
-    document.getElementById("renderFramesText").textContent = `${p.renderedFrames} / ${p.totalFrames} khung hình`;
+    
+    // Cập nhật giao diện Tab 2
+    const bar2 = document.getElementById("renderProgressBar");
+    if (bar2) bar2.style.width = `${p.progress}%`;
+    const pct2 = document.getElementById("renderPercentText");
+    if (pct2) pct2.textContent = `${p.progress}%`;
+    const fr2 = document.getElementById("renderFramesText");
+    if (fr2) fr2.textContent = `${p.renderedFrames} / ${p.totalFrames} khung hình`;
     if (p.timeRemainingMs) {
-      document.getElementById("renderTimeRemainingText").textContent = `Còn lại: ~${Math.round(p.timeRemainingMs / 1000)}s`;
+      const time2 = document.getElementById("renderTimeRemainingText");
+      if (time2) time2.textContent = `Còn lại: ~${Math.round(p.timeRemainingMs / 1000)}s`;
+    }
+
+    // Cập nhật giao diện Tab 3 (AI Code Render)
+    const bar3 = document.getElementById("aiRenderProgressBar");
+    if (bar3) bar3.style.width = `${p.progress}%`;
+    const pct3 = document.getElementById("aiRenderPercentText");
+    if (pct3) pct3.textContent = `${p.progress}%`;
+    const fr3 = document.getElementById("aiRenderFramesText");
+    if (fr3) fr3.textContent = `${p.renderedFrames} / ${p.totalFrames} khung hình`;
+    if (p.timeRemainingMs) {
+      const time3 = document.getElementById("aiRenderTimeRemainingText");
+      if (time3) time3.textContent = `Còn lại: ~${Math.round(p.timeRemainingMs / 1000)}s`;
     }
   });
 
-  evtSource.addEventListener("render_complete", (e) => {
-    const data = JSON.parse(e.data);
-    document.getElementById("btnRenderTest").disabled = false;
-    document.getElementById("btnRenderFull").disabled = false;
-    document.getElementById("btnCancelRender").classList.add("hidden");
-    document.getElementById("renderProgressWrap").classList.add("hidden");
+  const handleRenderFinished = (data) => {
+    // Reset Tab 2
+    const btnTest = document.getElementById("btnRenderTest");
+    if (btnTest) btnTest.disabled = false;
+    const btnFull = document.getElementById("btnRenderFull");
+    if (btnFull) btnFull.disabled = false;
+    const btnCancel = document.getElementById("btnCancelRender");
+    if (btnCancel) btnCancel.classList.add("hidden");
+    const prog2 = document.getElementById("renderProgressWrap");
+    if (prog2) prog2.classList.add("hidden");
+
+    // Reset Tab 3
+    aiState.isRendering = false;
+    const btnAiFull = document.getElementById("btnAiRenderFull");
+    if (btnAiFull) btnAiFull.disabled = false;
+    const btnAiCancel = document.getElementById("btnCancelAiRender");
+    if (btnAiCancel) btnAiCancel.classList.add("hidden");
+    const prog3 = document.getElementById("aiRenderProgressWrap");
+    if (prog3) prog3.classList.add("hidden");
+
+    const logsContent = document.getElementById("aiRenderLogsContent");
+    if (logsContent) {
+      logsContent.innerHTML += `<div style="color: #38bdf8;">[${new Date().toLocaleTimeString()}] 🎉 Hoàn tất xuất MP4: "${data.videoName || 'video'}" trong ${data.executionTimeSec || 0}s!</div>`;
+    }
 
     loadVideosList();
     playVideo(data.videoUrl, data.videoName || "video.mp4", true);
-    showToast(`🎉 Dựng xong video "${data.videoName || 'video'}" trong ${data.executionTimeSec}s!`);
+    showToast(`🎉 Dựng xong video "${data.videoName || 'video'}" trong ${data.executionTimeSec || 0}s!`);
 
     window.dispatchEvent(new Event("sse_render_complete"));
 
     if (data.fallbackUsed) {
       alert(`⚠️ Lưu ý: Bộ tăng tốc GPU gặp lỗi nên hệ thống đã tự động quay về CPU an toàn:\n${data.fallbackReason}`);
     }
+  };
+
+  evtSource.addEventListener("render_complete", (e) => {
+    handleRenderFinished(JSON.parse(e.data));
+  });
+
+  evtSource.addEventListener("render_done", (e) => {
+    handleRenderFinished(JSON.parse(e.data));
   });
 
   evtSource.addEventListener("render_error", (e) => {
     const data = JSON.parse(e.data);
-    document.getElementById("btnRenderTest").disabled = false;
-    document.getElementById("btnRenderFull").disabled = false;
-    document.getElementById("btnCancelRender").classList.add("hidden");
-    document.getElementById("renderProgressWrap").classList.add("hidden");
+    
+    // Reset Tab 2
+    const btnTest = document.getElementById("btnRenderTest");
+    if (btnTest) btnTest.disabled = false;
+    const btnFull = document.getElementById("btnRenderFull");
+    if (btnFull) btnFull.disabled = false;
+    const btnCancel = document.getElementById("btnCancelRender");
+    if (btnCancel) btnCancel.classList.add("hidden");
+    const prog2 = document.getElementById("renderProgressWrap");
+    if (prog2) prog2.classList.add("hidden");
+
+    // Reset Tab 3
+    aiState.isRendering = false;
+    const btnAiFull = document.getElementById("btnAiRenderFull");
+    if (btnAiFull) btnAiFull.disabled = false;
+    const btnAiCancel = document.getElementById("btnCancelAiRender");
+    if (btnAiCancel) btnAiCancel.classList.add("hidden");
+    const prog3 = document.getElementById("aiRenderProgressWrap");
+    if (prog3) prog3.classList.add("hidden");
+
+    const logsContent = document.getElementById("aiRenderLogsContent");
+    if (logsContent) {
+      logsContent.innerHTML += `<div style="color: #ef4444;">[${new Date().toLocaleTimeString()}] ❌ Lỗi render: ${escapeHtml(data.error)}</div>`;
+    }
 
     showToast("❌ Lỗi trong quá trình dựng: " + data.error);
     window.dispatchEvent(new Event("sse_render_error"));
   });
 
   evtSource.addEventListener("render_canceled", () => {
-    document.getElementById("btnRenderTest").disabled = false;
-    document.getElementById("btnRenderFull").disabled = false;
-    document.getElementById("btnCancelRender").classList.add("hidden");
-    document.getElementById("renderProgressWrap").classList.add("hidden");
+    // Reset Tab 2
+    const btnTest = document.getElementById("btnRenderTest");
+    if (btnTest) btnTest.disabled = false;
+    const btnFull = document.getElementById("btnRenderFull");
+    if (btnFull) btnFull.disabled = false;
+    const btnCancel = document.getElementById("btnCancelRender");
+    if (btnCancel) btnCancel.classList.add("hidden");
+    const prog2 = document.getElementById("renderProgressWrap");
+    if (prog2) prog2.classList.add("hidden");
+
+    // Reset Tab 3
+    aiState.isRendering = false;
+    const btnAiFull = document.getElementById("btnAiRenderFull");
+    if (btnAiFull) btnAiFull.disabled = false;
+    const btnAiCancel = document.getElementById("btnCancelAiRender");
+    if (btnAiCancel) btnAiCancel.classList.add("hidden");
+    const prog3 = document.getElementById("aiRenderProgressWrap");
+    if (prog3) prog3.classList.add("hidden");
+
+    const logsContent = document.getElementById("aiRenderLogsContent");
+    if (logsContent) {
+      logsContent.innerHTML += `<div style="color: #fbbf24;">[${new Date().toLocaleTimeString()}] ⏹️ Quá trình dựng video đã bị hủy.</div>`;
+    }
 
     showToast("⏹️ Quá trình dựng video đã bị hủy.");
     window.dispatchEvent(new Event("sse_render_canceled"));
@@ -1509,4 +1598,413 @@ function escapeHtml(text) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+// =========================================================================
+// TAB 3: AI CODE RENDER LOGIC
+// =========================================================================
+
+// State dành riêng cho Tab 3
+const aiState = {
+  projects: [],
+  selectedProjectId: null,
+  currentValidation: null,
+  currentFrame: 0,
+  isRendering: false
+};
+
+// 1. Tải danh sách các dự án Remotion AI
+async function loadAiProjectsList() {
+  const select = document.getElementById("aiProjectSelect");
+  if (!select) return;
+
+  try {
+    const res = await fetch("/api/ai-code/projects");
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    aiState.projects = data.projects || [];
+    select.innerHTML = "";
+
+    if (aiState.projects.length === 0) {
+      select.innerHTML = '<option value="">-- Chưa có dự án nào (Hãy tải lên file ZIP) --</option>';
+      return;
+    }
+
+    aiState.projects.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      const typeLabel = p.isDemo ? "⭐ [MẪU DEMO]" : "📁 [DỰ ÁN]";
+      opt.textContent = `${typeLabel} ${p.name || p.folderName}`;
+      select.appendChild(opt);
+    });
+
+    // Mặc định chọn dự án demo nếu chưa chọn
+    if (!aiState.selectedProjectId) {
+      const demo = aiState.projects.find((p) => p.isDemo);
+      if (demo) {
+        select.value = demo.id;
+      } else {
+        select.value = aiState.projects[0].id;
+      }
+    } else {
+      select.value = aiState.selectedProjectId;
+    }
+
+    handleAiProjectChanged();
+  } catch (err) {
+    console.error("Lỗi tải danh sách AI projects:", err);
+    showToast("Không thể tải danh sách dự án AI: " + err.message);
+  }
+}
+
+// Chọn nhanh Demo project 10s
+function selectDemoProject() {
+  const select = document.getElementById("aiProjectSelect");
+  const demo = aiState.projects.find((p) => p.isDemo);
+  if (demo && select) {
+    select.value = demo.id;
+    handleAiProjectChanged();
+    showToast(`⭐ Đã chọn dự án mẫu: "${demo.name}"`);
+  } else {
+    showToast("Đang tải lại danh sách dự án...");
+    loadAiProjectsList();
+  }
+}
+
+// Khi người dùng đổi lựa chọn dự án trên dropdown
+function handleAiProjectChanged() {
+  const select = document.getElementById("aiProjectSelect");
+  if (!select) return;
+
+  const projectId = select.value;
+  aiState.selectedProjectId = projectId;
+
+  const project = aiState.projects.find((p) => p.id === projectId);
+  const overviewBox = document.getElementById("aiProjectOverview");
+  if (!project || !overviewBox) {
+    if (overviewBox) overviewBox.classList.add("hidden");
+    return;
+  }
+
+  overviewBox.classList.remove("hidden");
+
+  // Hiển thị thông tin tổng quan
+  document.getElementById("aiProjectNameTitle").textContent = project.name || project.folderName;
+  document.getElementById("aiProjectTag").textContent = project.isDemo ? "MẪU KIỂM THỬ CHUẨN" : "DỰ ÁN ĐÃ IMPORT";
+
+  const cfg = project.config || {};
+  document.getElementById("aiBadgeRes").textContent = `${cfg.width || 1920}×${cfg.height || 1080}`;
+  document.getElementById("aiBadgeFps").textContent = `${cfg.fps || 30} FPS`;
+  const durSec = ((cfg.durationInFrames || 300) / (cfg.fps || 30)).toFixed(1);
+  document.getElementById("aiBadgeDuration").textContent = `${cfg.durationInFrames || 300} frames (~${durSec}s)`;
+  document.getElementById("aiBadgeComp").textContent = `Comp: ${cfg.compositionId || "MainVideo"}`;
+
+  // Cập nhật thanh timeline
+  const slider = document.getElementById("previewFrameSlider");
+  if (slider) {
+    slider.min = 0;
+    slider.max = (cfg.durationInFrames || 300) - 1;
+    slider.value = 0;
+    aiState.currentFrame = 0;
+    document.getElementById("currentFrameLabel").textContent = "Frame: 0";
+    document.getElementById("totalFramesLabel").textContent = `${cfg.durationInFrames || 300} frames`;
+  }
+
+  // Tự động thẩm định (Validation) để nạp danh sách file và assets
+  validateCurrentAiProject();
+}
+
+// Xử lý upload file ZIP
+async function handleAiZipSelected(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (!file.name.toLowerCase().endsWith(".zip")) {
+    showToast("Vui lòng chỉ chọn file nén định dạng .zip");
+    return;
+  }
+
+  showToast(`📦 Đang tải lên và giải nén an toàn: "${file.name}"...`);
+
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const base64Data = reader.result.split(",")[1];
+      const res = await fetch("/api/ai-code/upload-zip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          zipBase64: base64Data,
+          filename: file.name
+        })
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      showToast(`✅ Đã giải nén thành công ${data.extractedCount} files vào dự án!`);
+      aiState.selectedProjectId = data.projectId;
+      await loadAiProjectsList();
+    } catch (err) {
+      showToast("❌ Lỗi upload ZIP: " + err.message);
+      console.error(err);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// 2. Thẩm định dự án Remotion AI (Validate Project)
+async function validateCurrentAiProject() {
+  const projectId = aiState.selectedProjectId;
+  if (!projectId) {
+    showToast("Vui lòng chọn một dự án trước khi thẩm định!");
+    return;
+  }
+
+  const resultBox = document.getElementById("validationResultBox");
+  const filesTree = document.getElementById("aiFilesTree");
+  const assetsList = document.getElementById("aiAssetsList");
+  const filesCount = document.getElementById("aiFilesCount");
+
+  resultBox.innerHTML = '<div class="empty-state">⏳ Đang phân tích mã nguồn TypeScript, cấu trúc và dependencies...</div>';
+
+  try {
+    const res = await fetch("/api/ai-code/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    const val = data.validation;
+    aiState.currentValidation = val;
+
+    // A. Cập nhật cây file
+    if (filesTree && val.files) {
+      filesCount.textContent = val.files.length;
+      filesTree.innerHTML = val.files
+        .map((f) => {
+          const isDir = f.isDirectory;
+          const icon = isDir ? "📁" : "📄";
+          const sizeStr = isDir ? "" : `(${(f.size / 1024).toFixed(1)} KB)`;
+          return `<div class="file-item ${isDir ? 'is-dir' : ''}"><span>${icon} ${f.path}</span> <span>${sizeStr}</span></div>`;
+        })
+        .join("");
+    }
+
+    // B. Cập nhật danh sách Assets
+    if (assetsList && val.assets) {
+      let html = "";
+      if (val.assets.found.length === 0 && val.assets.missing.length === 0) {
+        html = '<div class="empty-state" style="padding: 10px;">Dự án dùng tài nguyên dựng sẵn hoặc vẽ bằng code SVG/Canvas.</div>';
+      } else {
+        val.assets.found.forEach((a) => {
+          html += `<div class="asset-item"><span>🖼️ ${escapeHtml(a)}</span> <span class="asset-badge-found">✅ Đã có</span></div>`;
+        });
+        val.assets.missing.forEach((a) => {
+          html += `<div class="asset-item"><span>⚠️ ${escapeHtml(a)}</span> <span class="asset-badge-missing">❌ Chưa có</span></div>`;
+        });
+      }
+      assetsList.innerHTML = html;
+    }
+
+    // C. Bảng báo cáo thẩm định
+    const statusClass = val.valid ? "val-status-valid" : "val-status-invalid";
+    const statusText = val.valid ? "✅ DỰ ÁN HỢP LỆ — SẴN SÀNG ĐỂ XEM TRƯỚC VÀ DỰNG VIDEO" : "❌ PHÁT HIỆN LỖI TRONG DỰ ÁN — CẦN KHẮC PHỤC TRƯỚC KHI RENDER";
+
+    let reportHtml = `
+      <div class="val-status-banner ${statusClass}">
+        ${statusText}
+      </div>
+    `;
+
+    // Chi tiết kiểm tra
+    reportHtml += `
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px;">
+        <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+          <span style="color: #94a3b8; font-size: 11px;">ENTRYPOINT:</span><br/>
+          <strong style="color: ${val.errors.some(e => e.includes('entrypoint')) ? '#f87171' : '#38bdf8'}; font-family: monospace;">
+            ${val.config?.entryPoint || 'Chưa có'}
+          </strong>
+        </div>
+        <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+          <span style="color: #94a3b8; font-size: 11px;">COMPOSITION ID:</span><br/>
+          <strong style="color: #38bdf8; font-family: monospace;">${val.config?.compositionId || 'Chưa rõ'}</strong>
+        </div>
+        <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+          <span style="color: #94a3b8; font-size: 11px;">DEPENDENCIES:</span><br/>
+          <strong style="color: #10b981;">${val.dependencies?.allowed?.join(', ') || 'react, remotion'}</strong>
+        </div>
+      </div>
+    `;
+
+    // Danh sách lỗi
+    if (val.errors && val.errors.length > 0) {
+      reportHtml += `<div class="val-section-title" style="color: #f87171;">DANH SÁCH LỖI (${val.errors.length}):</div>`;
+      reportHtml += '<ul class="val-msg-list">';
+      val.errors.forEach((err) => {
+        reportHtml += `<li class="val-msg-item error">❌ ${escapeHtml(err)}</li>`;
+      });
+      reportHtml += '</ul>';
+    }
+
+    // Danh sách cảnh báo
+    if (val.warnings && val.warnings.length > 0) {
+      reportHtml += `<div class="val-section-title" style="color: #fcd34d;">CẢNH BÁO TỐI ƯU (${val.warnings.length}):</div>`;
+      reportHtml += '<ul class="val-msg-list">';
+      val.warnings.forEach((warn) => {
+        reportHtml += `<li class="val-msg-item warning">⚠️ ${escapeHtml(warn)}</li>`;
+      });
+      reportHtml += '</ul>';
+    }
+
+    resultBox.innerHTML = reportHtml;
+  } catch (err) {
+    resultBox.innerHTML = `<div class="empty-state" style="color: #ef4444;">❌ Lỗi thẩm định: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// 3. Điều khiển Timeline & Soi Frame (Frame Inspector)
+function onFrameSliderInput(event) {
+  const frame = parseInt(event.target.value, 10) || 0;
+  aiState.currentFrame = frame;
+  const fps = aiState.currentValidation?.config?.fps || 30;
+  const sec = (frame / fps).toFixed(2);
+  document.getElementById("currentFrameLabel").textContent = `Frame: ${frame} (${sec}s)`;
+}
+
+function stepFrame(delta) {
+  const slider = document.getElementById("previewFrameSlider");
+  if (!slider) return;
+  let newFrame = (parseInt(slider.value, 10) || 0) + delta;
+  const max = parseInt(slider.max, 10) || 300;
+  newFrame = Math.max(0, Math.min(max, newFrame));
+  slider.value = newFrame;
+  onFrameSliderInput({ target: slider });
+}
+
+// Chụp và soi 1 frame tức thì
+async function inspectCurrentFrame() {
+  const projectId = aiState.selectedProjectId;
+  if (!projectId) {
+    showToast("Vui lòng chọn một dự án!");
+    return;
+  }
+
+  const frame = aiState.currentFrame;
+  const btn = document.getElementById("btnInspectFrame");
+  btn.disabled = true;
+  btn.textContent = "⏳ Đang chụp frame...";
+
+  try {
+    const res = await fetch("/api/ai-code/preview-frame", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId, frame })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    const img = document.getElementById("previewFrameImage");
+    const video = document.getElementById("previewVideoPlayer");
+    const placeholder = document.getElementById("previewPlaceholder");
+
+    img.src = data.frameUrl;
+    img.classList.remove("hidden");
+    video.classList.add("hidden");
+    placeholder.classList.add("hidden");
+
+    showToast(`📷 Đã chụp Frame ${data.frame} (${data.width}×${data.height}) thành công!`);
+  } catch (err) {
+    showToast("❌ Lỗi chụp frame: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "📷 Soi Khung Hình Này";
+  }
+}
+
+// 4. Render Video MP4 từ AI Project
+async function startAiRender(isTest = false) {
+  const projectId = aiState.selectedProjectId;
+  if (!projectId) {
+    showToast("Vui lòng chọn một dự án!");
+    return;
+  }
+
+  if (aiState.isRendering) {
+    showToast("Đang có tiến trình dựng video đang chạy.");
+    return;
+  }
+
+  const resSelect = document.getElementById("aiResolutionSelect").value;
+  const fpsSelect = document.getElementById("aiFpsSelect").value;
+  const gpuMode = document.getElementById("aiGpuModeSelect").value;
+  const nameInput = document.getElementById("aiCustomVideoName").value.trim();
+
+  const progressWrap = document.getElementById("aiRenderProgressWrap");
+  const logsBox = document.getElementById("aiRenderLogsBox");
+  const logsContent = document.getElementById("aiRenderLogsContent");
+  const btnFull = document.getElementById("btnAiRenderFull");
+  const btnCancel = document.getElementById("btnCancelAiRender");
+
+  progressWrap.classList.remove("hidden");
+  logsBox.classList.remove("hidden");
+  logsContent.innerHTML = `<div>[${new Date().toLocaleTimeString()}] Bắt đầu yêu cầu render ${isTest ? '(Bản xem trước 5s)' : '(Bản đầy đủ)'}...</div>`;
+
+  btnFull.disabled = true;
+  btnCancel.classList.remove("hidden");
+  aiState.isRendering = true;
+
+  try {
+    const res = await fetch("/api/ai-code/render", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        projectId,
+        accelerationMode: gpuMode,
+        isTest,
+        customVideoName: nameInput,
+        customResolution: resSelect === "project" ? null : resSelect,
+        customFps: fpsSelect === "project" ? null : fpsSelect
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    showToast(`🚀 ${data.message}`);
+    logsContent.innerHTML += `<div>[${new Date().toLocaleTimeString()}] Máy chủ đã nhận lệnh, đang nạp Remotion Engine...</div>`;
+  } catch (err) {
+    aiState.isRendering = false;
+    btnFull.disabled = false;
+    btnCancel.classList.add("hidden");
+    progressWrap.classList.add("hidden");
+    showToast("❌ Không thể bắt đầu render: " + err.message);
+  }
+}
+
+// Đăng ký sự kiện kéo thả cho Dropzone
+window.addEventListener("DOMContentLoaded", () => {
+  const dropzone = document.getElementById("aiDropzone");
+  if (dropzone) {
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+    dropzone.addEventListener("dragleave", () => {
+      dropzone.classList.remove("dragover");
+    });
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleAiZipSelected({ target: { files: e.dataTransfer.files } });
+      }
+    });
+  }
+});
+
 

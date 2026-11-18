@@ -1,0 +1,11 @@
+{
+  "projectName": "Demo Hoạt Hình 2D AI 10s",
+  "entryPoint": "src/index.ts",
+  "compositionId": "DemoAnimation10s",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "durationInFrames": 300,
+  "description": "Video mẫu 10s biểu diễn đầy đủ: Spring Bounce, Walk Cycle, Biểu cảm ngạc nhiên, Camera Zoom, Parallax và Chuyển cảnh"
+}
+

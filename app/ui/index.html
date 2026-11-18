@@ -26,13 +26,16 @@
     </div>
   </header>
 
-  <!-- Thanh điều hướng 2 Tab -->
+  <!-- Thanh điều hướng 3 Tab -->
   <nav class="tab-nav">
     <button id="tabBtn1" class="tab-btn active" onclick="switchTab(1)">
       <span class="tab-num">1</span> Giọng đọc & Timeline
     </button>
     <button id="tabBtn2" class="tab-btn" onclick="switchTab(2)">
       <span class="tab-num">2</span> Dựng video & Ghép giọng
+    </button>
+    <button id="tabBtn3" class="tab-btn" onclick="switchTab(3)">
+      <span class="tab-num">3</span> 🤖 AI Code Render
     </button>
   </nav>
 
@@ -344,6 +347,225 @@
               <div class="empty-state">Đang tải danh sách video...</div>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= TAB 3: AI CODE RENDER ================= -->
+  <main id="tabContent3" class="tab-pane">
+    <!-- Khu vực A: Import Dự Án Remotion AI -->
+    <section class="card">
+      <div class="card-header">
+        <h2>A. Import Dự Án Remotion AI</h2>
+        <span class="hint">Tải lên file ZIP chứa mã nguồn Remotion do Claude Code hoặc AI tạo ra</span>
+      </div>
+      <div class="card-body">
+        <div class="ai-import-grid">
+          <!-- Hộp kéo thả / Chọn file ZIP -->
+          <div class="ai-dropzone" id="aiDropzone">
+            <input type="file" id="aiZipFileInput" accept=".zip" class="hidden-file-input" onchange="handleAiZipSelected(event)" />
+            <div class="dropzone-content" onclick="document.getElementById('aiZipFileInput').click()">
+              <div class="dropzone-icon">📦</div>
+              <div class="dropzone-title">Nhấp để chọn file ZIP dự án Remotion</div>
+              <div class="dropzone-sub">Hoặc kéo thả file .zip vào đây (Chống Zip Slip & Sandbox an toàn)</div>
+            </div>
+          </div>
+
+          <!-- Lựa chọn dự án mẫu / Đã có -->
+          <div class="ai-project-selector-box">
+            <label for="aiProjectSelect" style="font-weight: 700; color: #cbd5e1; font-size: 13px; display: block; margin-bottom: 6px;">
+              HOẶC CHỌN DỰ ÁN CÓ SẴN / MẪU KIỂM THỬ:
+            </label>
+            <div style="display: flex; gap: 8px;">
+              <select id="aiProjectSelect" class="select-control" style="flex: 1;" onchange="handleAiProjectChanged()">
+                <option value="">-- Đang quét danh sách dự án... --</option>
+              </select>
+              <button class="btn btn-secondary" onclick="loadAiProjectsList()">🔄</button>
+            </div>
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+              <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; flex: 1;" onclick="selectDemoProject()">
+                ⭐ Nạp Dự Án Mẫu 10s (Hoạt hình 2D Chuẩn)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Thẻ Tổng Quan Dự Án -->
+        <div id="aiProjectOverview" class="ai-project-overview hidden">
+          <div class="overview-header">
+            <div>
+              <span class="project-tag" id="aiProjectTag">DỰ ÁN AI</span>
+              <h3 id="aiProjectNameTitle" style="display: inline-block; margin: 0 0 0 10px; color: #f8fafc; font-size: 18px;">Tên Dự Án</h3>
+            </div>
+            <div id="aiConfigBadges" class="overview-badges">
+              <span class="badge" id="aiBadgeRes">1920×1080</span>
+              <span class="badge" id="aiBadgeFps">30 FPS</span>
+              <span class="badge" id="aiBadgeDuration">300 frames (10s)</span>
+              <span class="badge" id="aiBadgeComp">Composition: MainVideo</span>
+            </div>
+          </div>
+
+          <!-- 2 Cột: Cây file và Danh sách Assets -->
+          <div class="overview-columns">
+            <div class="overview-col">
+              <div class="col-title">📁 Cấu trúc file dự án: (<span id="aiFilesCount">0</span> files)</div>
+              <div id="aiFilesTree" class="files-tree-box"></div>
+            </div>
+            <div class="overview-col">
+              <div class="col-title">🎨 Tài nguyên Assets (Ảnh & Âm thanh):</div>
+              <div id="aiAssetsList" class="assets-list-box"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Khu vực B: Thẩm Định Dự Án (Project Validation) -->
+    <section class="card">
+      <div class="card-header">
+        <h2>B. Thẩm Định Dự Án (Project Validation)</h2>
+        <div class="card-actions">
+          <button id="btnValidateAiProject" class="btn btn-primary" onclick="validateCurrentAiProject()">
+            🔍 Thẩm Định Dự Án (Validate Project)
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="validationResultBox" class="validation-box">
+          <div class="empty-state">Chưa thẩm định. Hãy chọn hoặc tải lên dự án rồi nhấn nút "Thẩm Định Dự Án".</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Khu vực C: Xem Trước Video & Soi Khung Hình (Video Preview & Frame Inspector) -->
+    <section class="card">
+      <div class="card-header">
+        <h2>C. Xem Trước Video & Soi Khung Hình (Video Preview)</h2>
+        <span class="hint">Xem chuyển động nhân vật, camera và hiệu ứng trước khi dựng toàn bộ</span>
+      </div>
+      <div class="card-body">
+        <div class="preview-inspector-layout">
+          <!-- Khung màn hình hiển thị Preview / Frame -->
+          <div class="preview-screen-wrap">
+            <div id="previewContainer" class="preview-container">
+              <img id="previewFrameImage" class="preview-frame-img hidden" alt="Frame preview" />
+              <video id="previewVideoPlayer" class="preview-video hidden" controls></video>
+              <div id="previewPlaceholder" class="preview-placeholder">
+                <div style="font-size: 40px; margin-bottom: 10px;">🎞️</div>
+                <div>Chưa có bản xem trước</div>
+                <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Chọn frame bên dưới và bấm "Soi Khung Hình Này" để xem tức thì</div>
+              </div>
+            </div>
+
+            <!-- Thanh Timeline & Điều khiển Frame -->
+            <div class="timeline-controls-bar">
+              <div class="timeline-slider-row">
+                <span class="time-label" id="currentFrameLabel">Frame: 0</span>
+                <input
+                  type="range"
+                  id="previewFrameSlider"
+                  min="0"
+                  max="300"
+                  value="0"
+                  class="timeline-slider"
+                  oninput="onFrameSliderInput(event)"
+                />
+                <span class="time-label" id="totalFramesLabel">300 frames</span>
+              </div>
+
+              <div class="timeline-buttons-row">
+                <div class="btn-group-nav">
+                  <button class="btn btn-sm btn-secondary" onclick="stepFrame(-30)" title="Lùi 1 giây">⏮️ -1s</button>
+                  <button class="btn btn-sm btn-secondary" onclick="stepFrame(-1)" title="Lùi 1 frame">◀ 1 frame</button>
+                  <button class="btn btn-sm btn-primary" onclick="inspectCurrentFrame()" id="btnInspectFrame">📷 Soi Khung Hình Này</button>
+                  <button class="btn btn-sm btn-secondary" onclick="stepFrame(1)" title="Tiến 1 frame">1 frame ▶</button>
+                  <button class="btn btn-sm btn-secondary" onclick="stepFrame(30)" title="Tiến 1 giây">+1s ⏭️</button>
+                </div>
+
+                <div class="preview-actions">
+                  <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="startAiRender(true)">
+                    ▶️ Dựng bản xem trước nhanh (5s)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Khu vực D: Cấu Hình Render & Tiến Hành Render (Render Settings & Action) -->
+    <section class="card">
+      <div class="card-header">
+        <h2>D. Cấu Hình & Render Video</h2>
+        <span class="hint">Tùy chỉnh thông số xuất video MP4 tiêu chuẩn H.264</span>
+      </div>
+      <div class="card-body">
+        <div class="render-settings-grid">
+          <div class="setting-item">
+            <label for="aiResolutionSelect">Độ phân giải:</label>
+            <select id="aiResolutionSelect" class="select-control">
+              <option value="project" selected>Mặc định theo dự án</option>
+              <option value="1080p">1920 × 1080 (Full HD)</option>
+              <option value="720p">1280 × 720 (HD 720p)</option>
+              <option value="4k">3840 × 2160 (4K Ultra HD)</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label for="aiFpsSelect">Tỉ lệ khung hình (FPS):</label>
+            <select id="aiFpsSelect" class="select-control">
+              <option value="project" selected>Mặc định theo dự án</option>
+              <option value="30">30 FPS (Tiêu chuẩn mượt)</option>
+              <option value="60">60 FPS (Siêu mượt)</option>
+              <option value="24">24 FPS (Điện ảnh)</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label for="aiGpuModeSelect">Tăng tốc phần cứng:</label>
+            <select id="aiGpuModeSelect" class="select-control">
+              <option value="cpu" selected>CPU (Mặc định - Ổn định nhất)</option>
+              <option value="gpu_nvenc">GPU NVIDIA NVENC (Nhanh gấp 3-5 lần)</option>
+              <option value="gpu_angle">GPU ANGLE</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label for="aiCustomVideoName">Tên file video xuất (tùy chọn):</label>
+            <input type="text" id="aiCustomVideoName" class="text-input" placeholder="Tự động đặt tên theo project..." />
+          </div>
+        </div>
+
+        <div class="action-bar" style="margin-top: 20px;">
+          <button id="btnAiRenderFull" class="btn btn-primary btn-lg" onclick="startAiRender(false)">
+            🚀 Render Video MP4 Hoàn Chỉnh
+          </button>
+          <button id="btnCancelAiRender" class="btn btn-danger btn-lg hidden" onclick="cancelRender()">
+            ⏹️ Hủy Render
+          </button>
+        </div>
+
+        <!-- Tiến độ Render SSE -->
+        <div id="aiRenderProgressWrap" class="render-progress-wrap hidden">
+          <div class="progress-info-row">
+            <span id="aiRenderStatusText">Đang đóng gói bundle mã nguồn Remotion...</span>
+            <span id="aiRenderTimeRemainingText">Còn lại: ~...</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="aiRenderProgressBar" class="progress-bar-fill progress-render" style="width: 0%"></div>
+          </div>
+          <div class="progress-frames-row">
+            <span id="aiRenderFramesText">0 / 0 khung hình</span>
+            <span id="aiRenderPercentText">0%</span>
+          </div>
+        </div>
+
+        <!-- Hộp nhật ký Render Logs -->
+        <div id="aiRenderLogsBox" class="ai-render-logs hidden">
+          <div class="logs-header">NHẬT KÝ RENDER THỜI GIAN THỰC:</div>
+          <div id="aiRenderLogsContent" class="logs-content"></div>
         </div>
       </div>
     </section>

@@ -13,6 +13,8 @@ import { safeParseJson, isSafePath, validateAllData, extractRequiredAssets } fro
 import { generateAllVoices } from "../lib/voice.mjs";
 import { renderVideo } from "../lib/render.mjs";
 import { runBenchmark } from "../scripts/bench.mjs";
+import { unzipProjectSafe, detectProjectConfig, listProjectFiles, validateProject } from "../lib/project-loader.mjs";
+import { bundleDynamicProject, renderDynamicStill, renderDynamicVideo } from "../lib/dynamic-render.mjs";
 
 const execAsync = promisify(exec);
 const app = express();
@@ -823,6 +825,344 @@ app.post("/api/open-folder", async (req, res) => {
       await execAsync(`xdg-open "${targetDir}"`);
     }
     res.json({ success: true, message: `Đã mở thư mục ${type}` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * =========================================================================
+ * TAB 3 API: AI CODE RENDER (DYNAMIC REMOTION ENGINE)
+ * =========================================================================
+ */
+
+/**
+ * 12. Lấy danh sách các project Remotion AI (cả imported và sample demo)
+ */
+app.get("/api/ai-code/projects", (req, res) => {
+  try {
+    const importedDir = path.join(projectRoot, "imported_projects");
+    const sampleDir = path.join(projectRoot, "sample-projects");
+    fs.mkdirSync(importedDir, { recursive: true });
+
+    const projects = [];
+
+    // Quét sample demo
+    if (fs.existsSync(sampleDir)) {
+      const sampleEntries = fs.readdirSync(sampleDir, { withFileTypes: true });
+      for (const ent of sampleEntries) {
+        if (ent.isDirectory()) {
+          const pDir = path.join(sampleDir, ent.name);
+          const config = detectProjectConfig(pDir);
+          projects.push({
+            id: `sample_${ent.name}`,
+            name: config.projectName || ent.name,
+            folderName: ent.name,
+            type: "sample",
+            isDemo: true,
+            path: pDir,
+            config
+          });
+        }
+      }
+    }
+
+    // Quét imported projects
+    if (fs.existsSync(importedDir)) {
+      const importedEntries = fs.readdirSync(importedDir, { withFileTypes: true });
+      for (const ent of importedEntries) {
+        if (ent.isDirectory()) {
+          const pDir = path.join(importedDir, ent.name);
+          const config = detectProjectConfig(pDir);
+          const stats = fs.statSync(pDir);
+          projects.push({
+            id: ent.name,
+            name: config.projectName || ent.name,
+            folderName: ent.name,
+            type: "imported",
+            isDemo: false,
+            createdAt: stats.mtime,
+            path: pDir,
+            config
+          });
+        }
+      }
+    }
+
+    res.json({ success: true, projects });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 13. Tải lên và giải nén file ZIP dự án Remotion AI (Bảo mật chống Zip Slip)
+ */
+app.post("/api/ai-code/upload-zip", (req, res) => {
+  try {
+    const { zipBase64, filename = "project.zip" } = req.body;
+    if (!zipBase64) {
+      return res.status(400).json({ success: false, error: "Thiếu dữ liệu file ZIP (zipBase64)." });
+    }
+
+    const zipBuffer = Buffer.from(zipBase64, "base64");
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const timeStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const baseSlug = path.parse(filename).name.replace(/[^a-zA-Z0-9_-]/g, "_") || "project";
+    const projectId = `${baseSlug}_${timeStr}`;
+
+    const targetDir = path.join(projectRoot, "imported_projects", projectId);
+
+    // Giải nén an toàn với cơ chế bảo mật cao
+    const extractResult = unzipProjectSafe(zipBuffer, targetDir);
+
+    // Thẩm định ngay sau khi giải nén
+    const validation = validateProject(targetDir);
+
+    res.json({
+      success: true,
+      projectId,
+      targetDir,
+      extractedCount: extractResult.extractedFiles.length,
+      validation
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 14. Thẩm định dự án Remotion AI (Validate Project)
+ */
+app.post("/api/ai-code/validate", (req, res) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ success: false, error: "Thiếu mã dự án (projectId)." });
+    }
+
+    let targetDir = path.join(projectRoot, "imported_projects", projectId);
+    if (projectId.startsWith("sample_")) {
+      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
+    }
+
+    if (!fs.existsSync(targetDir)) {
+      return res.status(404).json({ success: false, error: `Không tìm thấy dự án tại: ${targetDir}` });
+    }
+
+    const validation = validateProject(targetDir);
+    res.json({ success: true, projectId, validation });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 15. Chụp và xem trước Frame bất kỳ từ dự án (Frame Inspector / Preview Frame)
+ */
+app.post("/api/ai-code/preview-frame", async (req, res) => {
+  try {
+    const { projectId, frame = 0 } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ success: false, error: "Thiếu mã dự án (projectId)." });
+    }
+
+    let targetDir = path.join(projectRoot, "imported_projects", projectId);
+    if (projectId.startsWith("sample_")) {
+      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
+    }
+
+    if (!fs.existsSync(targetDir)) {
+      return res.status(404).json({ success: false, error: "Dự án không tồn tại." });
+    }
+
+    const config = detectProjectConfig(targetDir);
+    const stillResult = await renderDynamicStill({
+      projectDir: targetDir,
+      config,
+      frame: Number(frame)
+    });
+
+    const relPath = path.relative(path.join(projectRoot, "out"), stillResult.framePath).replace(/\\/g, "/");
+
+    res.json({
+      success: true,
+      frameUrl: `/out/${relPath}?t=${Date.now()}`,
+      frame: stillResult.frame,
+      width: stillResult.width,
+      height: stillResult.height
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 16. Render video hoàn chỉnh từ dự án Remotion AI
+ */
+app.post("/api/ai-code/render", async (req, res) => {
+  if (isRendering) {
+    return res.status(400).json({
+      success: false,
+      error: "Một tiến trình dựng video khác đang chạy. Vui lòng đợi hoặc bấm dừng."
+    });
+  }
+
+  try {
+    const {
+      projectId,
+      accelerationMode = "cpu",
+      concurrency = null,
+      isTest = false,
+      customVideoName = null,
+      customResolution = null,
+      customFps = null
+    } = req.body;
+
+    if (!projectId) {
+      return res.status(400).json({ success: false, error: "Thiếu mã dự án (projectId)." });
+    }
+
+    let targetDir = path.join(projectRoot, "imported_projects", projectId);
+    if (projectId.startsWith("sample_")) {
+      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
+    }
+
+    if (!fs.existsSync(targetDir)) {
+      return res.status(404).json({ success: false, error: "Dự án không tồn tại." });
+    }
+
+    const config = detectProjectConfig(targetDir);
+    if (customResolution) {
+      if (customResolution === "1080p") { config.width = 1920; config.height = 1080; }
+      else if (customResolution === "720p") { config.width = 1280; config.height = 720; }
+      else if (customResolution === "4k") { config.width = 3840; config.height = 2160; }
+    }
+    if (customFps) {
+      config.fps = Number(customFps);
+    }
+
+    // Đặt tên video
+    let safeVideoName = "";
+    if (customVideoName && customVideoName.trim()) {
+      safeVideoName = path.basename(customVideoName.trim());
+      if (!safeVideoName.toLowerCase().endsWith(".mp4")) {
+        safeVideoName += ".mp4";
+      }
+    } else {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const timeStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      safeVideoName = `${config.compositionId || "ai_video"}_${timeStr}.mp4`;
+    }
+
+    const finalOutputPath = path.join(projectRoot, "out", safeVideoName);
+    const baseName = path.parse(safeVideoName).name;
+
+    // Lưu metadata snapshot để hỗ trợ Thư viện Video
+    const metadataDir = path.join(projectRoot, "out/metadata");
+    fs.mkdirSync(metadataDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(metadataDir, `${baseName}.json`),
+      JSON.stringify(
+        {
+          videoName: safeVideoName,
+          title: `[AI Code] ${config.projectName || safeVideoName}`,
+          projectId,
+          accelerationMode,
+          concurrency,
+          config,
+          createdAt: new Date().toISOString()
+        },
+        null,
+        2
+      )
+    );
+
+    const fps = config.fps || 30;
+    const totalFrames = config.durationInFrames || 300;
+    const frameRange = isTest ? [0, Math.min(5 * fps - 1, totalFrames - 1)] : null;
+
+    isRendering = true;
+    currentRenderCancellation = false;
+
+    // Phản hồi ngay lập tức cho client
+    res.json({
+      success: true,
+      videoName: safeVideoName,
+      message: `Bắt đầu dựng dự án "${config.projectName}" thành ${safeVideoName}...`
+    });
+
+    // Chạy render ở tiến trình nền
+    (async () => {
+      try {
+        const renderResult = await renderDynamicVideo({
+          projectDir: targetDir,
+          config,
+          outputPath: finalOutputPath,
+          accelerationMode,
+          concurrency,
+          frameRange,
+          checkCanceled: () => currentRenderCancellation,
+          onProgress: (p) => {
+            const pct = Math.round(p.progress * 100);
+            broadcastSse("render_progress", {
+              videoName: safeVideoName,
+              progress: pct,
+              renderedFrames: p.renderedFrames,
+              totalFrames: p.totalFrames,
+              timeRemainingMs: p.timeRemainingInMilliseconds
+            });
+          }
+        });
+
+        isRendering = false;
+        broadcastSse("render_done", {
+          videoName: safeVideoName,
+          outputPath: finalOutputPath,
+          videoUrl: `/out/${safeVideoName}?t=${Date.now()}`,
+          durationSec: renderResult.durationSec,
+          executionTimeSec: renderResult.executionTimeSec,
+          hardwareAccelerated: renderResult.hardwareAccelerated,
+          fallbackUsed: renderResult.fallbackUsed,
+          fallbackReason: renderResult.fallbackReason
+        });
+      } catch (err) {
+        isRendering = false;
+        if (err.message === "RENDER_CANCELED_BY_USER") {
+          broadcastSse("render_canceled", { message: "Đã hủy dựng video AI theo yêu cầu." });
+        } else {
+          broadcastSse("render_error", {
+            error: err.message,
+            stack: err.stack
+          });
+        }
+      }
+    })();
+  } catch (err) {
+    isRendering = false;
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * 17. Xóa dự án AI đã import
+ */
+app.post("/api/ai-code/delete-project", (req, res) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId || projectId.startsWith("sample_")) {
+      return res.status(400).json({ success: false, error: "Không thể xóa dự án này." });
+    }
+
+    const safeId = path.basename(projectId);
+    const targetDir = path.join(projectRoot, "imported_projects", safeId);
+    if (fs.existsSync(targetDir)) {
+      fs.rmSync(targetDir, { recursive: true, force: true });
+    }
+
+    res.json({ success: true, message: `Đã xóa dự án ${safeId}` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
