@@ -481,13 +481,17 @@ function startServer(startPort, maxAttempts = 15) {
 
       // Tự động mở trình duyệt nếu không truyền cờ --no-open
       if (!process.argv.includes("--no-open")) {
-        const openCmd =
-          process.platform === "win32"
-            ? `start ${url}`
-            : process.platform === "darwin"
-            ? `open ${url}`
-            : `xdg-open ${url}`;
-        exec(openCmd, () => {});
+        try {
+          const openCmd =
+            process.platform === "win32"
+              ? `start "" "${url}"`
+              : process.platform === "darwin"
+              ? `open "${url}"`
+              : `xdg-open "${url}"`;
+          exec(openCmd, () => {});
+        } catch (e) {
+          console.warn("Không thể tự động mở trình duyệt:", e.message);
+        }
       }
     });
 
