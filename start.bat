@@ -15,7 +15,7 @@ if not exist "node_modules\" (
 echo.
 echo ========================================================
 echo   KHOI DONG TRINH DUNG VIDEO 2D REMOTION LOCAL
-echo   Dia chi web: http://127.0.0.1:3000
+echo   Dang khoi dong may chu local tai 127.0.0.1...
 echo   De dung ung dung, hay dong cua so nay hoac an Ctrl + C
 echo ========================================================
 echo.

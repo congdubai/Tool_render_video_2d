@@ -466,23 +466,47 @@ app.post("/api/open-folder", async (req, res) => {
   }
 });
 
-// Khởi động server
-app.listen(PORT, HOST, () => {
-  const url = `http://${HOST}:${PORT}`;
-  console.log(`\n=====================================================`);
-  console.log(`🚀 Máy chủ Local đã sẵn sàng tại: ${url}`);
-  console.log(`🔒 Bảo mật: Chỉ lắng nghe cục bộ 127.0.0.1`);
-  console.log(`=====================================================\n`);
+// Khởi động server với cơ chế tự động thử cổng tiếp theo nếu bị EACCES hoặc EADDRINUSE
+function startServer(startPort, maxAttempts = 15) {
+  let port = startPort;
+  let attempts = 0;
 
-  // Tự động mở trình duyệt nếu không truyền cờ --no-open
-  if (!process.argv.includes("--no-open")) {
-    const openCmd =
-      process.platform === "win32"
-        ? `start ${url}`
-        : process.platform === "darwin"
-        ? `open ${url}`
-        : `xdg-open ${url}`;
-    exec(openCmd, () => {});
+  function tryListen() {
+    const server = app.listen(port, HOST, () => {
+      const url = `http://${HOST}:${port}`;
+      console.log(`\n=====================================================`);
+      console.log(`🚀 Máy chủ Local đã sẵn sàng tại: ${url}`);
+      console.log(`🔒 Bảo mật: Chỉ lắng nghe cục bộ 127.0.0.1`);
+      console.log(`=====================================================\n`);
+
+      // Tự động mở trình duyệt nếu không truyền cờ --no-open
+      if (!process.argv.includes("--no-open")) {
+        const openCmd =
+          process.platform === "win32"
+            ? `start ${url}`
+            : process.platform === "darwin"
+            ? `open ${url}`
+            : `xdg-open ${url}`;
+        exec(openCmd, () => {});
+      }
+    });
+
+    server.on("error", (err) => {
+      if ((err.code === "EACCES" || err.code === "EADDRINUSE") && attempts < maxAttempts) {
+        console.warn(`⚠️ Cổng ${port} không khả dụng (${err.code}), tự động chuyển sang cổng ${port + 1}...`);
+        port++;
+        attempts++;
+        tryListen();
+      } else {
+        console.error("❌ Không thể khởi động máy chủ:", err.message);
+        process.exit(1);
+      }
+    });
   }
-});
+
+  tryListen();
+}
+
+const initialPort = parseInt(process.env.PORT, 10) || 3001;
+startServer(initialPort);
 
