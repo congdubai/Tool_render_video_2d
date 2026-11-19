@@ -37,12 +37,41 @@ import {
 const execAsync = promisify(exec);
 const app = express();
 const projectRoot = process.cwd();
-const PORT = process.env.PORT || 3000;
+
+// Tự động nạp cấu hình từ .env nếu có
+try {
+  const envPath = path.join(projectRoot, ".env");
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, "utf-8");
+    for (const line of envContent.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx > 0) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim();
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    }
+  }
+} catch (e) {}
+
+const PORT = parseInt(process.env.PORT, 10) || 3001;
 const HOST = "127.0.0.1"; // Tuyệt đối chỉ lắng nghe trên 127.0.0.1
 
 // Middleware phân tích JSON và dữ liệu gửi lên (Hỗ trợ Base64 lớn không bị lỗi PayloadTooLarge)
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
+
+// Route trang chủ với header cấm cache tuyệt đối để browser không bao giờ cache bản giao diện cũ
+app.get("/", (req, res) => {
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  res.sendFile(path.join(projectRoot, "app/ui/index.html"));
+});
 
 // Phục vụ giao diện tĩnh và tài nguyên an toàn (Chống cache để client luôn nhận bản mới nhất)
 app.use(
@@ -411,6 +440,9 @@ app.get("/api/videos", (req, res) => {
             createdAt: stats.mtime,
             formattedTime: new Date(stats.mtime).toLocaleString("vi-VN"),
             hasMetadata: Boolean(metadata),
+            projectId: metadata?.projectId || null,
+            engine: metadata?.engine || null,
+            engineName: metadata?.engineName || null,
             title: metadata?.title || file
           };
         } catch (e) {
@@ -1257,7 +1289,16 @@ app.post("/api/ai-code/render", async (req, res) => {
       let prefix = "remotion";
       if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) prefix = "python_longform";
       else if (engine === ENGINE_TYPES.THANH_HAI) prefix = "thanhhai";
-      safeVideoName = `${prefix}_${timeStr}.mp4`;
+
+      const rawProjectName = config.projectName || projectId;
+      const safeProjectSlug = rawProjectName
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, "_")
+        .replace(/_+/g, "_")
+        .slice(0, 25)
+        .replace(/^_|_$/g, "");
+
+      safeVideoName = safeProjectSlug ? `${prefix}_${safeProjectSlug}_${timeStr}.mp4` : `${prefix}_${timeStr}.mp4`;
     }
 
     const finalOutputPath = path.join(projectRoot, "out", safeVideoName);
@@ -1377,7 +1418,7 @@ app.post("/api/ai-code/delete-project", (req, res) => {
       return res.json({ success: true, message: "Đã dọn sạch tất cả các dự án đã import." });
     }
 
-    if (!projectId || projectId.startsWith("sample_") || projectId.startsWith("thanhhai_")) {
+    if (!projectId || projectId.startsWith("sample_") || projectId.startsWith("thanhhai_") || projectId.startsWith("python_")) {
       return res.status(400).json({ success: false, error: "Không thể xóa dự án mẫu hệ thống." });
     }
 

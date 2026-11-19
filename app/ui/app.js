@@ -2227,28 +2227,29 @@ async function previewCurrentProjectStills() {
 function findExistingVideoForProject(projectId, projectName = "") {
   if (!appState.videosList || appState.videosList.length === 0) return null;
 
-  // 1. Khớp theo projectId trong metadata
+  // 1. Khớp chính xác tuyệt đối theo projectId trong metadata
   let match = appState.videosList.find((v) => v.projectId === projectId);
   if (match) return match;
 
-  // 2. Khớp theo tên file hoặc tiêu đề
+  // 2. Với các dự án mẫu demo hệ thống
+  if (projectId === "sample_demo-10s") {
+    match = appState.videosList.find((v) => v.filename.includes("remotion_demo-10s") || v.filename.includes("DemoAnimation10s"));
+    if (match) return match;
+  } else if (projectId === "thanhhai_reaction-time") {
+    match = appState.videosList.find((v) => v.filename.includes("thanhhai_reaction-time") || v.filename.includes("reaction_time"));
+    if (match) return match;
+  } else if (projectId === "python_marshmallow") {
+    match = appState.videosList.find((v) => v.filename.includes("python_longform_marshmallow") || v.filename.includes("marshmallow"));
+    if (match) return match;
+  }
+
+  // 3. Khớp theo id thư mục duy nhất của dự án đã import (ví dụ folder có timestamp)
   const safeId = (projectId || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const safeName = (projectName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-
-  match = appState.videosList.find((v) => {
-    const fn = (v.filename || "").toLowerCase();
-    const title = (v.title || "").toLowerCase();
-    if (safeId && (fn.includes(safeId) || title.includes(safeId))) return true;
-    if (safeName && (fn.includes(safeName) || title.includes(safeName))) return true;
-    return false;
-  });
-  if (match) return match;
-
-  // 3. Quy tắc riêng cho các dự án demo
-  if (projectId.includes("reaction-time") || projectId.includes("thanhhai")) {
-    match = appState.videosList.find((v) => v.filename.includes("reaction_time") || v.filename.includes("thanhhai"));
-  } else if (projectId.includes("demo-10s")) {
-    match = appState.videosList.find((v) => v.filename.includes("DemoAnimation10s") || v.filename.includes("CharacterRig"));
+  if (safeId && safeId.length > 5) {
+    match = appState.videosList.find((v) => {
+      const fn = (v.filename || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      return fn.includes(safeId);
+    });
   }
 
   return match || null;
@@ -2268,28 +2269,34 @@ function loadPreviewForCurrentProject() {
   const btnPlayExisting = document.getElementById("btnPlayExistingVideo");
 
   const existing = findExistingVideoForProject(projectId, project?.name || project?.folderName);
-  const videoToLoad = existing || (appState.videosList && appState.videosList.length > 0 ? appState.videosList[0] : null);
 
-  if (videoToLoad) {
+  if (existing) {
     if (btnPlayExisting) {
       btnPlayExisting.classList.remove("hidden");
-      btnPlayExisting.textContent = `▶️ Phát Video (${videoToLoad.sizeMb}MB)`;
+      btnPlayExisting.textContent = `▶️ Phát lại video này (${existing.sizeMb}MB)`;
     }
 
     if (previewVideo) {
-      previewVideo.src = videoToLoad.url;
+      previewVideo.src = existing.url;
       previewVideo.classList.remove("hidden");
       if (previewImg) previewImg.classList.add("hidden");
       if (previewPlaceholder) previewPlaceholder.classList.add("hidden");
       if (previewStatusInfo && previewStatusText) {
         previewStatusInfo.classList.remove("hidden");
-        const isMatched = Boolean(videoToLoad === existing);
-        previewStatusText.innerHTML = `🎥 ${isMatched ? 'Video của dự án này' : 'Video gần nhất trong thư mục out/'}: <strong>${escapeHtml(videoToLoad.filename)}</strong> (${videoToLoad.sizeMb} MB)`;
+        previewStatusText.innerHTML = `🎥 Video thành phẩm của dự án: <strong>${escapeHtml(existing.filename)}</strong> (${existing.sizeMb} MB)`;
       }
       previewVideo.load();
     }
   } else {
-    if (btnPlayExisting) btnPlayExisting.classList.add("hidden");
+    // Dự án này chưa từng được render: hiển thị màn hình sẵn sàng rõ ràng, KHÔNG nạp video cũ của dự án khác
+    if (btnPlayExisting) {
+      if (appState.videosList && appState.videosList.length > 0) {
+        btnPlayExisting.classList.remove("hidden");
+        btnPlayExisting.textContent = `▶️ Xem video gần nhất trong thư viện (${appState.videosList[0].sizeMb}MB)`;
+      } else {
+        btnPlayExisting.classList.add("hidden");
+      }
+    }
     if (previewVideo) {
       previewVideo.pause();
       previewVideo.removeAttribute("src");
@@ -2299,12 +2306,14 @@ function loadPreviewForCurrentProject() {
     if (previewStatusInfo) previewStatusInfo.classList.add("hidden");
     if (previewPlaceholder) {
       previewPlaceholder.classList.remove("hidden");
+      const projTitle = project?.name || project?.folderName || projectId;
       previewPlaceholder.innerHTML = `
-        <div style="font-size: 48px; margin-bottom: 12px;">🎬</div>
-        <div style="font-weight: 700; color: #f8fafc; font-size: 16px;">Sẵn Sàng Dựng Video</div>
-        <div style="font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.6;">
-          Hãy bấm nút <strong style="color: #38bdf8;">"🚀 Render Video MP4 Hoàn Chỉnh"</strong> ở trên.<br/>
-          Video sau khi dựng xong sẽ tự động hiển thị và phát trực tiếp ngay trên khung màn hình này!
+        <div style="font-size: 52px; margin-bottom: 12px;">🎬</div>
+        <div style="font-weight: 700; color: #f8fafc; font-size: 17px;">${escapeHtml(projTitle)}</div>
+        <div style="font-size: 13px; color: #94a3b8; margin-top: 8px; line-height: 1.6; max-width: 520px; margin-left: auto; margin-right: auto;">
+          Dự án của bạn đã sẵn sàng để dựng thành video hoàn chỉnh.<br/>
+          Bấm nút <strong style="color: #38bdf8;">"🚀 Render Video MP4 Hoàn Chỉnh"</strong> hoặc <strong style="color: #c084fc;">"▶️ Dựng thử 5 giây"</strong> ở trên.<br/>
+          <span style="color: #34d399; font-weight: 600;">Video render từ file của bạn sẽ tự động hiển thị và phát trực tiếp ngay trên khung hình này!</span>
         </div>
       `;
     }
@@ -2523,6 +2532,8 @@ async function startAiRender(isTest = false) {
     return;
   }
 
+  const project = aiState.projects.find((p) => p.id === projectId);
+
   if (aiState.isRendering) {
     showToast("Đang có tiến trình dựng video đang chạy.");
     return;
@@ -2541,7 +2552,8 @@ async function startAiRender(isTest = false) {
 
   progressWrap.classList.remove("hidden");
   logsBox.classList.remove("hidden");
-  logsContent.innerHTML = `<div>[${new Date().toLocaleTimeString()}] Bắt đầu yêu cầu render ${isTest ? '(Bản xem trước 5s)' : '(Bản đầy đủ)'}...</div>`;
+  const projLabel = project?.rawName || project?.name || projectId;
+  logsContent.innerHTML = `<div>[${new Date().toLocaleTimeString()}] Bắt đầu yêu cầu render ${isTest ? '(Bản xem trước 5s)' : '(Bản đầy đủ)'} cho: <strong>${escapeHtml(projLabel)}</strong>...</div>`;
 
   btnFull.disabled = true;
   btnCancel.classList.remove("hidden");
@@ -2564,14 +2576,14 @@ async function startAiRender(isTest = false) {
         Đang dựng ${isTest ? 'bản xem trước 5 giây' : 'video MP4 hoàn chỉnh'}...
       </div>
       <div style="font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.5;">
-        Hệ thống đang xuất các khung hình. Bạn có thể theo dõi thanh tiến độ bên dưới.<br/>
-        Video thành phẩm sẽ tự động nạp và phát tại đây ngay khi hoàn thành!
+        Hệ thống đang xuất các khung hình từ file dự án của bạn. Bạn có thể theo dõi thanh tiến độ bên dưới.<br/>
+        <strong style="color: #34d399;">Video thành phẩm sẽ tự động nạp và phát tại đây ngay khi hoàn thành!</strong>
       </div>
     `;
   }
   if (previewStatusInfo && previewStatusText) {
     previewStatusInfo.classList.remove("hidden");
-    previewStatusText.innerHTML = `⏳ Đang dựng: <strong>${escapeHtml(nameInput || projectId)}</strong>...`;
+    previewStatusText.innerHTML = `⏳ Đang dựng: <strong>${escapeHtml(nameInput || projLabel)}</strong>...`;
   }
 
   try {
@@ -2596,7 +2608,7 @@ async function startAiRender(isTest = false) {
     if (!data.success) throw new Error(data.error);
 
     showToast(`🚀 ${data.message}`);
-    const engineDisplay = data.engineName || (project?.engine === "python-2d-long-form" ? "Python 2D Long Form (Skia + FFmpeg)" : project?.engine === "thanhhai-2d-studio" ? "Thanh Hai 2D Studio (Canvas + Three.js)" : "Remotion 2D Engine");
+    const engineDisplay = data.engineName || project?.engineName || (project?.engine === "python-2d-long-form" ? "Python 2D Long Form (Skia + FFmpeg)" : (project?.engine === "thanhhai-2d-studio" || project?.engine === "thanhhai_2d") ? "Thanh Hai 2D Studio (Canvas + Three.js)" : "Remotion 2D Engine");
     logsContent.innerHTML += `<div>[${new Date().toLocaleTimeString()}] Máy chủ đã nhận lệnh, đang nạp ${engineDisplay}...</div>`;
   } catch (err) {
     aiState.isRendering = false;
