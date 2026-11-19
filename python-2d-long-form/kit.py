@@ -297,11 +297,8 @@ def _seamless_leg(c, hip_x, foot_x, lift, lw):
     c.drawPath(shoe, ink(max(11, lw * 2.0)))
 
 
-def _seamless_arm(c, sx, sy, ex, ey, hx_, hy_, spec, lw, show):
-    """Filled tapered sleeve with continuous elbow, replacing a thin exposed stroke."""
-    dx, dy = hx_ - sx, hy_ - sy
-    # The original elbow coordinates remain the pose driver.
-    # The quadratic curve is sampled into a filled tapered outline.
+def _sleeve_samples(sx, sy, ex, ey, hx_, hy_):
+    """Quadratic arm spline sampled into a tapered sleeve polygon and sample points."""
     ctrl_x = 1.35 * ex - .175 * (sx + hx_)
     ctrl_y = 1.35 * ey - .175 * (sy + hy_)
     samples = []
@@ -316,14 +313,27 @@ def _seamless_arm(c, sx, sy, ex, ey, hx_, hy_, spec, lw, show):
         # Shoulder overlaps torso; taper into the wrist.
         width = 18.5 - 7.5 * t
         samples.append((px, py, nx*width, ny*width))
-    outline = skia.Path()
+    sleeve_poly = skia.Path()
     for i,(px,py,ox,oy) in enumerate(samples):
-        (outline.moveTo if i == 0 else outline.lineTo)(px+ox,py+oy)
-    for px,py,ox,oy in reversed(samples): outline.lineTo(px-ox,py-oy)
-    outline.close()
-    c.drawPath(outline, fp(spec['suit']))
-    c.drawPath(outline, ink(lw * .85))
-    # Low-contrast inside seam; not an exposed elbow circle.
+        (sleeve_poly.moveTo if i == 0 else sleeve_poly.lineTo)(px+ox,py+oy)
+    for px,py,ox,oy in reversed(samples): sleeve_poly.lineTo(px-ox,py-oy)
+    sleeve_poly.close()
+    return sleeve_poly, samples
+
+
+def _seamless_arm(c, sx, sy, ex, ey, hx_, hy_, spec, lw, show):
+    """Filled tapered sleeve with continuous elbow, without raw shoulder cross-stroke."""
+    sleeve_poly, samples = _sleeve_samples(sx, sy, ex, ey, hx_, hy_)
+    c.drawPath(sleeve_poly, fp(spec['suit']))
+    # Open stroke excluding the internal shoulder root cap
+    arm_stroke = skia.Path()
+    arm_stroke.moveTo(samples[1][0] + samples[1][2], samples[1][1] + samples[1][3])
+    for i in range(2, len(samples)):
+        arm_stroke.lineTo(samples[i][0] + samples[i][2], samples[i][1] + samples[i][3])
+    arm_stroke.lineTo(samples[-1][0] - samples[-1][2], samples[-1][1] - samples[-1][3])
+    for i in range(len(samples) - 2, 0, -1):
+        arm_stroke.lineTo(samples[i][0] - samples[i][2], samples[i][1] - samples[i][3])
+    c.drawPath(arm_stroke, ink(lw * .85))
     cuff = skia.Path(); cuff.moveTo(hx_-samples[-1][2],hy_-samples[-1][3]); cuff.lineTo(hx_+samples[-1][2],hy_+samples[-1][3])
     c.drawPath(cuff, ink(lw*.5, spec['suit_d']))
     if show:
@@ -345,8 +355,48 @@ def draw_char(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.0, b
         shape(c, sk, spec['suit'], lw)
     if spec.get('hair') == 'long':
         lh = skia.Path(); lh.addRRect(skia.RRect.MakeRectXY(skia.Rect(-R - 14, HEAD_CY - 40, R + 14, HEAD_CY + 150), 60, 60)); shape(c, lh, spec['hair_col'], lw)
+
     body = skia.Path(); body.addRRect(skia.RRect.MakeRectXY(skia.Rect(-84, BODY_TOP, 84, BODY_BOT), 66, 72))
-    c.drawPath(body, fp(spec['suit'])); c.save(); c.clipPath(body, doAntiAlias=True)
+
+    # Pre-calculate arm geometry & detect foreground crossing arms
+    arm_data = []
+    crossing_arms = []
+    union_sleeves = []
+    for side, a in ((-1, arms[0]), (1, arms[1])):
+        e, h, show = _arm(a); m = 1 if side < 0 else -1
+        sx, sy = SHOULDER[0] * m, SHOULDER[1]; ex, ey, hx_, hy_ = e[0] * m, e[1], h[0] * m, h[1]
+        sleeve_poly, samples = _sleeve_samples(sx, sy, ex, ey, hx_, hy_)
+        inward_reach = (hx_ - ex) * m
+        in_torso = (abs(hx_) < 80 or abs(ex) < 80)
+        is_crossing = (inward_reach > 20 and in_torso)
+        info = dict(side=side, m=m, sx=sx, sy=sy, ex=ex, ey=ey, hx=hx_, hy=hy_,
+                    poly=sleeve_poly, samples=samples, show=show, is_crossing=is_crossing)
+        arm_data.append(info)
+        if is_crossing: crossing_arms.append(info)
+        else: union_sleeves.append(sleeve_poly)
+
+    # Composite garment silhouette: union torso and attached sleeves
+    suit_silhouette = skia.Path(body)
+    for sl in union_sleeves:
+        u = skia.Op(suit_silhouette, sl, skia.PathOp.kUnion_PathOp)
+        if u and not u.isEmpty(): suit_silhouette = u
+    # For crossing arms, union their shoulder root polygon so shoulder contour is seamless
+    for arm in crossing_arms:
+        samples = arm['samples']
+        sh_poly = skia.Path()
+        sh_poly.moveTo(samples[0][0] + samples[0][2], samples[0][1] + samples[0][3])
+        sh_poly.lineTo(samples[2][0] + samples[2][2], samples[2][1] + samples[2][3])
+        sh_poly.lineTo(samples[2][0] - samples[2][2], samples[2][1] - samples[2][3])
+        sh_poly.lineTo(samples[0][0] - samples[0][2], samples[0][1] - samples[0][3])
+        sh_poly.close()
+        u = skia.Op(suit_silhouette, sh_poly, skia.PathOp.kUnion_PathOp)
+        if u and not u.isEmpty(): suit_silhouette = u
+
+    # 1. Fill base garment (seamless suit + sleeves)
+    c.drawPath(suit_silhouette, fp(spec['suit']))
+
+    # 2. Torso inner details clipped to body
+    c.save(); c.clipPath(body, doAntiAlias=True)
     sh = skia.Path(body); sh.offset(light * 16, -5); c.drawPath(skia.Op(body, sh, skia.PathOp.kDifference_PathOp), fp(spec['suit_d']))
     if outfit == 'suit':
         v = skia.Path(); v.moveTo(-34, BODY_TOP - 4); v.lineTo(0, BODY_TOP + 96); v.lineTo(34, BODY_TOP - 4); v.close(); c.drawPath(v, fp(spec['shirt']))
@@ -355,23 +405,46 @@ def draw_char(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.0, b
             bt.moveTo(0, by); bt.lineTo(24, by - 14); bt.lineTo(24, by + 14); bt.close(); shape(c, bt, spec['tie'], lw * .75); circ(c, 0, by, 5, spec['tie'], lw * .7)
         elif spec.get('tie') not in (None, 'none'):
             poly(c, [(-9, BODY_TOP + 24), (9, BODY_TOP + 24), (13, BODY_TOP + 82), (0, BODY_TOP + 98), (-13, BODY_TOP + 82)], spec['tie'], lw * .75)
-        for sx in (-1, 1):
-            lp = skia.Path(); lp.moveTo(sx * 36, BODY_TOP - 2); lp.lineTo(sx * 2, BODY_TOP + 98); lp.lineTo(sx * 2, BODY_BOT); c.drawPath(lp, ink(lw * .75))
-            c.drawLine(sx * 22, BODY_TOP + 58, sx * 40, BODY_TOP + 44, ink(lw * .6))
+        for sx_i in (-1, 1):
+            lp = skia.Path(); lp.moveTo(sx_i * 36, BODY_TOP - 2); lp.lineTo(sx_i * 2, BODY_TOP + 98); lp.lineTo(sx_i * 2, BODY_BOT); c.drawPath(lp, ink(lw * .75))
+            c.drawLine(sx_i * 22, BODY_TOP + 58, sx_i * 40, BODY_TOP + 44, ink(lw * .6))
     elif outfit == 'hoodie':
         hood = skia.Path(); hood.moveTo(-60, BODY_TOP - 2); hood.quadTo(0, BODY_TOP + 44, 60, BODY_TOP - 2); c.drawPath(hood, ink(lw * .8))
-        for sx in (-1, 1): c.drawLine(sx * 16, BODY_TOP + 20, sx * 18, BODY_TOP + 84, ink(lw * .55, spec['shirt']))
+        for sx_i in (-1, 1): c.drawLine(sx_i * 16, BODY_TOP + 20, sx_i * 18, BODY_TOP + 84, ink(lw * .55, spec['shirt']))
         pk = skia.Path(); pk.moveTo(-48, BODY_BOT - 6); pk.lineTo(-38, BODY_BOT - 66); pk.lineTo(38, BODY_BOT - 66); pk.lineTo(48, BODY_BOT - 6); c.drawPath(pk, ink(lw * .6))
     elif outfit in ('tshirt', 'dress', 'sweater'):
         nk = skia.Path(); nk.addArc(skia.Rect(-34, BODY_TOP - 30, 34, BODY_TOP + 26), 20, 140); c.drawPath(nk, ink(lw * .7))
         if outfit == 'sweater':
             for yy in (BODY_BOT - 22,): c.drawLine(-84, yy, 84, yy, ink(lw * .6))
     if spec.get('hanky'): poly(c, [(30, BODY_TOP + 96), (52, BODY_TOP + 92), (48, BODY_TOP + 76), (40, BODY_TOP + 86), (33, BODY_TOP + 76)], spec['hanky'], lw * .55)
-    c.restore(); c.drawPath(body, ink(lw))
-    for side, a in ((-1, arms[0]), (1, arms[1])):
-        e, h, show = _arm(a); m = 1 if side < 0 else -1
-        sx, sy = SHOULDER[0] * m, SHOULDER[1]; ex, ey, hx_, hy_ = e[0] * m, e[1], h[0] * m, h[1]
-        _seamless_arm(c, sx, sy, ex, ey, hx_, hy_, spec, lw, show)
+    c.restore()
+
+    # 3. Outer outline of composite garment silhouette
+    c.drawPath(suit_silhouette, ink(lw))
+
+    # 4. Foreground crossing arms pass
+    for arm in crossing_arms:
+        c.drawPath(arm['poly'], fp(spec['suit']))
+        samples = arm['samples']
+        arm_stroke = skia.Path()
+        arm_stroke.moveTo(samples[2][0] + samples[2][2], samples[2][1] + samples[2][3])
+        for i in range(3, len(samples)):
+            arm_stroke.lineTo(samples[i][0] + samples[i][2], samples[i][1] + samples[i][3])
+        arm_stroke.lineTo(samples[-1][0] - samples[-1][2], samples[-1][1] - samples[-1][3])
+        for i in range(len(samples) - 2, 1, -1):
+            arm_stroke.lineTo(samples[i][0] - samples[i][2], samples[i][1] - samples[i][3])
+        c.drawPath(arm_stroke, ink(lw * .85))
+
+    # 5. Cuffs and hands
+    for arm in arm_data:
+        samples = arm['samples']
+        hx_i, hy_i = arm['hx'], arm['hy']
+        cuff = skia.Path()
+        cuff.moveTo(hx_i - samples[-1][2], hy_i - samples[-1][3])
+        cuff.lineTo(hx_i + samples[-1][2], hy_i + samples[-1][3])
+        c.drawPath(cuff, ink(lw * .5, spec['suit_d']))
+        if arm['show']:
+            circ(c, hx_i, hy_i, 12.0, spec['skin'], lw * .7)
     c.save(); c.translate(0, HEAD_CY); c.rotate(tilt)
     head = skia.Path(); head.addCircle(0, 0, R); hair = spec.get('hair', 'short')
     if hair == 'bald':
