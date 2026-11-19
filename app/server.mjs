@@ -9,10 +9,8 @@ import fs from "fs";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { detectGpu } from "../lib/gpu.mjs";
-import { safeParseJson, isSafePath, validateAllData, extractRequiredAssets } from "../lib/validate.mjs";
+import { safeParseJson, isSafePath } from "../lib/validate.mjs";
 import { generateAllVoices } from "../lib/voice.mjs";
-import { renderVideo } from "../lib/render.mjs";
-import { runBenchmark } from "../scripts/bench.mjs";
 import { unzipProjectSafe, detectProjectConfig, listProjectFiles, validateProject } from "../lib/project-loader.mjs";
 import { bundleDynamicProject, renderDynamicStill, renderDynamicVideo } from "../lib/dynamic-render.mjs";
 import {
@@ -118,11 +116,9 @@ app.get("/api/init", async (req, res) => {
 
     const scriptPath = path.join(projectRoot, "src/data/script.json");
     const timelinePath = path.join(projectRoot, "src/data/timeline.json");
-    const scenesPath = path.join(projectRoot, "src/data/scenes.json");
 
     let scriptData = null;
     let timelineData = null;
-    let scenesData = null;
 
     if (fs.existsSync(scriptPath)) {
       try { scriptData = JSON.parse(fs.readFileSync(scriptPath, "utf-8")); } catch (e) {}
@@ -130,12 +126,6 @@ app.get("/api/init", async (req, res) => {
     if (fs.existsSync(timelinePath)) {
       try { timelineData = JSON.parse(fs.readFileSync(timelinePath, "utf-8")); } catch (e) {}
     }
-    if (fs.existsSync(scenesPath)) {
-      try { scenesData = JSON.parse(fs.readFileSync(scenesPath, "utf-8")); } catch (e) {}
-    }
-
-    // Danh sách ảnh mẫu hoặc ảnh đã có
-    const requiredAssets = scenesData ? extractRequiredAssets(scenesData, projectRoot) : [];
 
     // Kiểm tra các file out có sẵn
     const outFiles = {
@@ -150,8 +140,6 @@ app.get("/api/init", async (req, res) => {
       gpuInfo,
       scriptData,
       timelineData,
-      scenesData,
-      requiredAssets,
       outFiles
     });
   } catch (err) {
@@ -273,120 +261,6 @@ app.post("/api/voice/generate", async (req, res) => {
   }
 });
 
-/**
- * 4. Kiểm tra dữ liệu scenes.json (an toàn, không eval, báo lỗi chi tiết)
- */
-app.post("/api/scenes/validate", (req, res) => {
-  try {
-    const { scenesText } = req.body;
-    const parsed = safeParseJson(scenesText, "scenes.json");
-    if (parsed.error) {
-      return res.json({
-        success: false,
-        valid: false,
-        syntaxError: parsed.error,
-        errors: [parsed.error],
-        warnings: [],
-        requiredAssets: []
-      });
-    }
-
-    const scenesData = parsed.data;
-
-    // Đọc script.json và timeline.json hiện tại
-    const scriptPath = path.join(projectRoot, "src/data/script.json");
-    const timelinePath = path.join(projectRoot, "src/data/timeline.json");
-
-    let scriptData = null;
-    let timelineData = null;
-
-    if (fs.existsSync(scriptPath)) {
-      try { scriptData = JSON.parse(fs.readFileSync(scriptPath, "utf-8")); } catch (e) {}
-    }
-    if (fs.existsSync(timelinePath)) {
-      try { timelineData = JSON.parse(fs.readFileSync(timelinePath, "utf-8")); } catch (e) {}
-    }
-
-    const validation = validateAllData({
-      scriptData,
-      timelineData,
-      scenesData,
-      projectRoot
-    });
-
-    const requiredAssets = extractRequiredAssets(scenesData, projectRoot);
-
-    // Lưu file scenes.json nếu JSON hợp lệ cú pháp
-    if (scenesData && Array.isArray(scenesData.scenes)) {
-      const scenesPath = path.join(projectRoot, "src/data/scenes.json");
-      fs.writeFileSync(scenesPath, JSON.stringify(scenesData, null, 2), "utf-8");
-    }
-
-    res.json({
-      success: true,
-      valid: validation.valid,
-      errors: validation.errors,
-      warnings: validation.warnings,
-      requiredAssets,
-      scenesData
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-/**
- * Chuẩn hóa tên file: khử dấu tiếng Việt, khoảng trắng và ký tự lạ để lưu file an toàn
- */
-function sanitizeFilename(filename) {
-  const ext = path.extname(filename).toLowerCase();
-  const nameWithoutExt = path.basename(filename, ext);
-
-  const cleanName = nameWithoutExt
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
-    .replace(/[^a-zA-Z0-9_\-]/g, "_")
-    .replace(/_+/g, "_")
-    .slice(0, 45);
-
-  const safeExt = [".png", ".jpg", ".jpeg", ".webp", ".gif"].includes(ext) ? ext : ".png";
-  const uniqueSuffix = Date.now().toString().slice(-4);
-  return `${cleanName || "asset"}_${uniqueSuffix}${safeExt}`;
-}
-
-/**
- * 5. Tải ảnh lên an toàn và lưu vào folder public/ máy tính
- */
-app.post("/api/assets/upload", (req, res) => {
-  try {
-    const { filename, base64Data, type, overwrite = true } = req.body;
-
-    if (!filename || !base64Data) {
-      return res.status(400).json({ success: false, error: "Thiếu tên file hoặc dữ liệu ảnh." });
-    }
-
-    const safeFilename = sanitizeFilename(filename);
-    const subDir = type === "character" ? "characters" : "backgrounds";
-    const targetDir = path.join(projectRoot, "public", subDir);
-    fs.mkdirSync(targetDir, { recursive: true });
-
-    const targetPath = path.join(targetDir, safeFilename);
-
-    // Gỡ bỏ header data:image/png;base64,... nếu có
-    const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
-    fs.writeFileSync(targetPath, Buffer.from(cleanBase64, "base64"));
-
-    res.json({
-      success: true,
-      path: `${subDir}/${safeFilename}`,
-      message: `Đã lưu ảnh vào: public/${subDir}/${safeFilename}`
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
 
 /**
  * 6. Kênh Server-Sent Events (SSE) theo dõi tiến độ render thời gian thực
@@ -487,354 +361,6 @@ app.post("/api/videos/delete", (req, res) => {
 });
 
 /**
- * 9. Bắt đầu Render video (Hỗ trợ đặt tên, lưu metadata để gen lại và sinh hàng loạt)
- */
-app.post("/api/render/start", async (req, res) => {
-  if (isRendering) {
-    return res.status(400).json({ success: false, error: "Một tiến trình dựng video khác đang chạy. Vui lòng đợi hoặc bấm dừng." });
-  }
-
-  try {
-    const {
-      isTest = false,
-      accelerationMode = "cpu",
-      concurrency = null,
-      videoName = null,
-      customScriptData = null,
-      customTimelineData = null,
-      customScenesData = null
-    } = req.body;
-
-    let scriptData = customScriptData;
-    let timelineData = customTimelineData;
-    let scenesData = customScenesData;
-
-    const scriptPath = path.join(projectRoot, "src/data/script.json");
-    const timelinePath = path.join(projectRoot, "src/data/timeline.json");
-    const scenesPath = path.join(projectRoot, "src/data/scenes.json");
-
-    if (!scriptData && fs.existsSync(scriptPath)) {
-      try { scriptData = JSON.parse(fs.readFileSync(scriptPath, "utf-8")); } catch (e) {}
-    }
-    if (!timelineData && fs.existsSync(timelinePath)) {
-      try { timelineData = JSON.parse(fs.readFileSync(timelinePath, "utf-8")); } catch (e) {}
-    }
-    if (!scenesData && fs.existsSync(scenesPath)) {
-      try { scenesData = JSON.parse(fs.readFileSync(scenesPath, "utf-8")); } catch (e) {}
-    }
-
-    if (!timelineData || !scenesData) {
-      return res.status(400).json({
-        success: false,
-        error: "Thiếu dữ liệu dựng video (timeline.json hoặc scenes.json)."
-      });
-    }
-
-    // Tự động tạo tên video độc nhất nếu không chỉ định
-    let safeVideoName = "";
-    if (videoName && videoName.trim()) {
-      safeVideoName = path.basename(videoName.trim());
-      if (!safeVideoName.toLowerCase().endsWith(".mp4")) {
-        safeVideoName += ".mp4";
-      }
-    } else {
-      const now = new Date();
-      const pad = (n) => String(n).padStart(2, "0");
-      const timeStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-      safeVideoName = `video_${timeStr}.mp4`;
-    }
-
-    const finalOutputPath = path.join(projectRoot, "out", safeVideoName);
-    const baseName = path.parse(safeVideoName).name;
-    const metadataDir = path.join(projectRoot, "out/metadata");
-    fs.mkdirSync(metadataDir, { recursive: true });
-
-    // Lưu snapshot metadata để hỗ trợ tính năng "Gen lại"
-    const metaPath = path.join(metadataDir, `${baseName}.json`);
-    fs.writeFileSync(
-      metaPath,
-      JSON.stringify(
-        {
-          videoName: safeVideoName,
-          title: safeVideoName,
-          accelerationMode,
-          concurrency,
-          scriptData,
-          timelineData,
-          scenesData,
-          createdAt: new Date().toISOString()
-        },
-        null,
-        2
-      )
-    );
-
-    const fps = scriptData.meta?.fps || 30;
-    const totalFrames = Math.max(1, Math.round(timelineData.totalSeconds * fps));
-    const frameRange = isTest ? [0, Math.min(10 * fps - 1, totalFrames - 1)] : null;
-
-    isRendering = true;
-    currentRenderCancellation = false;
-
-    // Trả về response ngay để client theo dõi qua SSE
-    res.json({
-      success: true,
-      videoName: safeVideoName,
-      message: `Bắt đầu dựng ${safeVideoName}...`
-    });
-
-    // Chạy render ở tiến trình nền
-    (async () => {
-      try {
-        const renderResult = await renderVideo({
-          scriptData,
-          timelineData,
-          scenesData,
-          outputPath: finalOutputPath,
-          projectRoot,
-          accelerationMode,
-          frameRange,
-          concurrency,
-          forceRebundle: true,
-          checkCanceled: () => currentRenderCancellation,
-          onProgress: (p) => {
-            const pct = Math.round(p.progress * 100);
-            broadcastSse("render_progress", {
-              videoName: safeVideoName,
-              progress: pct,
-              renderedFrames: p.renderedFrames,
-              totalFrames: p.totalFrames,
-              timeRemainingMs: p.timeRemainingInMilliseconds
-            });
-          }
-        });
-
-        // Copy thêm bản out/video.mp4 cho tương thích cũ
-        try {
-          fs.copyFileSync(finalOutputPath, path.join(projectRoot, "out/video.mp4"));
-        } catch (e) {}
-
-        broadcastSse("render_complete", {
-          success: true,
-          videoName: safeVideoName,
-          videoUrl: `/out/${safeVideoName}?t=${Date.now()}`,
-          executionTimeSec: renderResult.executionTimeSec,
-          fallbackUsed: renderResult.fallbackUsed,
-          fallbackReason: renderResult.fallbackReason
-        });
-      } catch (err) {
-        broadcastSse("render_error", {
-          videoName: safeVideoName,
-          error: err.message
-        });
-      } finally {
-        isRendering = false;
-        currentRenderCancellation = false;
-      }
-    })();
-  } catch (err) {
-    isRendering = false;
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-/**
- * Trích xuất và điều chỉnh dữ liệu để render riêng 1 cảnh thành 1 video độc lập
- */
-export function createSingleSceneData(sceneIndex, scriptData, timelineData, scenesData) {
-  const scene = scenesData.scenes[sceneIndex];
-  if (!scene) throw new Error(`Không tìm thấy cảnh số ${sceneIndex + 1}`);
-
-  const sceneStart = Number(scene.start) || 0;
-  const sceneEnd = Number(scene.end) || 5;
-  const duration = Math.max(0.5, sceneEnd - sceneStart);
-
-  // 1. Cảnh con: đặt mốc thời gian từ 0 đến duration
-  const singleScene = {
-    ...scene,
-    start: 0,
-    end: duration
-  };
-
-  // 2. Lấy dòng lời đọc tương ứng
-  let matchingLines = [];
-  if (scene.line) {
-    matchingLines = (timelineData.lines || []).filter((l) => l.id === scene.line);
-  }
-  if (matchingLines.length === 0) {
-    matchingLines = (timelineData.lines || []).filter(
-      (l) => l.start >= sceneStart - 0.1 && l.end <= sceneEnd + 0.1
-    );
-  }
-  if (matchingLines.length === 0 && timelineData.lines && timelineData.lines[sceneIndex]) {
-    matchingLines = [timelineData.lines[sceneIndex]];
-  }
-
-  // Điều chỉnh mốc thời gian âm thanh và phụ đề về gốc 0
-  const shiftedLines = matchingLines.map((line) => {
-    const lineStart = Math.max(0, line.start - sceneStart);
-    const lineEnd = Math.max(lineStart + 0.2, line.end - sceneStart);
-    const shiftedWords = (line.words || []).map((w) => ({
-      ...w,
-      start: Math.max(0, w.start - sceneStart),
-      end: Math.max(0, w.end - sceneStart)
-    }));
-
-    return {
-      ...line,
-      start: lineStart,
-      end: lineEnd,
-      voiceEnd: line.voiceEnd ? Math.max(lineStart, line.voiceEnd - sceneStart) : undefined,
-      words: shiftedWords
-    };
-  });
-
-  const singleTimeline = {
-    totalSeconds: duration,
-    lines: shiftedLines
-  };
-
-  const lineIds = new Set(shiftedLines.map((l) => l.id));
-  const singleScript = {
-    meta: scriptData.meta,
-    lines: (scriptData.lines || []).filter((l) => lineIds.has(l.id))
-  };
-
-  return {
-    singleSceneData: { scenes: [singleScene] },
-    singleTimelineData: singleTimeline,
-    singleScriptData: singleScript,
-    duration
-  };
-}
-
-/**
- * 10. Render riêng 1 cảnh cụ thể thành 1 video độc lập
- */
-app.post("/api/render/scene", async (req, res) => {
-  if (isRendering) {
-    return res.status(400).json({ success: false, error: "Một tiến trình dựng video khác đang chạy. Vui lòng đợi hoặc bấm dừng." });
-  }
-
-  try {
-    const { sceneIndex = 0, isTest = false, accelerationMode = "cpu", concurrency = null, customVideoName = null } = req.body;
-
-    const scriptPath = path.join(projectRoot, "src/data/script.json");
-    const timelinePath = path.join(projectRoot, "src/data/timeline.json");
-    const scenesPath = path.join(projectRoot, "src/data/scenes.json");
-
-    if (!fs.existsSync(timelinePath) || !fs.existsSync(scenesPath)) {
-      return res.status(400).json({ success: false, error: "Thiếu dữ liệu kịch bản." });
-    }
-
-    const scriptData = JSON.parse(fs.readFileSync(scriptPath, "utf-8"));
-    const timelineData = JSON.parse(fs.readFileSync(timelinePath, "utf-8"));
-    const scenesData = JSON.parse(fs.readFileSync(scenesPath, "utf-8"));
-
-    if (!scenesData.scenes || !scenesData.scenes[sceneIndex]) {
-      return res.status(400).json({ success: false, error: `Không tìm thấy cảnh số ${sceneIndex + 1}.` });
-    }
-
-    const { singleSceneData, singleTimelineData, singleScriptData } = createSingleSceneData(
-      sceneIndex,
-      scriptData,
-      timelineData,
-      scenesData
-    );
-
-    const sceneObj = scenesData.scenes[sceneIndex];
-    const sceneId = sceneObj.id || `scene_${String(sceneIndex + 1).padStart(3, "0")}`;
-
-    let videoName = customVideoName;
-    if (!videoName) {
-      videoName = isTest ? `video_test_${sceneId}.mp4` : `video_${sceneId}.mp4`;
-    }
-    if (!videoName.toLowerCase().endsWith(".mp4")) {
-      videoName += ".mp4";
-    }
-
-    // Chuyển sang endpoint render/start với kịch bản con của cảnh này
-    req.body.videoName = videoName;
-    req.body.customScriptData = singleScriptData;
-    req.body.customTimelineData = singleTimelineData;
-    req.body.customScenesData = singleSceneData;
-    req.body.isTest = false;
-
-    return app._router.handle(
-      {
-        ...req,
-        url: "/api/render/start",
-        method: "POST"
-      },
-      res
-    );
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-/**
- * 11. Gen lại (Dựng lại) video đã có dựa trên metadata snapshot
- */
-app.post("/api/videos/regenerate", (req, res) => {
-  try {
-    const { filename, accelerationMode = "cpu", concurrency = null } = req.body;
-    if (!filename) {
-      return res.status(400).json({ success: false, error: "Thiếu tên file video cần gen lại." });
-    }
-
-    const safeFilename = path.basename(filename);
-    const baseName = path.parse(safeFilename).name;
-    const metaPath = path.join(projectRoot, "out/metadata", `${baseName}.json`);
-
-    let scriptData = null;
-    let timelineData = null;
-    let scenesData = null;
-
-    if (fs.existsSync(metaPath)) {
-      try {
-        const meta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
-        scriptData = meta.scriptData;
-        timelineData = meta.timelineData;
-        scenesData = meta.scenesData;
-      } catch (e) {}
-    }
-
-    if (!timelineData || !scenesData) {
-      const scriptPath = path.join(projectRoot, "src/data/script.json");
-      const timelinePath = path.join(projectRoot, "src/data/timeline.json");
-      const scenesPath = path.join(projectRoot, "src/data/scenes.json");
-      if (fs.existsSync(scriptPath)) scriptData = JSON.parse(fs.readFileSync(scriptPath, "utf-8"));
-      if (fs.existsSync(timelinePath)) timelineData = JSON.parse(fs.readFileSync(timelinePath, "utf-8"));
-      if (fs.existsSync(scenesPath)) scenesData = JSON.parse(fs.readFileSync(scenesPath, "utf-8"));
-    }
-
-    if (!timelineData || !scenesData) {
-      return res.status(400).json({ success: false, error: "Không tìm thấy dữ liệu kịch bản để gen lại video này." });
-    }
-
-    // Gán dữ liệu vào body và gọi logic render
-    req.body.videoName = safeFilename;
-    req.body.customScriptData = scriptData;
-    req.body.customTimelineData = timelineData;
-    req.body.customScenesData = scenesData;
-    req.body.isTest = false;
-
-    // Chuyển quyền xử lý sang endpoint render
-    return app._router.handle(
-      {
-        ...req,
-        url: "/api/render/start",
-        method: "POST"
-      },
-      res
-    );
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-/**
  * 8. Hủy render
  */
 app.post("/api/render/cancel", (req, res) => {
@@ -847,17 +373,6 @@ app.post("/api/render/cancel", (req, res) => {
   res.json({ success: true, message: "Không có tiến trình render nào đang chạy." });
 });
 
-/**
- * 9. Đo tốc độ (Benchmark 5s)
- */
-app.post("/api/render/bench", async (req, res) => {
-  try {
-    const benchData = await runBenchmark(projectRoot);
-    res.json({ success: true, ...benchData });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
 
 /**
  * 10. Mở thư mục out/ hoặc thư mục public assets trên File Explorer

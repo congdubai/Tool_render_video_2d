@@ -26,16 +26,13 @@
     </div>
   </header>
 
-  <!-- Thanh điều hướng 3 Tab -->
+  <!-- Thanh điều hướng 2 Tab -->
   <nav class="tab-nav">
     <button id="tabBtn1" class="tab-btn active" onclick="switchTab(1)">
       <span class="tab-num">1</span> Giọng đọc & Timeline
     </button>
     <button id="tabBtn2" class="tab-btn" onclick="switchTab(2)">
-      <span class="tab-num">2</span> Dựng video & Ghép giọng
-    </button>
-    <button id="tabBtn3" class="tab-btn" onclick="switchTab(3)">
-      <span class="tab-num">3</span> 🤖 AI Code Render
+      <span class="tab-num">2</span> 🤖 Dựng Video AI (Multi-Engine)
     </button>
   </nav>
 
@@ -159,201 +156,8 @@
     </section>
   </main>
 
-  <!-- ================= TAB 2: DỰNG VIDEO ================= -->
+  <!-- ================= TAB 2: DỰNG VIDEO AI (MULTI-ENGINE) ================= -->
   <main id="tabContent2" class="tab-pane">
-    <div class="grid-2-cols">
-      <!-- Cột 1: Dán scenes.json và kiểm tra -->
-      <section class="card">
-        <div class="card-header">
-          <h2>1. Cấu Hình Cảnh (scenes.json)</h2>
-          <div class="card-actions">
-            <button class="btn btn-sm btn-outline" onclick="loadSampleScenes()">📄 Nạp mẫu thử nghiệm</button>
-          </div>
-        </div>
-        <div class="card-body">
-          <p class="hint">Dán nội dung <code>scenes.json</code> do AI sinh ra dựa trên timeline ở Tab 1:</p>
-          <textarea id="scenesJsonInput" class="code-textarea" rows="14" placeholder='{ "scenes": [ { "id": "scene_001", "start": 0, "end": 4.72, ... } ] }'></textarea>
-
-          <div class="action-bar-left">
-            <button class="btn btn-primary" onclick="validateScenesData()">🔍 Kiểm tra dữ liệu</button>
-          </div>
-
-          <!-- Thông báo kiểm tra lỗi -->
-          <div id="validationResultBox" class="validation-box hidden"></div>
-        </div>
-      </section>
-
-      <!-- Cột 2: Danh sách ảnh & Kéo thả -->
-      <section class="card">
-        <div class="card-header">
-          <h2>2. Quản Lý Ảnh Trong Cảnh (Lưu vào folder máy)</h2>
-          <div class="card-actions">
-            <button class="btn btn-sm btn-outline" onclick="openFolder('backgrounds')" title="Mở thư mục ảnh nền trên máy tính">📁 Mở mục Nền</button>
-            <button class="btn btn-sm btn-outline" onclick="openFolder('characters')" title="Mở thư mục ảnh nhân vật trên máy tính">📁 Mở mục Nhân vật</button>
-          </div>
-        </div>
-        <div class="card-body">
-          <p class="hint" style="margin-bottom: 12px;">Xem trước, đổi ảnh hoặc xóa ảnh trực tiếp cho từng cảnh (Tự động lưu vào folder <code>public/</code>):</p>
-          <div id="assetChecklist" class="asset-checklist">
-            <div class="empty-state">Chưa có dữ liệu cảnh. Hãy dán <code>scenes.json</code> và bấm "Kiểm tra dữ liệu".</div>
-          </div>
-
-          <!-- Input ẩn để đổi ảnh cho từng slot -->
-          <input type="file" id="slotFilePicker" accept="image/*" class="file-hidden" onchange="handleSlotFileChange(event)" />
-
-          <!-- Khu vực kéo thả / chọn ảnh trực tiếp -->
-          <div id="dropZone" class="drop-zone">
-            <div class="drop-icon">🖼️</div>
-            <div class="drop-title">Kéo & thả hoặc chọn ảnh từ máy tính</div>
-            <div class="drop-subtitle">
-              Ảnh nền được lưu tự động vào <code>public/backgrounds/</code><br />
-              Ảnh nhân vật được lưu tự động vào <code>public/characters/</code>
-            </div>
-            <div style="display: flex; justify-content: center; gap: 10px;">
-              <button class="btn btn-sm btn-primary" onclick="triggerQuickUpload('bg')">🖼️ Thêm ảnh Nền cho Cảnh 1</button>
-              <button class="btn btn-sm btn-secondary" onclick="triggerQuickUpload('character')">👤 Thêm Nhân Vật cho Cảnh 1</button>
-            </div>
-          </div>
-        </div>
-      </section>
-    </div>
-
-    <!-- Cài đặt Render & Hành động -->
-    <section class="card">
-      <div class="card-header">
-        <h2>3. Thiết Lập & Sinh Video</h2>
-      </div>
-      <div class="card-body">
-        <div class="render-settings-grid">
-          <div class="setting-item">
-            <label>Tên video kết xuất:</label>
-            <input type="text" id="videoNameInput" class="input-control" placeholder="Tùy chọn (ví dụ: video_tap_01)" />
-            <span class="hint-small">(Để trống sẽ tự đặt theo ngày giờ)</span>
-          </div>
-
-          <div class="setting-item">
-            <label>Độ phân giải:</label>
-            <select id="resolutionSelect" class="select-control">
-              <option value="720p" selected>720p (1280x720) - Khuyên dùng</option>
-              <option value="1080p">1080p (1920x1080)</option>
-            </select>
-          </div>
-
-          <div class="setting-item">
-            <label>Số luồng render:</label>
-            <input type="number" id="concurrencyInput" value="4" min="1" max="8" class="input-mini" />
-            <span class="hint-small">(Tối đa 4 để tiết kiệm RAM 20GB)</span>
-          </div>
-
-          <div class="setting-item">
-            <label>Tăng tốc GPU:</label>
-            <select id="gpuModeSelect" class="select-control">
-              <option value="cpu" selected>Tắt (CPU, Mặc định ổn định nhất)</option>
-              <option value="gpu_nvenc">Mã hóa GPU (NVIDIA NVENC)</option>
-              <option value="gpu_angle">Mã hóa & Vẽ GPU (NVENC + ANGLE)</option>
-            </select>
-          </div>
-
-          <div class="setting-item">
-            <label>&nbsp;</label>
-            <button class="btn btn-secondary" onclick="runGpuBenchmark()">⏱️ Đo tốc độ (5s)</button>
-          </div>
-        </div>
-
-        <!-- Bảng benchmark nhỏ -->
-        <div id="benchResultBox" class="bench-box hidden"></div>
-
-        <div class="action-bar" style="flex-wrap: wrap; gap: 10px;">
-          <button id="btnRenderTest" class="btn btn-secondary btn-lg" onclick="startRenderScene(0, true)" title="Chỉ sinh duy nhất 1 video Cảnh 1 để xem thử trước chất lượng">
-            ▶️ Dựng thử 1 video (Xem thử)
-          </button>
-          <button id="btnRenderFull" class="btn btn-primary btn-lg" onclick="startRenderAllScenes()" title="Tự động sinh tất cả các video theo danh sách cảnh trong JSON (có bao nhiêu sinh hết bấy nhiêu)">
-            🎬 Dựng tất cả video (Sinh hết theo JSON)
-          </button>
-          <button id="btnRenderCombined" class="btn btn-outline btn-lg" onclick="startRender(false)" title="Ghép tất cả các cảnh thành 1 file video dài hoàn chỉnh duy nhất" style="border-color: #38bdf8; color: #38bdf8;">
-            🎞️ Ghép 1 video gộp toàn bộ
-          </button>
-          <button id="btnCancelRender" class="btn btn-danger btn-lg hidden" onclick="cancelRender()">
-            ⏹️ Hủy dựng
-          </button>
-        </div>
-
-        <!-- Thanh tiến độ Render -->
-        <div id="renderProgressWrap" class="render-progress-wrap hidden">
-          <div class="progress-info-row">
-            <span id="renderStatusText">Đang khởi động tiến trình Remotion...</span>
-            <span id="renderTimeRemainingText">Còn lại: ~...</span>
-          </div>
-          <div class="progress-bar-bg">
-            <div id="renderProgressBar" class="progress-bar-fill progress-render" style="width: 0%"></div>
-          </div>
-          <div class="progress-frames-row">
-            <span id="renderFramesText">0 / 0 khung hình</span>
-            <span id="renderPercentText">0%</span>
-          </div>
-        </div>
-
-        <!-- Khu vực Hàng Đợi Sinh Video Hàng Loạt -->
-        <div id="batchQueueBox" class="batch-queue-box hidden">
-          <div class="batch-queue-header">
-            <div style="font-weight: 700; color: #38bdf8; font-size: 14px;">
-              📦 Hàng Đợi Dựng Hàng Loạt: <span id="queueCountBadge" class="badge btn-primary" style="padding: 2px 8px;">0 video</span>
-            </div>
-            <div style="display: flex; gap: 8px;">
-              <button class="btn btn-sm btn-primary" id="btnStartBatch" onclick="startBatchRender()">🚀 Bắt đầu dựng tất cả</button>
-              <button class="btn btn-sm btn-outline" onclick="clearBatchQueue()">🧹 Xóa hàng đợi</button>
-            </div>
-          </div>
-          <div id="batchProgressInfo" class="batch-progress-info hidden">
-            <span id="batchProgressText" style="font-weight: 600; color: #fbbf24;">Đang dựng video 1/3...</span>
-          </div>
-          <div id="batchQueueList" class="batch-queue-list"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Khu vực 4: Danh Sách Video Đã Dựng & Trình Xem Video -->
-    <section class="card" id="videoGallerySection">
-      <div class="card-header">
-        <h2>4. Danh Sách Video Đã Dựng & Xem Video</h2>
-        <div class="card-actions">
-          <button class="btn btn-sm btn-outline" onclick="loadVideosList()">🔄 Làm mới danh sách</button>
-          <button class="btn btn-sm btn-outline" onclick="openOutputFolder()">📂 Mở thư mục out/</button>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="video-gallery-layout">
-          <!-- Cột xem video chính -->
-          <div class="gallery-player-pane">
-            <div class="player-header-title">
-              <span id="nowPlayingTitle">▶️ Chưa chọn video để phát</span>
-            </div>
-            <div class="video-player-wrap">
-              <video id="outputVideoPlayer" controls width="100%" poster=""></video>
-            </div>
-            <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <p class="video-path-hint" style="margin: 0;">Đường dẫn: <code id="outputVideoPath">out/video.mp4</code></p>
-              <a id="btnDownloadCurrent" href="#" download class="btn btn-sm btn-outline hidden">⬇️ Tải video này</a>
-            </div>
-          </div>
-
-          <!-- Cột danh sách video (List Video) -->
-          <div class="gallery-list-pane">
-            <div class="list-pane-header">
-              <span style="font-weight: 700; color: #cbd5e1; font-size: 13px;">DANH SÁCH VIDEO ĐÃ TẠO:</span>
-              <span id="totalVideosCount" class="hint-small">0 video</span>
-            </div>
-            <div id="videosListContainer" class="videos-list-container">
-              <div class="empty-state">Đang tải danh sách video...</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- ================= TAB 3: AI CODE RENDER ================= -->
-  <main id="tabContent3" class="tab-pane">
     <!-- Khu vực A: Import Dự Án Remotion AI -->
     <section class="card">
       <div class="card-header">
@@ -550,12 +354,34 @@
         </div>
       </div>
     </section>
+    <!-- Khu vực C: Thư Viện Video Đã Dựng (out/) -->
+    <section class="card" id="videoGallerySection" style="margin-top: 20px;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>C. Danh Sách Video Đã Dựng (Thư Viện Video)</h2>
+          <span class="hint">Tất cả video MP4 đã render trong thư mục <code>out/</code></span>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-sm btn-outline" onclick="loadVideosList()">🔄 Làm mới danh sách</button>
+          <button class="btn btn-sm btn-outline" onclick="openOutputFolder()">📂 Mở thư mục out/</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="list-pane-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <span style="font-weight: 700; color: #cbd5e1; font-size: 13px;">TỔNG HỢP VIDEO TRÊN MÁY TÍNH:</span>
+          <span id="totalVideosCount" class="hint-small">0 video</span>
+        </div>
+        <div id="videosListContainer" class="videos-list-container">
+          <div class="empty-state">Đang tải danh sách video...</div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=3.5"></script>
+  <script src="app.js?v=4.0"></script>
 </body>
 </html>
 
