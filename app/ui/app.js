@@ -1817,6 +1817,29 @@ function selectThanhHaiDemoProject() {
   }
 }
 
+// Chọn nhanh Demo project Python 2D Long Form (The Marshmallow Test - 31 Shots)
+function selectPythonDemoProject() {
+  const select = document.getElementById("aiProjectSelect");
+  const pyDemo = aiState.projects.find((p) => p.id === "python_marshmallow" || p.engine === "python-2d-long-form");
+  if (pyDemo && select) {
+    select.value = pyDemo.id;
+    handleAiProjectChanged();
+    showToast(`🐍 Đã chọn dự án mẫu Python 2D Long Form: "${pyDemo.name}"`);
+  } else {
+    showToast("Đang tải lại danh sách dự án...");
+    loadAiProjectsList();
+  }
+}
+
+// Khi người dùng chủ động đổi Engine trên dropdown
+function handleEngineSelectChanged() {
+  const engineSelect = document.getElementById("aiEngineSelect");
+  const chosen = engineSelect ? engineSelect.value : "auto";
+  aiState.manualEngineOverride = chosen;
+  showToast(`⚙️ Đã chuyển Engine sang: ${chosen === "auto" ? "Tự động nhận diện" : chosen}`);
+  validateCurrentAiProject();
+}
+
 // Khi người dùng đổi lựa chọn dự án trên dropdown
 function handleAiProjectChanged() {
   const select = document.getElementById("aiProjectSelect");
@@ -1834,23 +1857,56 @@ function handleAiProjectChanged() {
 
   overviewBox.classList.remove("hidden");
 
-  const isTH = project.engine === "thanhhai-2d-studio" || project.engine === "thanhhai_2d";
+  const engine = project.engine || "remotion";
+  const isPython = engine === "python-2d-long-form";
+  const isTH = engine === "thanhhai-2d-studio" || engine === "thanhhai_2d";
+
+  // Cập nhật dropdown engine
+  const engineSelect = document.getElementById("aiEngineSelect");
+  if (engineSelect && (!aiState.manualEngineOverride || aiState.manualEngineOverride === "auto")) {
+    engineSelect.value = isPython ? "python-2d-long-form" : isTH ? "thanhhai-2d-studio" : "remotion";
+  }
+
   const engineBadge = document.getElementById("aiBadgeEngine");
   const engineTag = document.getElementById("aiEngineTag");
-  const btnContactSheet = document.getElementById("btnContactSheet");
+  const btnContactSheet = document.getElementById("btnAiContactSheet");
 
   if (engineBadge) {
-    engineBadge.textContent = isTH ? "Engine: Thanh Hai 2D Studio" : "Engine: Remotion 2D";
-    engineBadge.style.color = isTH ? "#c084fc" : "#38bdf8";
-    engineBadge.style.borderColor = isTH ? "#a855f7" : "#0284c7";
+    if (isPython) {
+      engineBadge.textContent = "Engine: Python 2D Long Form (Skia)";
+      engineBadge.style.color = "#34d399";
+      engineBadge.style.borderColor = "#10b981";
+    } else if (isTH) {
+      engineBadge.textContent = "Engine: Thanh Hai 2D Studio";
+      engineBadge.style.color = "#c084fc";
+      engineBadge.style.borderColor = "#a855f7";
+    } else {
+      engineBadge.textContent = "Engine: Remotion 2D";
+      engineBadge.style.color = "#38bdf8";
+      engineBadge.style.borderColor = "#0284c7";
+    }
   }
+
   if (engineTag) {
-    engineTag.textContent = isTH ? "CANVAS / THREE.JS" : "REMOTION TSX";
-    engineTag.style.backgroundColor = isTH ? "#7c3aed" : "#0284c7";
+    if (isPython) {
+      engineTag.textContent = "PYTHON / SKIA";
+      engineTag.style.backgroundColor = "#059669";
+    } else if (isTH) {
+      engineTag.textContent = "CANVAS / THREE.JS";
+      engineTag.style.backgroundColor = "#7c3aed";
+    } else {
+      engineTag.textContent = "REMOTION TSX";
+      engineTag.style.backgroundColor = "#0284c7";
+    }
   }
+
   if (btnContactSheet) {
-    if (isTH) btnContactSheet.classList.remove("hidden");
-    else btnContactSheet.classList.add("hidden");
+    // Contact Sheet hỗ trợ cả Thanh Hai và Python Long Form
+    if (isPython || isTH) {
+      btnContactSheet.classList.remove("hidden");
+    } else {
+      btnContactSheet.classList.add("hidden");
+    }
   }
 
   // Hiển thị thông tin tổng quan
@@ -1862,19 +1918,13 @@ function handleAiProjectChanged() {
   document.getElementById("aiBadgeFps").textContent = `${cfg.fps || 30} FPS`;
   const durSec = ((cfg.durationInFrames || 300) / (cfg.fps || 30)).toFixed(1);
   document.getElementById("aiBadgeDuration").textContent = `${cfg.durationInFrames || 300} frames (~${durSec}s)`;
-  document.getElementById("aiBadgeComp").textContent = isTH
-    ? `Shots: ${cfg.shotsCount || 14} cảnh (${cfg.style || 'dusk'})`
-    : `Comp: ${cfg.compositionId || "MainVideo"}`;
 
-  // Cập nhật thanh timeline
-  const slider = document.getElementById("previewFrameSlider");
-  if (slider) {
-    slider.min = 0;
-    slider.max = (cfg.durationInFrames || 300) - 1;
-    slider.value = 0;
-    aiState.currentFrame = 0;
-    document.getElementById("currentFrameLabel").textContent = "Frame: 0 (0.00s)";
-    document.getElementById("totalFramesLabel").textContent = `${cfg.durationInFrames || 300} frames`;
+  if (isPython) {
+    document.getElementById("aiBadgeComp").textContent = `Shots: ${cfg.shotsCount || 31} cảnh (${cfg.mood || 'mystery'} mood)`;
+  } else if (isTH) {
+    document.getElementById("aiBadgeComp").textContent = `Shots: ${cfg.shotsCount || 14} cảnh (${cfg.style || 'dusk'} style)`;
+  } else {
+    document.getElementById("aiBadgeComp").textContent = `Comp: ${cfg.compositionId || "MainVideo"}`;
   }
 
   // Tự động kiểm tra và nạp video đã có của dự án này vào màn hình xem trước
@@ -1928,7 +1978,7 @@ async function handleAiZipSelected(event) {
   reader.readAsDataURL(file);
 }
 
-// 2. Thẩm định dự án Remotion hoặc Thanh Hai 2D Studio (Validate Project)
+// 2. Thẩm định dự án Remotion, Thanh Hai 2D Studio hoặc Python 2D Long Form (Validate Project)
 async function validateCurrentAiProject() {
   const projectId = aiState.selectedProjectId;
   if (!projectId) {
@@ -1944,10 +1994,13 @@ async function validateCurrentAiProject() {
   resultBox.innerHTML = '<div class="empty-state">⏳ Đang phân tích cấu trúc dự án và kiểm tra engine...</div>';
 
   try {
+    const engineSelect = document.getElementById("aiEngineSelect");
+    const engineOverride = (engineSelect && engineSelect.value !== "auto") ? engineSelect.value : (aiState.manualEngineOverride || null);
+
     const res = await fetch("/api/ai-code/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId })
+      body: JSON.stringify({ projectId, engineOverride })
     });
 
     const data = await res.json();
@@ -1955,24 +2008,44 @@ async function validateCurrentAiProject() {
 
     const val = data.validation;
     aiState.currentValidation = val;
-    const isTH = data.engine === "thanhhai-2d-studio" || val.engine === "thanhhai-2d-studio";
+    const engine = data.engine || val.engine || "remotion";
+    const isPython = engine === "python-2d-long-form";
+    const isTH = engine === "thanhhai-2d-studio" || engine === "thanhhai_2d";
 
     // Cập nhật nhãn Badge Engine
     const engineBadge = document.getElementById("aiBadgeEngine");
     const engineTag = document.getElementById("aiEngineTag");
-    const btnContactSheet = document.getElementById("btnContactSheet");
+    const btnContactSheet = document.getElementById("btnAiContactSheet");
 
     if (engineBadge) {
-      engineBadge.textContent = isTH ? "Engine: Thanh Hai 2D Studio" : "Engine: Remotion 2D";
-      engineBadge.style.color = isTH ? "#c084fc" : "#38bdf8";
-      engineBadge.style.borderColor = isTH ? "#a855f7" : "#0284c7";
+      if (isPython) {
+        engineBadge.textContent = "Engine: Python 2D Long Form (Skia)";
+        engineBadge.style.color = "#34d399";
+        engineBadge.style.borderColor = "#10b981";
+      } else if (isTH) {
+        engineBadge.textContent = "Engine: Thanh Hai 2D Studio";
+        engineBadge.style.color = "#c084fc";
+        engineBadge.style.borderColor = "#a855f7";
+      } else {
+        engineBadge.textContent = "Engine: Remotion 2D";
+        engineBadge.style.color = "#38bdf8";
+        engineBadge.style.borderColor = "#0284c7";
+      }
     }
     if (engineTag) {
-      engineTag.textContent = isTH ? "CANVAS / THREE.JS" : "REMOTION TSX";
-      engineTag.style.backgroundColor = isTH ? "#7c3aed" : "#0284c7";
+      if (isPython) {
+        engineTag.textContent = "PYTHON / SKIA";
+        engineTag.style.backgroundColor = "#059669";
+      } else if (isTH) {
+        engineTag.textContent = "CANVAS / THREE.JS";
+        engineTag.style.backgroundColor = "#7c3aed";
+      } else {
+        engineTag.textContent = "REMOTION TSX";
+        engineTag.style.backgroundColor = "#0284c7";
+      }
     }
     if (btnContactSheet) {
-      if (isTH) btnContactSheet.classList.remove("hidden");
+      if (isPython || isTH) btnContactSheet.classList.remove("hidden");
       else btnContactSheet.classList.add("hidden");
     }
 
@@ -1993,13 +2066,13 @@ async function validateCurrentAiProject() {
     if (assetsList && val.assets) {
       let html = "";
       if (val.assets.found.length === 0 && val.assets.missing.length === 0) {
-        html = '<div class="empty-state" style="padding: 10px;">Dự án dùng tài nguyên dựng sẵn hoặc vẽ trực tiếp bằng Canvas/Three.js.</div>';
+        html = '<div class="empty-state" style="padding: 10px;">Dự án dùng tài nguyên dựng sẵn hoặc vẽ trực tiếp bằng Skia / Canvas.</div>';
       } else {
         val.assets.found.forEach((a) => {
-          html += `<div class="asset-item"><span>🖼️ ${escapeHtml(a)}</span> <span class="asset-badge-found">✅ Đã có</span></div>`;
+          html += `<div class="asset-item"><span>🔊 ${escapeHtml(a)}</span> <span class="asset-badge-found">✅ Đã có</span></div>`;
         });
         val.assets.missing.forEach((a) => {
-          html += `<div class="asset-item"><span>⚠️ ${escapeHtml(a)}</span> <span class="asset-badge-missing">❌ Chưa có</span></div>`;
+          html += `<div class="asset-item"><span>⚡ ${escapeHtml(a)}</span> <span class="asset-badge-missing">⚡ Tự động tổng hợp AI</span></div>`;
         });
       }
       assetsList.innerHTML = html;
@@ -2016,7 +2089,32 @@ async function validateCurrentAiProject() {
     `;
 
     // Chi tiết kiểm tra theo từng Engine tương ứng
-    if (isTH) {
+    if (isPython) {
+      // Giao diện thẩm định chuẩn cho Python 2D Long Form
+      const cfg = val.config || {};
+      reportHtml += `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px;">
+          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+            <span style="color: #94a3b8; font-size: 11px;">ENGINE:</span><br/>
+            <strong style="color: #34d399; font-family: monospace;">Python 2D Long Form (Skia)</strong>
+          </div>
+          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+            <span style="color: #94a3b8; font-size: 11px;">STORYBOARD & SHOTS:</span><br/>
+            <strong style="color: #38bdf8; font-family: monospace;">${cfg.shotsCount || 0} cảnh (${cfg.mood || 'mystery'} mood)</strong>
+          </div>
+          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+            <span style="color: #94a3b8; font-size: 11px;">GIỌNG ĐỌC:</span><br/>
+            <strong style="color: ${cfg.hasVoice ? '#10b981' : '#f59e0b'}; font-family: monospace;">
+              ${cfg.hasVoice ? '✅ ' + (cfg.voiceFile || 'voice.wav') : '⚡ Tự động tạo giọng AI khi render'}
+            </strong>
+          </div>
+          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+            <span style="color: #94a3b8; font-size: 11px;">MÔI TRƯỜNG THỰC THI:</span><br/>
+            <strong style="color: #10b981;">Python 3.11 + Skia + FFmpeg</strong>
+          </div>
+        </div>
+      `;
+    } else if (isTH) {
       // Giao diện thẩm định chuẩn cho Thanh Hai 2D Studio
       reportHtml += `
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px;">
@@ -2082,7 +2180,50 @@ async function validateCurrentAiProject() {
   }
 }
 
-// 3. Điều khiển Timeline & Soi Frame (Frame Inspector) & Video Preview
+// 3. Xem trước Contact Sheet (Thanh Hai 2D Studio & Python 2D Long Form)
+async function previewCurrentProjectStills() {
+  const projectId = aiState.selectedProjectId;
+  if (!projectId) {
+    showToast("Vui lòng chọn một dự án!");
+    return;
+  }
+
+  showToast("🖼️ Đang tạo và nạp Contact Sheet...");
+  try {
+    const engineSelect = document.getElementById("aiEngineSelect");
+    const engineOverride = (engineSelect && engineSelect.value !== "auto") ? engineSelect.value : (aiState.manualEngineOverride || null);
+
+    const res = await fetch("/api/ai-code/contact-sheet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId, engineOverride })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    const previewImg = document.getElementById("previewFrameImage");
+    const previewVideo = document.getElementById("previewVideoPlayer");
+    const previewPlaceholder = document.getElementById("previewPlaceholder");
+    const previewStatusInfo = document.getElementById("previewStatusInfo");
+    const previewStatusText = document.getElementById("previewStatusText");
+
+    if (previewImg && data.sheetUrl) {
+      previewImg.src = data.sheetUrl;
+      previewImg.classList.remove("hidden");
+      if (previewVideo) previewVideo.classList.add("hidden");
+      if (previewPlaceholder) previewPlaceholder.classList.add("hidden");
+      if (previewStatusInfo && previewStatusText) {
+        previewStatusInfo.classList.remove("hidden");
+        previewStatusText.innerHTML = `🖼️ Đang hiển thị Contact Sheet: <a href="${data.sheetUrl}" target="_blank" style="color: #38bdf8; text-decoration: underline;">Xem ảnh gốc đầy đủ</a>`;
+      }
+      showToast("🖼️ Đã nạp Contact Sheet thành công!");
+    }
+  } catch (err) {
+    showToast("❌ Không thể nạp Contact Sheet: " + err.message);
+  }
+}
+
+// 4. Điều khiển Timeline & Soi Frame (Frame Inspector) & Video Preview
 function findExistingVideoForProject(projectId, projectName = "") {
   if (!appState.videosList || appState.videosList.length === 0) return null;
 
@@ -2434,11 +2575,15 @@ async function startAiRender(isTest = false) {
   }
 
   try {
+    const engineSelect = document.getElementById("aiEngineSelect");
+    const engineOverride = (engineSelect && engineSelect.value !== "auto") ? engineSelect.value : (aiState.manualEngineOverride || null);
+
     const res = await fetch("/api/ai-code/render", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         projectId,
+        engineOverride,
         accelerationMode: gpuMode,
         isTest,
         customVideoName: nameInput,
@@ -2451,8 +2596,7 @@ async function startAiRender(isTest = false) {
     if (!data.success) throw new Error(data.error);
 
     showToast(`🚀 ${data.message}`);
-    const isTH = project?.engine === "thanhhai-2d-studio";
-    const engineDisplay = isTH ? "Thanh Hai 2D Studio (Canvas + Three.js)" : "Remotion 2D Engine";
+    const engineDisplay = data.engineName || (project?.engine === "python-2d-long-form" ? "Python 2D Long Form (Skia + FFmpeg)" : project?.engine === "thanhhai-2d-studio" ? "Thanh Hai 2D Studio (Canvas + Three.js)" : "Remotion 2D Engine");
     logsContent.innerHTML += `<div>[${new Date().toLocaleTimeString()}] Máy chủ đã nhận lệnh, đang nạp ${engineDisplay}...</div>`;
   } catch (err) {
     aiState.isRendering = false;

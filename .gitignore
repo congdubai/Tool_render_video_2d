@@ -24,6 +24,13 @@ out/bench/
 public/audio/lines/*.mp3
 src/data/.tts_cache.json
 
+# Python cache & work
+__pycache__/
+*.py[cod]
+*$py.class
+**/work/
+python-2d-long-form/**/work/
+
 # OS files
 .DS_Store
 Thumbs.db

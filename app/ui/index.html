@@ -393,6 +393,9 @@
               <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; flex: 1;" onclick="selectThanhHaiDemoProject()">
                 🎨 Mẫu Thanh Hai 2D (Reaction Time)
               </button>
+              <button class="btn btn-sm btn-outline" style="border-color: #10b981; color: #34d399; flex: 1;" onclick="selectPythonDemoProject()">
+                🐍 Mẫu Python 2D (Marshmallow)
+              </button>
               <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #fca5a5;" onclick="deleteAllImportedProjects()" title="Xóa tất cả các dự án import thừa để làm sạch danh sách">
                 🧹 Dọn sạch dự án import
               </button>
@@ -441,8 +444,18 @@
         <div class="preview-inspector-layout" style="display: flex; flex-direction: column; align-items: center;">
           <div class="preview-screen-wrap" style="width: 100%; max-width: 860px;">
             
-            <!-- 1. Tùy chọn cấu hình xuất video tinh gọn -->
+            <!-- 1. Tùy chọn cấu hình xuất video & Engine -->
             <div class="render-settings-grid" style="margin-bottom: 16px;">
+              <div class="setting-item">
+                <label for="aiEngineSelect">Project Engine:</label>
+                <select id="aiEngineSelect" class="select-control" onchange="handleEngineSelectChanged()">
+                  <option value="auto" selected>✨ Tự động nhận diện (Auto Detect)</option>
+                  <option value="remotion">⚛️ Remotion 2D (React / TypeScript)</option>
+                  <option value="thanhhai-2d-studio">🎨 Thanh Hai 2D Studio (Canvas / Three.js)</option>
+                  <option value="python-2d-long-form">🐍 Python 2D Long Form (Skia / FFmpeg)</option>
+                </select>
+              </div>
+
               <div class="setting-item">
                 <label for="aiResolutionSelect">Độ phân giải:</label>
                 <select id="aiResolutionSelect" class="select-control">
@@ -471,7 +484,7 @@
                 </select>
               </div>
 
-              <div class="setting-item">
+              <div class="setting-item" style="grid-column: span 2;">
                 <label for="aiCustomVideoName">Tên video xuất (tùy chọn):</label>
                 <input type="text" id="aiCustomVideoName" class="text-input" placeholder="Tự động đặt tên theo project..." />
               </div>
@@ -484,6 +497,9 @@
               </button>
               <button class="btn btn-outline btn-lg" style="border-color: #a855f7; color: #c084fc; flex: 1; font-weight: 600;" onclick="startAiRender(true)">
                 ▶️ Dựng thử 5 giây
+              </button>
+              <button id="btnAiContactSheet" class="btn btn-outline btn-lg" style="border-color: #06b6d4; color: #22d3ee; font-weight: 600;" onclick="previewCurrentProjectStills()" title="Xem toàn bộ bối cảnh và nhân vật qua Contact Sheet">
+                🖼️ Soi Contact Sheet
               </button>
               <button id="btnCancelAiRender" class="btn btn-danger btn-lg hidden" onclick="cancelRender()">
                 ⏹️ Hủy Render
@@ -539,7 +555,7 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=2.9"></script>
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>
 
