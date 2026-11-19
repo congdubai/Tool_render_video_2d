@@ -381,26 +381,32 @@
               <select id="aiProjectSelect" class="select-control" style="flex: 1;" onchange="handleAiProjectChanged()">
                 <option value="">-- Đang quét danh sách dự án... --</option>
               </select>
-              <button class="btn btn-secondary" onclick="loadAiProjectsList()">🔄</button>
+              <button class="btn btn-secondary" onclick="loadAiProjectsList()" title="Làm mới danh sách">🔄</button>
+              <button id="btnDeleteCurrentProject" class="btn btn-outline" style="border-color: #ef4444; color: #f87171; font-weight: 600;" onclick="deleteCurrentAiProject()" title="Xóa dự án đang chọn khỏi máy">
+                🗑️ Xóa
+              </button>
             </div>
             <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
               <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; flex: 1;" onclick="selectDemoProject()">
-                ⭐ Nạp Mẫu Remotion (10s)
+                ⭐ Mẫu Remotion (10s)
               </button>
               <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; flex: 1;" onclick="selectThanhHaiDemoProject()">
-                🎨 Nạp Mẫu Thanh Hai 2D (Reaction Time)
+                🎨 Mẫu Thanh Hai 2D (Reaction Time)
+              </button>
+              <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #fca5a5;" onclick="deleteAllImportedProjects()" title="Xóa tất cả các dự án import thừa để làm sạch danh sách">
+                🧹 Dọn sạch dự án import
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Thẻ Tổng Quan Dự Án -->
+        <!-- Thẻ Tổng Quan Cấu Hình Dự Án -->
         <div id="aiProjectOverview" class="ai-project-overview hidden">
-          <div class="overview-header">
+          <div class="overview-header" style="padding-bottom: 4px;">
             <div>
               <span class="project-tag" id="aiProjectTag">DỰ ÁN AI</span>
               <span class="project-tag" id="aiEngineTag" style="background-color: #7c3aed; margin-left: 6px;">ENGINE</span>
-              <h3 id="aiProjectNameTitle" style="display: inline-block; margin: 0 0 0 10px; color: #f8fafc; font-size: 18px;">Tên Dự Án</h3>
+              <h3 id="aiProjectNameTitle" style="display: inline-block; margin: 0 0 0 10px; color: #f8fafc; font-size: 17px;">Tên Dự Án</h3>
             </div>
             <div id="aiConfigBadges" class="overview-badges">
               <span class="badge" id="aiBadgeEngine" style="border-color: #a855f7; color: #d8b4fe;">Engine: Remotion</span>
@@ -411,193 +417,116 @@
             </div>
           </div>
 
-          <!-- 2 Cột: Cây file và Danh sách Assets -->
-          <div class="overview-columns">
-            <div class="overview-col">
-              <div class="col-title">📁 Cấu trúc file dự án: (<span id="aiFilesCount">0</span> files)</div>
-              <div id="aiFilesTree" class="files-tree-box"></div>
-            </div>
-            <div class="overview-col">
-              <div class="col-title">🎨 Tài nguyên Assets (Ảnh & Âm thanh):</div>
-              <div id="aiAssetsList" class="assets-list-box"></div>
-            </div>
-          </div>
+          <!-- Các thẻ ẩn hỗ trợ dữ liệu ngầm cho hệ thống -->
+          <div id="aiFilesTree" class="hidden"></div>
+          <div id="aiAssetsList" class="hidden"></div>
+          <span id="aiFilesCount" class="hidden">0</span>
+          <div id="validationResultBox" class="hidden"></div>
         </div>
       </div>
     </section>
 
-    <!-- Khu vực B: Thẩm Định Dự Án (Project Validation) -->
-    <section class="card">
-      <div class="card-header">
-        <h2>B. Thẩm Định Dự Án (Project Validation)</h2>
-        <div class="card-actions">
-          <button id="btnValidateAiProject" class="btn btn-primary" onclick="validateCurrentAiProject()">
-            🔍 Thẩm Định Dự Án (Validate Project)
-          </button>
-        </div>
-      </div>
-      <div class="card-body">
-        <div id="validationResultBox" class="validation-box">
-          <div class="empty-state">Chưa thẩm định. Hãy chọn hoặc tải lên dự án rồi nhấn nút "Thẩm Định Dự Án".</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Khu vực C: Xem Trước Video & Soi Khung Hình (Video Preview & Frame Inspector) -->
+    <!-- Khu vực B: Màn Hình Video & Dựng Video (Video Player & Render Engine) -->
     <section class="card">
       <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h2>C. Xem Trước Video & Soi Khung Hình (Video Preview)</h2>
-          <span class="hint">Xem chuyển động nhân vật, camera và hiệu ứng trước khi dựng toàn bộ</span>
+          <h2>B. Màn Hình Video & Render</h2>
+          <span class="hint">Nhấn nút Render bên dưới, video dựng xong sẽ tự động hiển thị và phát ngay tại đây</span>
         </div>
-        <div class="preview-mode-tabs">
-          <button id="btnModeVideo" class="preview-mode-btn active" onclick="switchPreviewMode('video')" title="Xem dạng video chuyển động MP4">
-            🎬 Trình Phát Video
-          </button>
-          <button id="btnModeFrame" class="preview-mode-btn" onclick="switchPreviewMode('frame')" title="Xem dạng ảnh chụp khung hình tĩnh">
-            📷 Soi Khung Hình Tĩnh
-          </button>
+        <div id="previewStatusInfo" class="preview-status-info hidden" style="margin: 0; padding: 4px 10px;">
+          <span id="previewStatusText">🎥 Đang phát video vừa gen ra</span>
         </div>
       </div>
       <div class="card-body">
-        <div class="preview-inspector-layout">
-          <!-- Khung màn hình hiển thị Preview / Frame -->
-          <div class="preview-screen-wrap">
+        <div class="preview-inspector-layout" style="display: flex; flex-direction: column; align-items: center;">
+          <!-- Khung màn hình hiển thị Video Player -->
+          <div class="preview-screen-wrap" style="width: 100%; max-width: 860px;">
             <div id="previewContainer" class="preview-container">
-              <img id="previewFrameImage" class="preview-frame-img hidden" alt="Frame preview" />
               <video id="previewVideoPlayer" class="preview-video hidden" controls playsinline></video>
+              <img id="previewFrameImage" class="preview-frame-img hidden" alt="Frame preview" />
               <div id="previewPlaceholder" class="preview-placeholder">
-                <div style="font-size: 40px; margin-bottom: 10px;">🎞️</div>
-                <div style="font-weight: 600; color: #e2e8f0; font-size: 15px;">Chưa có bản xem trước</div>
-                <div style="font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.6;">
-                  Bấm <strong style="color: #38bdf8;">"▶ Dựng bản xem trước nhanh (5s)"</strong> để xem video hoạt hình chuyển động,<br/>
-                  hoặc chọn frame bên dưới rồi bấm <strong style="color: #c084fc;">"📷 Soi Khung Hình Này"</strong> để xem tức thì.
+                <div style="font-size: 52px; margin-bottom: 12px;">🎬</div>
+                <div style="font-weight: 700; color: #f8fafc; font-size: 17px;" id="previewPlaceholderTitle">Sẵn Sàng Dựng Video</div>
+                <div style="font-size: 13px; color: #94a3b8; margin-top: 8px; line-height: 1.6;" id="previewPlaceholderDesc">
+                  Bấm nút <strong style="color: #38bdf8;">"🚀 Render Video MP4 Hoàn Chỉnh"</strong> bên dưới.<br/>
+                  Video sau khi dựng xong sẽ tự động hiển thị và phát trực tiếp ngay trên khung màn hình này!
                 </div>
               </div>
             </div>
 
-            <!-- Thanh thông tin trạng thái Video / Frame đang hiển thị -->
-            <div id="previewStatusInfo" class="preview-status-info hidden">
-              <span id="previewStatusText">🎥 Đang phát video xem trước</span>
-              <button class="btn btn-sm btn-outline" id="btnOpenInTab2" onclick="switchToLibraryTab()" style="font-size: 11px; padding: 2px 8px;">
-                📂 Mở trong Thư viện
+            <!-- Tùy chọn cấu hình xuất video tinh gọn -->
+            <div class="render-settings-grid" style="margin-top: 16px;">
+              <div class="setting-item">
+                <label for="aiResolutionSelect">Độ phân giải:</label>
+                <select id="aiResolutionSelect" class="select-control">
+                  <option value="project" selected>Mặc định theo dự án</option>
+                  <option value="1080p">1920 × 1080 (Full HD)</option>
+                  <option value="720p">1280 × 720 (HD 720p)</option>
+                  <option value="4k">3840 × 2160 (4K Ultra HD)</option>
+                </select>
+              </div>
+
+              <div class="setting-item">
+                <label for="aiFpsSelect">Tỉ lệ khung hình (FPS):</label>
+                <select id="aiFpsSelect" class="select-control">
+                  <option value="project" selected>Mặc định theo dự án</option>
+                  <option value="30">30 FPS (Tiêu chuẩn)</option>
+                  <option value="60">60 FPS (Mượt)</option>
+                  <option value="24">24 FPS (Điện ảnh)</option>
+                </select>
+              </div>
+
+              <div class="setting-item">
+                <label for="aiGpuModeSelect">Bộ tăng tốc xử lý:</label>
+                <select id="aiGpuModeSelect" class="select-control">
+                  <option value="cpu" selected>CPU (Mặc định - Ổn định)</option>
+                  <option value="gpu_nvenc">GPU NVIDIA NVENC (Nhanh)</option>
+                </select>
+              </div>
+
+              <div class="setting-item">
+                <label for="aiCustomVideoName">Tên video xuất (tùy chọn):</label>
+                <input type="text" id="aiCustomVideoName" class="text-input" placeholder="Tự động đặt tên theo project..." />
+              </div>
+            </div>
+
+            <!-- Nút bấm Render Video trực tiếp -->
+            <div class="action-bar" style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
+              <button id="btnAiRenderFull" class="btn btn-primary btn-lg" style="flex: 2; font-weight: 700; font-size: 15px;" onclick="startAiRender(false)">
+                🚀 Render Video MP4 Hoàn Chỉnh
+              </button>
+              <button class="btn btn-outline btn-lg" style="border-color: #a855f7; color: #c084fc; flex: 1; font-weight: 600;" onclick="startAiRender(true)">
+                ▶️ Dựng thử 5 giây
+              </button>
+              <button id="btnCancelAiRender" class="btn btn-danger btn-lg hidden" onclick="cancelRender()">
+                ⏹️ Hủy Render
               </button>
             </div>
 
-            <!-- Thanh Timeline & Điều khiển Frame -->
-            <div class="timeline-controls-bar">
-              <div class="timeline-slider-row">
-                <span class="time-label" id="currentFrameLabel">Frame: 0 (0.00s)</span>
-                <input
-                  type="range"
-                  id="previewFrameSlider"
-                  min="0"
-                  max="300"
-                  value="0"
-                  class="timeline-slider"
-                  oninput="onFrameSliderInput(event)"
-                />
-                <span class="time-label" id="totalFramesLabel">300 frames</span>
+            <!-- Tiến độ Render SSE -->
+            <div id="aiRenderProgressWrap" class="render-progress-wrap hidden" style="margin-top: 16px;">
+              <div class="progress-info-row">
+                <span id="aiRenderStatusText">Đang khởi động Render Engine...</span>
+                <span id="aiRenderTimeRemainingText">Còn lại: ~...</span>
               </div>
-
-              <div class="timeline-buttons-row">
-                <div class="btn-group-nav">
-                  <button class="btn btn-sm btn-secondary" onclick="stepFrame(-30)" title="Lùi 1 giây">⏮️ -1s</button>
-                  <button class="btn btn-sm btn-secondary" onclick="stepFrame(-1)" title="Lùi 1 frame">◀ 1 frame</button>
-                  <button class="btn btn-sm btn-primary" onclick="inspectCurrentFrame()" id="btnInspectFrame">📷 Soi Khung Hình Này</button>
-                  <button class="btn btn-sm btn-secondary" onclick="stepFrame(1)" title="Tiến 1 frame">1 frame ▶</button>
-                  <button class="btn btn-sm btn-secondary" onclick="stepFrame(30)" title="Tiến 1 giây">+1s ⏭️</button>
-                </div>
-
-                <div class="preview-actions" style="display: flex; gap: 8px;">
-                  <button id="btnPlayExistingVideo" class="btn btn-sm btn-outline hidden" style="border-color: #10b981; color: #34d399;" onclick="playExistingProjectVideo()">
-                    ▶️ Phát Video Đã Dựng
-                  </button>
-                  <button id="btnContactSheet" class="btn btn-sm btn-outline hidden" style="border-color: #a855f7; color: #c084fc;" onclick="inspectContactSheet()">
-                    📋 Xem Contact Sheet (Toàn Bộ Shots)
-                  </button>
-                  <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; font-weight: 600;" onclick="startAiRender(true)">
-                    ▶️ Dựng bản xem trước nhanh (5s)
-                  </button>
-                </div>
+              <div class="progress-bar-bg">
+                <div id="aiRenderProgressBar" class="progress-bar-fill progress-render" style="width: 0%"></div>
               </div>
+              <div class="progress-frames-row">
+                <span id="aiRenderFramesText">0 / 0 khung hình</span>
+                <span id="aiRenderPercentText">0%</span>
+              </div>
+            </div>
+
+            <!-- Hộp nhật ký Render Logs -->
+            <div id="aiRenderLogsBox" class="ai-render-logs hidden" style="margin-top: 14px;">
+              <div class="logs-header">NHẬT KÝ RENDER THỜI GIAN THỰC:</div>
+              <div id="aiRenderLogsContent" class="logs-content"></div>
             </div>
           </div>
         </div>
       </div>
     </section>
-
-    <!-- Khu vực D: Cấu Hình Render & Tiến Hành Render (Render Settings & Action) -->
-    <section class="card">
-      <div class="card-header">
-        <h2>D. Cấu Hình & Render Video</h2>
-        <span class="hint">Tùy chỉnh thông số xuất video MP4 tiêu chuẩn H.264</span>
-      </div>
-      <div class="card-body">
-        <div class="render-settings-grid">
-          <div class="setting-item">
-            <label for="aiResolutionSelect">Độ phân giải:</label>
-            <select id="aiResolutionSelect" class="select-control">
-              <option value="project" selected>Mặc định theo dự án</option>
-              <option value="1080p">1920 × 1080 (Full HD)</option>
-              <option value="720p">1280 × 720 (HD 720p)</option>
-              <option value="4k">3840 × 2160 (4K Ultra HD)</option>
-            </select>
-          </div>
-
-          <div class="setting-item">
-            <label for="aiFpsSelect">Tỉ lệ khung hình (FPS):</label>
-            <select id="aiFpsSelect" class="select-control">
-              <option value="project" selected>Mặc định theo dự án</option>
-              <option value="30">30 FPS (Tiêu chuẩn mượt)</option>
-              <option value="60">60 FPS (Siêu mượt)</option>
-              <option value="24">24 FPS (Điện ảnh)</option>
-            </select>
-          </div>
-
-          <div class="setting-item">
-            <label for="aiGpuModeSelect">Tăng tốc phần cứng:</label>
-            <select id="aiGpuModeSelect" class="select-control">
-              <option value="cpu" selected>CPU (Mặc định - Ổn định nhất)</option>
-              <option value="gpu_nvenc">GPU NVIDIA NVENC (Nhanh gấp 3-5 lần)</option>
-              <option value="gpu_angle">GPU ANGLE</option>
-            </select>
-          </div>
-
-          <div class="setting-item">
-            <label for="aiCustomVideoName">Tên file video xuất (tùy chọn):</label>
-            <input type="text" id="aiCustomVideoName" class="text-input" placeholder="Tự động đặt tên theo project..." />
-          </div>
-        </div>
-
-        <div class="action-bar" style="margin-top: 20px;">
-          <button id="btnAiRenderFull" class="btn btn-primary btn-lg" onclick="startAiRender(false)">
-            🚀 Render Video MP4 Hoàn Chỉnh
-          </button>
-          <button id="btnCancelAiRender" class="btn btn-danger btn-lg hidden" onclick="cancelRender()">
-            ⏹️ Hủy Render
-          </button>
-        </div>
-
-        <!-- Tiến độ Render SSE -->
-        <div id="aiRenderProgressWrap" class="render-progress-wrap hidden">
-          <div class="progress-info-row">
-            <span id="aiRenderStatusText">Đang đóng gói bundle mã nguồn Remotion...</span>
-            <span id="aiRenderTimeRemainingText">Còn lại: ~...</span>
-          </div>
-          <div class="progress-bar-bg">
-            <div id="aiRenderProgressBar" class="progress-bar-fill progress-render" style="width: 0%"></div>
-          </div>
-          <div class="progress-frames-row">
-            <span id="aiRenderFramesText">0 / 0 khung hình</span>
-            <span id="aiRenderPercentText">0%</span>
-          </div>
-        </div>
-
-        <!-- Hộp nhật ký Render Logs -->
-        <div id="aiRenderLogsBox" class="ai-render-logs hidden">
-          <div class="logs-header">NHẬT KÝ RENDER THỜI GIAN THỰC:</div>
-          <div id="aiRenderLogsContent" class="logs-content"></div>
         </div>
       </div>
     </section>
@@ -606,7 +535,7 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=2.7"></script>
+  <script src="app.js?v=2.8"></script>
 </body>
 </html>
 

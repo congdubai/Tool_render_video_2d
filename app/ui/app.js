@@ -1711,27 +1711,81 @@ async function loadAiProjectsList() {
     aiState.projects.forEach((p) => {
       const opt = document.createElement("option");
       opt.value = p.id;
-      const typeLabel = p.isDemo ? "⭐ [MẪU DEMO]" : "📁 [DỰ ÁN]";
-      opt.textContent = `${typeLabel} ${p.name || p.folderName}`;
+      opt.textContent = p.name || p.folderName;
       select.appendChild(opt);
     });
 
-    // Mặc định chọn dự án demo nếu chưa chọn
-    if (!aiState.selectedProjectId) {
-      const demo = aiState.projects.find((p) => p.isDemo);
-      if (demo) {
-        select.value = demo.id;
-      } else {
-        select.value = aiState.projects[0].id;
-      }
-    } else {
+    // Ưu tiên chọn dự án đang được chỉ định hoặc dự án mới tải lên đầu tiên
+    if (aiState.selectedProjectId && aiState.projects.some((p) => p.id === aiState.selectedProjectId)) {
       select.value = aiState.selectedProjectId;
+    } else {
+      select.value = aiState.projects[0].id;
+      aiState.selectedProjectId = select.value;
     }
 
     handleAiProjectChanged();
   } catch (err) {
     console.error("Lỗi tải danh sách AI projects:", err);
     showToast("Không thể tải danh sách dự án AI: " + err.message);
+  }
+}
+
+// Xóa dự án AI đang chọn (chỉ xóa dự án import, không xóa demo gốc)
+async function deleteCurrentAiProject() {
+  const projectId = aiState.selectedProjectId;
+  if (!projectId) {
+    showToast("Vui lòng chọn một dự án để xóa!");
+    return;
+  }
+
+  const project = aiState.projects.find((p) => p.id === projectId);
+  if (project && project.isDemo) {
+    alert("⚠️ Đây là dự án mẫu demo mặc định của hệ thống, không thể xóa.");
+    return;
+  }
+
+  const confirmName = project?.name || projectId;
+  if (!confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn dự án:\n"${confirmName}"\nkhỏi danh sách và ổ đĩa không?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/ai-code/delete-project", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    showToast(`🗑️ Đã xóa thành công dự án!`);
+    aiState.selectedProjectId = null;
+    await loadAiProjectsList();
+  } catch (err) {
+    showToast("❌ Không thể xóa dự án: " + err.message);
+  }
+}
+
+// Dọn sạch toàn bộ các dự án đã import để làm trống danh sách
+async function deleteAllImportedProjects() {
+  if (!confirm("⚠️ Bạn có chắc chắn muốn dọn sạch TOÀN BỘ các dự án đã import trước đây không?\n(Các mẫu demo gốc vẫn được giữ nguyên)")) {
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/ai-code/delete-project", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deleteAll: true })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    showToast("🧹 Đã dọn sạch tất cả các dự án import!");
+    aiState.selectedProjectId = null;
+    await loadAiProjectsList();
+  } catch (err) {
+    showToast("❌ Không thể dọn dẹp: " + err.message);
   }
 }
 
@@ -1858,9 +1912,14 @@ async function handleAiZipSelected(event) {
       const data = await res.json();
       if (!data.success) throw new Error(data.error);
 
-      showToast(`✅ Đã giải nén thành công ${data.extractedCount} files vào dự án!`);
       aiState.selectedProjectId = data.projectId;
       await loadAiProjectsList();
+
+      const previewContainer = document.getElementById("previewContainer");
+      if (previewContainer) {
+        previewContainer.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      showToast(`🎉 Đã nạp thành công file mới: "${data.projectName || file.name}"!`);
     } catch (err) {
       showToast("❌ Lỗi upload ZIP: " + err.message);
       console.error(err);
@@ -2099,11 +2158,11 @@ function loadPreviewForCurrentProject() {
     if (previewPlaceholder) {
       previewPlaceholder.classList.remove("hidden");
       previewPlaceholder.innerHTML = `
-        <div style="font-size: 40px; margin-bottom: 10px;">🎞️</div>
-        <div style="font-weight: 600; color: #e2e8f0; font-size: 15px;">Chưa có bản xem trước</div>
+        <div style="font-size: 48px; margin-bottom: 12px;">🎬</div>
+        <div style="font-weight: 700; color: #f8fafc; font-size: 16px;">Sẵn Sàng Dựng Video</div>
         <div style="font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.6;">
-          Bấm <strong style="color: #38bdf8;">"▶ Dựng bản xem trước nhanh (5s)"</strong> bên dưới để xem video hoạt hình chuyển động,<br/>
-          hoặc chọn frame rồi bấm <strong style="color: #c084fc;">"📷 Soi Khung Hình Này"</strong> để chụp ảnh khung hình bất kỳ!
+          Bấm nút <strong style="color: #38bdf8;">"🚀 Render Video MP4 Hoàn Chỉnh"</strong> bên dưới.<br/>
+          Video sau khi dựng xong sẽ tự động hiển thị và phát trực tiếp ngay trên khung màn hình này!
         </div>
       `;
     }
@@ -2347,32 +2406,31 @@ async function startAiRender(isTest = false) {
   btnCancel.classList.remove("hidden");
   aiState.isRendering = true;
 
-  // Nếu là dựng thử 5s, cập nhật ngay màn hình Preview
-  if (isTest) {
-    const previewVideo = document.getElementById("previewVideoPlayer");
-    const previewImg = document.getElementById("previewFrameImage");
-    const previewPlaceholder = document.getElementById("previewPlaceholder");
-    const previewStatusInfo = document.getElementById("previewStatusInfo");
-    const previewStatusText = document.getElementById("previewStatusText");
+  // Cập nhật trạng thái hiển thị trực quan ngay trên Màn hình Video
+  const previewVideo = document.getElementById("previewVideoPlayer");
+  const previewImg = document.getElementById("previewFrameImage");
+  const previewPlaceholder = document.getElementById("previewPlaceholder");
+  const previewStatusInfo = document.getElementById("previewStatusInfo");
+  const previewStatusText = document.getElementById("previewStatusText");
 
-    if (previewVideo) previewVideo.classList.add("hidden");
-    if (previewImg) previewImg.classList.add("hidden");
-    if (previewPlaceholder) {
-      previewPlaceholder.classList.remove("hidden");
-      previewPlaceholder.innerHTML = `
-        <div style="font-size: 40px; margin-bottom: 10px;" class="pulse-anim">⚡</div>
-        <div style="color: #38bdf8; font-weight: bold; font-size: 16px;">Đang dựng nhanh 5 giây xem trước...</div>
-        <div style="font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.5;">
-          Hệ thống đang chạy Playwright & FFmpeg xuất 5 giây đầu.<br/>
-          Video sẽ tự động nạp và phát ngay tại đây khi hoàn thành!
-        </div>
-      `;
-    }
-    if (previewStatusInfo && previewStatusText) {
-      previewStatusInfo.classList.remove("hidden");
-      previewStatusText.innerHTML = `⏳ Đang dựng bản xem trước 5 giây...`;
-    }
-    switchPreviewMode("video");
+  if (previewVideo) previewVideo.classList.add("hidden");
+  if (previewImg) previewImg.classList.add("hidden");
+  if (previewPlaceholder) {
+    previewPlaceholder.classList.remove("hidden");
+    previewPlaceholder.innerHTML = `
+      <div style="font-size: 52px; margin-bottom: 12px;" class="pulse-anim">⚡</div>
+      <div style="color: #38bdf8; font-weight: bold; font-size: 17px;">
+        Đang dựng ${isTest ? 'bản xem trước 5 giây' : 'video MP4 hoàn chỉnh'}...
+      </div>
+      <div style="font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.5;">
+        Hệ thống đang xuất các khung hình. Bạn có thể theo dõi thanh tiến độ bên dưới.<br/>
+        Video thành phẩm sẽ tự động nạp và phát tại đây ngay khi hoàn thành!
+      </div>
+    `;
+  }
+  if (previewStatusInfo && previewStatusText) {
+    previewStatusInfo.classList.remove("hidden");
+    previewStatusText.innerHTML = `⏳ Đang dựng: <strong>${escapeHtml(nameInput || projectId)}</strong>...`;
   }
 
   try {

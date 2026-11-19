@@ -859,7 +859,8 @@ app.get("/api/ai-code/projects", (req, res) => {
     const thanhhaiExamplesDir = path.join(projectRoot, "thanhhai-2d-studio/examples");
     fs.mkdirSync(importedDir, { recursive: true });
 
-    const projects = [];
+    const sampleProjects = [];
+    const importedProjects = [];
 
     // 1. Quét mẫu Thanh Hai 2D Studio (reaction-time)
     if (fs.existsSync(thanhhaiExamplesDir)) {
@@ -869,9 +870,9 @@ app.get("/api/ai-code/projects", (req, res) => {
           const pDir = path.join(thanhhaiExamplesDir, ent.name);
           if (isThanhHaiProject(pDir)) {
             const config = detectThanhHaiConfig(pDir);
-            projects.push({
+            sampleProjects.push({
               id: `thanhhai_${ent.name}`,
-              name: `[Thanh Hai 2D] ${config.projectName || ent.name}`,
+              name: `⭐ [MẪU DEMO] ${ent.name} • Thanh Hai 2D (Canvas/Three.js)`,
               folderName: ent.name,
               type: "sample",
               engine: "thanhhai-2d-studio",
@@ -892,9 +893,9 @@ app.get("/api/ai-code/projects", (req, res) => {
         if (ent.isDirectory()) {
           const pDir = path.join(sampleDir, ent.name);
           const config = detectProjectConfig(pDir);
-          projects.push({
+          sampleProjects.push({
             id: `sample_${ent.name}`,
-            name: `[Remotion] ${config.projectName || ent.name}`,
+            name: `⭐ [MẪU DEMO] ${config.projectName || ent.name} • Remotion 2D`,
             folderName: ent.name,
             type: "sample",
             engine: "remotion",
@@ -930,9 +931,16 @@ app.get("/api/ai-code/projects", (req, res) => {
             engineName = "Remotion 2D Engine";
           }
 
-          projects.push({
+          // Trích xuất tên file sạch và thời gian import
+          const cleanName = ent.name.replace(/_\d{8}_\d{6}$/, "");
+          const timeStr = new Date(stats.mtime).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+          const dateStr = new Date(stats.mtime).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+          const engTag = isTH ? "Thanh Hai 2D" : "Remotion";
+
+          importedProjects.push({
             id: ent.name,
-            name: `[${isTH ? 'Thanh Hai 2D' : 'Remotion'}] ${config.projectName || ent.name}`,
+            name: `📦 [DỰ ÁN] ${cleanName} (${timeStr} ${dateStr}) • ${engTag}`,
+            rawName: cleanName,
             folderName: ent.name,
             type: "imported",
             engine,
@@ -945,6 +953,12 @@ app.get("/api/ai-code/projects", (req, res) => {
         }
       }
     }
+
+    // Sắp xếp các dự án vừa tải lên: MỚI NHẤT LÊN ĐẦU
+    importedProjects.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Dự án import lên trước, mẫu demo xuống sau
+    const projects = [...importedProjects, ...sampleProjects];
 
     res.json({ success: true, projects });
   } catch (err) {
@@ -982,6 +996,8 @@ app.post("/api/ai-code/upload-zip", (req, res) => {
     res.json({
       success: true,
       projectId,
+      projectName: path.parse(filename).name,
+      cleanName: baseSlug,
       targetDir,
       engine,
       extractedCount: extractResult.extractedFiles.length,
@@ -1310,22 +1326,36 @@ app.post("/api/ai-code/render", async (req, res) => {
 });
 
 /**
- * 17. Xóa dự án AI đã import
+ * 17. Xóa dự án AI đã import (Xóa 1 dự án hoặc dọn sạch tất cả)
  */
 app.post("/api/ai-code/delete-project", (req, res) => {
   try {
-    const { projectId } = req.body;
-    if (!projectId || projectId.startsWith("sample_")) {
-      return res.status(400).json({ success: false, error: "Không thể xóa dự án này." });
+    const { projectId, deleteAll = false } = req.body;
+    const importedDir = path.join(projectRoot, "imported_projects");
+
+    if (deleteAll) {
+      if (fs.existsSync(importedDir)) {
+        const entries = fs.readdirSync(importedDir, { withFileTypes: true });
+        for (const ent of entries) {
+          if (ent.isDirectory()) {
+            fs.rmSync(path.join(importedDir, ent.name), { recursive: true, force: true });
+          }
+        }
+      }
+      return res.json({ success: true, message: "Đã dọn sạch tất cả các dự án đã import." });
+    }
+
+    if (!projectId || projectId.startsWith("sample_") || projectId.startsWith("thanhhai_")) {
+      return res.status(400).json({ success: false, error: "Không thể xóa dự án mẫu hệ thống." });
     }
 
     const safeId = path.basename(projectId);
-    const targetDir = path.join(projectRoot, "imported_projects", safeId);
+    const targetDir = path.join(importedDir, safeId);
     if (fs.existsSync(targetDir)) {
       fs.rmSync(targetDir, { recursive: true, force: true });
     }
 
-    res.json({ success: true, message: `Đã xóa dự án ${safeId}` });
+    res.json({ success: true, message: `Đã xóa thành công dự án ${safeId}` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
