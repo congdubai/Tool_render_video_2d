@@ -1,0 +1,11 @@
+{
+  "projectName": "Stickman Rig V2 30s Multi-Scene Storyboard",
+  "entryPoint": "src/index.ts",
+  "compositionId": "StickmanLongStoryboard",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "durationInFrames": 900,
+  "characterStyle": "stickman-v2",
+  "description": "Video hoạt hình 30s dài gồm 3 cảnh độc lập (Bình minh cổng thành, Hội đàm mật chiếu giữa trưa, Đêm khải hoàn rực rỡ) sử dụng SceneTimeline và StoryboardProject schema."
+}
