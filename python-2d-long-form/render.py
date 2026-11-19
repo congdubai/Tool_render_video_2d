@@ -142,7 +142,7 @@ def seg_hash(tl, i, whips):
     return hashlib.md5(h.encode()).hexdigest()[:12]
 
 
-VERSION = "rm3"
+VERSION = "sculpted_v1"
 SEGS = "segs" if RES == 1080 else f"segs{RES}"
 
 

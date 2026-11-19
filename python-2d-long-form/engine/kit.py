@@ -249,20 +249,74 @@ SKINS = dict(light=('#F1CFA8', '#D6AE84'), fair=('#EBC79C', '#CFA677'), tan=('#E
              olive=('#C99C6E', '#A97E52'), brown=('#A8754D', '#8A5C38'), dark=('#7A4E32', '#603B24'))
 
 
+DEBUG_MARKER = False  # Temporary debug verification marker; set to False after verification
+
+
 def make_look(d):
     """Fill a cast look with defaults. Keys: skin (preset or hex), outfit suit|hoodie|tshirt|dress|sweater,
     color, shirt, tie, bowtie, hair slick|short|bun|long|curly|bald|none, hair_col, glasses, moustache,
-    beard, hat fedora|cap|none, hat_col."""
-    d = dict(d or {}); sk = d.get('skin', 'tan')
+    beard, hat fedora|cap|none, hat_col, build slim|medium|athletic."""
+    d = dict(d or {})
+    sk = d.get('skin', 'tan')
     if sk in SKINS:
-        d.setdefault('skin_d', SKINS[sk][1]); d['skin'] = SKINS[sk][0]
+        d.setdefault('skin_d', SKINS[sk][1])
+        d['skin'] = SKINS[sk][0]
     else:
-        d['skin'] = sk; d.setdefault('skin_d', shade(sk, .84))
-    d.setdefault('outfit', 'suit'); d.setdefault('color', d.get('suit', '#3B4660'))
-    d['suit'] = d['color']; d.setdefault('suit_d', shade(d['color'], .74))
-    d.setdefault('shirt', '#F4EFE2'); d.setdefault('tie', '#A8232B'); d.setdefault('hair', 'short')
-    d.setdefault('hair_col', '#1C1B22'); d.setdefault('hat_col', '#2E2E38'); d.setdefault('hat_band', '#7E1C24')
-    if d.get('hat') is True: d['hat'] = 'fedora'
+        d['skin'] = sk
+        d.setdefault('skin_d', shade(sk, .84))
+
+    outfit = d.setdefault('outfit', 'suit')
+    is_dress = (outfit == 'dress')
+
+    d.setdefault('color', d.get('suit', '#3B4660'))
+    d['suit'] = d['color']
+    d.setdefault('suit_d', shade(d['color'], .74))
+    d.setdefault('shirt', '#F4EFE2')
+    d.setdefault('tie', '#A8232B')
+    d.setdefault('hair', 'short')
+    d.setdefault('hair_col', '#1C1B22')
+    d.setdefault('hat_col', '#2E2E38')
+    d.setdefault('hat_band', '#7E1C24')
+    if d.get('hat') is True:
+        d['hat'] = 'fedora'
+
+    build = d.get('build', 'slim' if is_dress else 'medium')
+    d['build'] = build
+
+    # Proportions tailored for balanced 2D cartoon anatomy (eliminates egg belly)
+    if is_dress:
+        d.setdefault('shoulder_w', 48)
+        d.setdefault('chest_w', 47)
+        d.setdefault('waist_w', 38)      # graceful feminine taper
+        d.setdefault('hip_w', 46)
+        d.setdefault('skirt_flare', 30)  # natural A-line flare
+        d.setdefault('belly_curve', 0.05)
+        d.setdefault('arm_thick', 15.5)
+    elif build == 'athletic':
+        d.setdefault('shoulder_w', 58)
+        d.setdefault('chest_w', 56)
+        d.setdefault('waist_w', 44)      # athletic V-taper
+        d.setdefault('hip_w', 49)
+        d.setdefault('skirt_flare', 0)
+        d.setdefault('belly_curve', 0.06)
+        d.setdefault('arm_thick', 18.5)
+    elif build == 'slim':
+        d.setdefault('shoulder_w', 50)
+        d.setdefault('chest_w', 48)
+        d.setdefault('waist_w', 40)
+        d.setdefault('hip_w', 46)
+        d.setdefault('skirt_flare', 0)
+        d.setdefault('belly_curve', 0.05)
+        d.setdefault('arm_thick', 16.0)
+    else:  # standard / medium
+        d.setdefault('shoulder_w', 54)
+        d.setdefault('chest_w', 52)
+        d.setdefault('waist_w', 44)      # neat, balanced taper
+        d.setdefault('hip_w', 48)
+        d.setdefault('skirt_flare', 0)
+        d.setdefault('belly_curve', 0.06)
+        d.setdefault('arm_thick', 17.5)
+
     return d
 
 
@@ -283,22 +337,20 @@ def _seamless_leg(c, hip_x, foot_x, lift, lw):
     """Rounded continuous leg with a soft knee and attached shoe (same draw_char API)."""
     hip_y = BODY_BOT - 13
     foot_y = -lift
-    # Knee tracks the stride without forming a sharp hinge or an exposed cap.
     knee_x = hip_x + (foot_x * .47) + (7 if hip_x < 0 else -7)
     knee_y = hip_y + (foot_y - hip_y) * .54 - min(8, lift * .18)
     path = skia.Path(); path.moveTo(hip_x, hip_y)
     path.quadTo(hip_x + foot_x * .12, hip_y + (knee_y - hip_y) * .60, knee_x, knee_y)
     path.quadTo(knee_x + foot_x * .25, knee_y + (foot_y - knee_y) * .60, hip_x + foot_x, foot_y)
     c.drawPath(path, ink(max(11, lw * 2.05)))
-    # A shoe silhouette makes the lower end look intentional rather than a cut rod.
     toe_dir = 1 if foot_x >= 0 else -1
     shoe = skia.Path(); shoe.moveTo(hip_x + foot_x - toe_dir * 9, foot_y - 2)
     shoe.quadTo(hip_x + foot_x + toe_dir * 8, foot_y - 10, hip_x + foot_x + toe_dir * 24, foot_y - 3)
     c.drawPath(shoe, ink(max(11, lw * 2.0)))
 
 
-def _sleeve_samples(sx, sy, ex, ey, hx_, hy_):
-    """Quadratic arm spline sampled into a tapered sleeve polygon and sample points."""
+def _sleeve_samples(sx, sy, ex, ey, hx_, hy_, arm_thick=17.5):
+    """Quadratic arm spline sampled into a smoothly tapered sleeve polygon and sample points."""
     ctrl_x = 1.35 * ex - .175 * (sx + hx_)
     ctrl_y = 1.35 * ey - .175 * (sy + hy_)
     samples = []
@@ -308,24 +360,23 @@ def _sleeve_samples(sx, sy, ex, ey, hx_, hy_):
         py = (1-t)**2 * sy + 2*(1-t)*t*ctrl_y + t*t*hy_
         tx = 2*(1-t)*(ctrl_x-sx) + 2*t*(hx_-ctrl_x)
         ty = 2*(1-t)*(ctrl_y-sy) + 2*t*(hy_-ctrl_y)
-        length = max(1, math.hypot(tx,ty))
-        nx, ny = -ty/length, tx/length
-        # Shoulder overlaps torso; taper into the wrist.
-        width = 18.5 - 7.5 * t
-        samples.append((px, py, nx*width, ny*width))
+        length = max(1.0, math.hypot(tx, ty))
+        nx, ny = -ty / length, tx / length
+        width = arm_thick - (arm_thick * 0.42) * t
+        samples.append((px, py, nx * width, ny * width))
     sleeve_poly = skia.Path()
-    for i,(px,py,ox,oy) in enumerate(samples):
-        (sleeve_poly.moveTo if i == 0 else sleeve_poly.lineTo)(px+ox,py+oy)
-    for px,py,ox,oy in reversed(samples): sleeve_poly.lineTo(px-ox,py-oy)
+    for i, (px, py, ox, oy) in enumerate(samples):
+        (sleeve_poly.moveTo if i == 0 else sleeve_poly.lineTo)(px + ox, py + oy)
+    for px, py, ox, oy in reversed(samples):
+        sleeve_poly.lineTo(px - ox, py - oy)
     sleeve_poly.close()
     return sleeve_poly, samples
 
 
-def _seamless_arm(c, sx, sy, ex, ey, hx_, hy_, spec, lw, show):
+def _seamless_arm(c, sx, sy, ex, ey, hx_, hy_, spec, lw, show, arm_thick=17.5):
     """Filled tapered sleeve with continuous elbow, without raw shoulder cross-stroke."""
-    sleeve_poly, samples = _sleeve_samples(sx, sy, ex, ey, hx_, hy_)
+    sleeve_poly, samples = _sleeve_samples(sx, sy, ex, ey, hx_, hy_, arm_thick)
     c.drawPath(sleeve_poly, fp(spec['suit']))
-    # Open stroke excluding the internal shoulder root cap
     arm_stroke = skia.Path()
     arm_stroke.moveTo(samples[1][0] + samples[1][2], samples[1][1] + samples[1][3])
     for i in range(2, len(samples)):
@@ -334,53 +385,233 @@ def _seamless_arm(c, sx, sy, ex, ey, hx_, hy_, spec, lw, show):
     for i in range(len(samples) - 2, 0, -1):
         arm_stroke.lineTo(samples[i][0] - samples[i][2], samples[i][1] - samples[i][3])
     c.drawPath(arm_stroke, ink(lw * .85))
-    cuff = skia.Path(); cuff.moveTo(hx_-samples[-1][2],hy_-samples[-1][3]); cuff.lineTo(hx_+samples[-1][2],hy_+samples[-1][3])
-    c.drawPath(cuff, ink(lw*.5, spec['suit_d']))
+    cuff = skia.Path(); cuff.moveTo(hx_ - samples[-1][2], hy_ - samples[-1][3]); cuff.lineTo(hx_ + samples[-1][2], hy_ + samples[-1][3])
+    c.drawPath(cuff, ink(lw * .5, spec['suit_d']))
     if show:
-        circ(c, hx_, hy_, 12.0, spec['skin'], lw * .7)
+        circ(c, hx_, hy_, arm_thick * 0.65, spec['skin'], lw * .7)
+
+
+def _build_body_path(outfit, sw, cw, ww, hw, bc, skirt_flare):
+    """
+    Constructs an organic, well-proportioned torso & dress silhouette with smooth Bezier curves.
+    Completely eliminates egg belly and disjointed trapezoid skirts.
+    """
+    p = skia.Path()
+    waist_y = BODY_TOP + 130  # ~ -215 (natural waist level)
+
+    if outfit == 'dress':
+        skirt_bot = BODY_BOT + 28   # ~ -100 (graceful knee length)
+        skirt_w = ww + skirt_flare  # e.g. 38 + 30 = 68
+        p.moveTo(-sw, BODY_TOP + 46)
+        p.cubicTo(-sw * 0.9, BODY_TOP + 12, -sw * 0.45, BODY_TOP, 0, BODY_TOP)
+        p.cubicTo(sw * 0.45, BODY_TOP, sw * 0.9, BODY_TOP + 12, sw, BODY_TOP + 46)
+        p.cubicTo(cw + bc * 4, BODY_TOP + 80, ww + 3, waist_y - 25, ww, waist_y)
+        p.cubicTo(ww + 8, waist_y + 40, skirt_w - 4, skirt_bot - 18, skirt_w, skirt_bot)
+        p.quadTo(0, skirt_bot + 16, -skirt_w, skirt_bot)
+        p.cubicTo(-skirt_w + 4, skirt_bot - 18, -ww - 8, waist_y + 40, -ww, waist_y)
+        p.cubicTo(-ww - 3, waist_y - 25, -cw - bc * 4, BODY_TOP + 80, -sw, BODY_TOP + 46)
+        p.close()
+    else:
+        p.moveTo(-sw, BODY_TOP + 46)
+        p.cubicTo(-sw * 0.9, BODY_TOP + 12, -sw * 0.45, BODY_TOP, 0, BODY_TOP)
+        p.cubicTo(sw * 0.45, BODY_TOP, sw * 0.9, BODY_TOP + 12, sw, BODY_TOP + 46)
+        p.cubicTo(cw + bc * 4, BODY_TOP + 85, ww + 2, waist_y - 20, ww, waist_y)
+        p.cubicTo(ww + 2, waist_y + 30, hw, BODY_BOT - 16, hw, BODY_BOT)
+        p.quadTo(0, BODY_BOT + 8, -hw, BODY_BOT)
+        p.cubicTo(-hw, BODY_BOT - 16, -ww - 2, waist_y + 30, -ww, waist_y)
+        p.cubicTo(-ww - 2, waist_y - 20, -cw - bc * 4, BODY_TOP + 85, -sw, BODY_TOP + 46)
+        p.close()
+
+    return p
+
+
+# --------------------------- HAIR STYLES ---------------------------
+
+def _draw_hair_short(c, R, face, colr, lw):
+    """Sculpted short hair: natural volume, clean sideburns, stylish side-parted fringe."""
+    fs = face * 14
+    p = skia.Path()
+    p.moveTo(-R - 4, 10); p.lineTo(-R - 2, -22)
+    p.cubicTo(-R - 6, -R * 0.65, -R * 0.7, -R - 8, 0, -R - 8)
+    p.cubicTo(R * 0.65, -R - 10, R + 6, -R * 0.60, R + 4, -22)
+    p.lineTo(R + 4, 10); p.lineTo(R - 4, 0)
+    part_x = -16 + fs
+    p.cubicTo(R - 10, -36, part_x + 36, -56, part_x + 8, -52)
+    p.cubicTo(part_x + 2, -50, part_x - 6, -60, part_x - 14, -58)
+    p.cubicTo(part_x - 30, -56, -R + 12, -36, -R + 2, 0)
+    p.lineTo(-R - 4, 10); p.close()
+    shape(c, p, colr, lw)
+    return p
+
+
+def _draw_hair_long_back(c, R, colr, lw):
+    """Long hair back layer: flowing locks behind head and shoulders with soft organic taper."""
+    p = skia.Path()
+    p.moveTo(-R - 12, -20)
+    p.cubicTo(-R - 14, -R - 12, R + 14, -R - 12, R + 12, -20)
+    p.cubicTo(R + 18, 40, R + 22, 120, R + 14, 190)
+    p.quadTo(R * 0.5, 210, 0, 195)
+    p.quadTo(-R * 0.5, 210, -R - 14, 190)
+    p.cubicTo(-R - 22, 120, -R - 18, 40, -R - 12, -20)
+    p.close()
+    shape(c, p, colr, lw)
+
+
+def _draw_hair_long_front(c, R, face, colr, lw):
+    """Long hair front layer: soft bangs and face-framing strands."""
+    fs = face * 14
+    p = skia.Path()
+    p.moveTo(-R - 4, 30)
+    p.cubicTo(-R - 2, -20, -R * 0.6, -R - 6, 0, -R - 6)
+    p.cubicTo(R * 0.6, -R - 6, R + 2, -20, R + 4, 30)
+    p.cubicTo(R - 6, 10, R - 8, -25, R - 16, -42)
+    part_x = -10 + fs
+    p.cubicTo(part_x + 30, -56, part_x + 10, -52, part_x, -50)
+    p.cubicTo(part_x - 12, -56, -R + 20, -42, -R + 14, 10)
+    p.lineTo(-R - 4, 30); p.close()
+    shape(c, p, colr, lw)
+
+
+def _draw_hair_bun(c, R, face, colr, lw):
+    """Sculpted hair bun: sleek hair pulled back on skull, organic sculpted bun & hair tie."""
+    fs = face * 14
+    bun_y = -R - 26
+    bp = skia.Path()
+    bp.moveTo(-36, bun_y + 12)
+    bp.cubicTo(-46, bun_y - 28, -20, bun_y - 48, 0, bun_y - 48)
+    bp.cubicTo(20, bun_y - 48, 46, bun_y - 28, 36, bun_y + 12)
+    bp.quadTo(0, bun_y + 18, -36, bun_y + 12); bp.close()
+    shape(c, bp, colr, lw)
+    c.drawLine(-22, bun_y + 12, 22, bun_y + 12, ink(lw * 0.9, (220, 120, 100)))
+
+    hp = skia.Path()
+    hp.moveTo(-R - 4, 8); hp.lineTo(-R - 2, -20)
+    hp.cubicTo(-R - 6, -R * 0.6, -R * 0.65, -R - 4, 0, -R - 4)
+    hp.cubicTo(R * 0.65, -R - 4, R + 6, -R * 0.6, R + 4, -20)
+    hp.lineTo(R + 4, 8); hp.lineTo(R - 4, -2)
+    p_x = -8 + fs
+    hp.cubicTo(R - 12, -38, p_x + 30, -54, p_x + 4, -50)
+    hp.cubicTo(p_x - 10, -54, -R + 14, -38, -R + 2, -2)
+    hp.lineTo(-R - 4, 8); hp.close()
+    shape(c, hp, colr, lw)
+
+
+def _draw_hair_curly(c, R, face, colr, lw):
+    """Curly hair: organic cloud of soft curling lobes hugging cranium and textured bangs."""
+    fs = face * 14
+    p = skia.Path()
+    p.moveTo(-R - 4, 14)
+    p.cubicTo(-R - 16, 0, -R - 22, -25, -R - 16, -45)
+    p.cubicTo(-R - 22, -68, -R - 14, -92, -R * 0.7, -R - 14)
+    p.cubicTo(-R * 0.5, -R - 26, -R * 0.2, -R - 24, 0, -R - 24)
+    p.cubicTo(R * 0.2, -R - 24, R * 0.5, -R - 26, R * 0.7, -R - 14)
+    p.cubicTo(R + 14, -92, R + 22, -68, R + 16, -45)
+    p.cubicTo(R + 22, -25, R + 16, 0, R + 4, 14)
+    p.lineTo(R - 4, 2)
+    p.cubicTo(R - 12, -36, 42 + fs, -52, 24 + fs, -46)
+    p.cubicTo(10 + fs, -42, 6 + fs, -56, -8 + fs, -52)
+    p.cubicTo(-26 + fs, -48, -R + 18, -36, -R + 2, 2)
+    p.lineTo(-R - 4, 14); p.close()
+    shape(c, p, colr, lw)
+
+
+def _draw_hair_slick(c, R, face, colr, lw, light=-1):
+    """Slick swept-back hair with smooth temple contours and subtle highlight."""
+    fs = face * 14
+    hp = skia.Path()
+    hp.moveTo(-R - 4, 8); hp.lineTo(-R - 2, -20)
+    hp.cubicTo(-R - 5, -R * 0.65, -R * 0.65, -R - 6, 0, -R - 6)
+    hp.cubicTo(R * 0.65, -R - 6, R + 5, -R * 0.65, R + 4, -20)
+    hp.lineTo(R + 4, 8); hp.lineTo(R - 4, 0)
+    hp.cubicTo(R - 10, -36, 44 + fs, -56, 4 + fs, -54)
+    hp.cubicTo(-36 + fs, -52, -R + 12, -36, -R + 2, 0)
+    hp.lineTo(-R - 4, 8); hp.close()
+    shape(c, hp, colr, lw)
+    shn = skia.Path()
+    shn.addArc(skia.Rect(-R + 20, -R + 14, R - 20, R - 14), 210 if light < 0 else 280, 48)
+    c.drawPath(shn, ink(lw * 1.2, (100, 105, 125)))
+
+
+def _draw_hair_bald(c, R, colr, lw):
+    """Bald side tufts: soft rounded cartoon hair patches at temples."""
+    for sx in (-1, 1):
+        tf = skia.Path()
+        tf.moveTo(sx * 84, -40)
+        tf.cubicTo(sx * 108, -32, sx * 114, -10, sx * 104, 8)
+        tf.cubicTo(sx * 112, 20, sx * 98, 30, sx * 86, 32); tf.close()
+        shape(c, tf, colr, lw * 0.8)
 
 
 def draw_char(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.0, brow_tilt=0.0, arms=('down', 'down'),
-              tilt=0.0, bob=0.0, squash=0.0, sweat=-1.0, light=-1, rim=None, hat=None, legs=None, pupil=0.0, sparkle=0.0):
-    """x,y = feet. s=1 -> head radius 100 px (s=1 wide shot, s~2.15 close-up with feet at y~1390).
-    face -1..1 = 3/4 turn. light -1 = key from left. eyes: dot/half/wide/closed. mouth: smile/smirk/flat/o/mid/open."""
+              tilt=0.0, bob=0.0, squash=0.0, sweat=-1.0, light=-1, rim=None, hat=None, legs=None, pupil=0.0, sparkle=0.0,
+              debug_marker=None):
+    """x,y = feet. s=1 -> head radius 100 px. Balanced body silhouette, seamless shoulders, sculpted hair."""
+    spec = make_look(spec)
     lw = max(5.2, 4.0 / s); R = HEAD_R; outfit = spec.get('outfit', 'suit')
     hat = spec.get('hat') if hat is None else hat
+
+    sw = spec['shoulder_w']
+    cw = spec['chest_w']
+    ww = spec['waist_w']
+    hw = spec['hip_w']
+    bc = spec['belly_curve']
+    skirt_flare = spec['skirt_flare']
+    arm_thick = spec['arm_thick']
+    hair = spec.get('hair', 'short')
+
     c.save(); c.translate(x, y); c.scale(s, s)
-    for (hx0, fx, lift) in (legs or ((-24, 0, 0), (24, 0, 0))):
+
+    # 1. Legs
+    for (hx0, fx, lift) in (legs or ((-22, 0, 0), (22, 0, 0))):
         _seamless_leg(c, hx0, fx, lift, lw)
-    c.translate(0, -bob); c.scale(1 + squash * .6, 1 - squash)
-    if outfit == 'dress':
-        sk = skia.Path(); sk.moveTo(-70, BODY_BOT - 70); sk.lineTo(70, BODY_BOT - 70); sk.lineTo(104, BODY_BOT + 30); sk.quadTo(0, BODY_BOT + 46, -104, BODY_BOT + 30); sk.close()
-        shape(c, sk, spec['suit'], lw)
-    if spec.get('hair') == 'long':
-        lh = skia.Path(); lh.addRRect(skia.RRect.MakeRectXY(skia.Rect(-R - 14, HEAD_CY - 40, R + 14, HEAD_CY + 150), 60, 60)); shape(c, lh, spec['hair_col'], lw)
 
-    body = skia.Path(); body.addRRect(skia.RRect.MakeRectXY(skia.Rect(-84, BODY_TOP, 84, BODY_BOT), 66, 72))
+    c.translate(0, -bob); c.scale(1 + squash * 0.6, 1 - squash)
 
-    # Pre-calculate arm geometry & detect foreground crossing arms
+    # 2. Long hair back layer
+    if hair == 'long':
+        c.save(); c.translate(0, HEAD_CY); c.rotate(tilt)
+        _draw_hair_long_back(c, R, spec['hair_col'], lw)
+        c.restore()
+
+    # 3. Sculpted body silhouette path
+    body_path = _build_body_path(outfit, sw, cw, ww, hw, bc, skirt_flare)
+
+    # 4. Arms and shoulders
     arm_data = []
     crossing_arms = []
     union_sleeves = []
+
     for side, a in ((-1, arms[0]), (1, arms[1])):
         e, h, show = _arm(a); m = 1 if side < 0 else -1
-        sx, sy = SHOULDER[0] * m, SHOULDER[1]; ex, ey, hx_, hy_ = e[0] * m, e[1], h[0] * m, h[1]
-        sleeve_poly, samples = _sleeve_samples(sx, sy, ex, ey, hx_, hy_)
+        sx = -sw * m
+        sy = BODY_TOP + 48
+        ex, ey = e[0] * m, e[1]
+        hx_, hy_ = h[0] * m, h[1]
+
+        # Dynamic shoulder elevation when arms are raised
+        if ey < BODY_TOP + 50:
+            lift = max(0.0, min(22.0, (BODY_TOP + 50 - ey) * 0.25))
+            sy -= lift
+            sx += (-3 if side < 0 else 3) * (lift / 22.0)
+
+        sleeve_poly, samples = _sleeve_samples(sx, sy, ex, ey, hx_, hy_, arm_thick=arm_thick)
         inward_reach = (hx_ - ex) * m
-        in_torso = (abs(hx_) < 80 or abs(ex) < 80)
-        is_crossing = (inward_reach > 20 and in_torso)
+        in_torso = (abs(hx_) < ww + 15 or abs(ex) < sw + 10)
+        is_crossing = (inward_reach > 18 and in_torso)
+
         info = dict(side=side, m=m, sx=sx, sy=sy, ex=ex, ey=ey, hx=hx_, hy=hy_,
                     poly=sleeve_poly, samples=samples, show=show, is_crossing=is_crossing)
         arm_data.append(info)
         if is_crossing: crossing_arms.append(info)
         else: union_sleeves.append(sleeve_poly)
 
-    # Composite garment silhouette: union torso and attached sleeves
-    suit_silhouette = skia.Path(body)
+    # Composite garment silhouette (torso + sleeves)
+    suit_silhouette = skia.Path(body_path)
     for sl in union_sleeves:
         u = skia.Op(suit_silhouette, sl, skia.PathOp.kUnion_PathOp)
         if u and not u.isEmpty(): suit_silhouette = u
-    # For crossing arms, union their shoulder root polygon so shoulder contour is seamless
+
+    # For crossing arms, union their shoulder root polygon so shoulder is seamless
     for arm in crossing_arms:
         samples = arm['samples']
         sh_poly = skia.Path()
@@ -392,37 +623,48 @@ def draw_char(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.0, b
         u = skia.Op(suit_silhouette, sh_poly, skia.PathOp.kUnion_PathOp)
         if u and not u.isEmpty(): suit_silhouette = u
 
-    # 1. Fill base garment (seamless suit + sleeves)
+    # 5. Fill base garment
     c.drawPath(suit_silhouette, fp(spec['suit']))
 
-    # 2. Torso inner details clipped to body
-    c.save(); c.clipPath(body, doAntiAlias=True)
-    sh = skia.Path(body); sh.offset(light * 16, -5); c.drawPath(skia.Op(body, sh, skia.PathOp.kDifference_PathOp), fp(spec['suit_d']))
+    # 6. Torso inner details clipped to body
+    c.save(); c.clipPath(body_path, doAntiAlias=True)
+    sh = skia.Path(body_path); sh.offset(light * 14, -4)
+    c.drawPath(skia.Op(body_path, sh, skia.PathOp.kDifference_PathOp), fp(spec['suit_d']))
+
     if outfit == 'suit':
-        v = skia.Path(); v.moveTo(-34, BODY_TOP - 4); v.lineTo(0, BODY_TOP + 96); v.lineTo(34, BODY_TOP - 4); v.close(); c.drawPath(v, fp(spec['shirt']))
+        v = skia.Path(); v.moveTo(-sw * 0.48, BODY_TOP - 4); v.lineTo(0, BODY_TOP + 96); v.lineTo(sw * 0.48, BODY_TOP - 4); v.close()
+        c.drawPath(v, fp(spec['shirt']))
         if spec.get('bowtie'):
-            by = BODY_TOP + 40; bt = skia.Path(); bt.moveTo(0, by); bt.lineTo(-24, by - 14); bt.lineTo(-24, by + 14); bt.close()
-            bt.moveTo(0, by); bt.lineTo(24, by - 14); bt.lineTo(24, by + 14); bt.close(); shape(c, bt, spec['tie'], lw * .75); circ(c, 0, by, 5, spec['tie'], lw * .7)
+            by = BODY_TOP + 40; bt = skia.Path()
+            bt.moveTo(0, by); bt.lineTo(-22, by - 12); bt.lineTo(-22, by + 12); bt.close()
+            bt.moveTo(0, by); bt.lineTo(22, by - 12); bt.lineTo(22, by + 12); bt.close()
+            shape(c, bt, spec['tie'], lw * 0.75); circ(c, 0, by, 5, spec['tie'], lw * 0.7)
         elif spec.get('tie') not in (None, 'none'):
-            poly(c, [(-9, BODY_TOP + 24), (9, BODY_TOP + 24), (13, BODY_TOP + 82), (0, BODY_TOP + 98), (-13, BODY_TOP + 82)], spec['tie'], lw * .75)
+            poly(c, [(-9, BODY_TOP + 24), (9, BODY_TOP + 24), (12, BODY_TOP + 82), (0, BODY_TOP + 98), (-12, BODY_TOP + 82)], spec['tie'], lw * 0.75)
         for sx_i in (-1, 1):
-            lp = skia.Path(); lp.moveTo(sx_i * 36, BODY_TOP - 2); lp.lineTo(sx_i * 2, BODY_TOP + 98); lp.lineTo(sx_i * 2, BODY_BOT); c.drawPath(lp, ink(lw * .75))
-            c.drawLine(sx_i * 22, BODY_TOP + 58, sx_i * 40, BODY_TOP + 44, ink(lw * .6))
+            lp = skia.Path(); lp.moveTo(sx_i * (sw * 0.52), BODY_TOP - 2); lp.lineTo(sx_i * 2, BODY_TOP + 98); lp.lineTo(sx_i * 2, BODY_BOT)
+            c.drawPath(lp, ink(lw * 0.75))
+            c.drawLine(sx_i * 18, BODY_TOP + 56, sx_i * (sw * 0.65), BODY_TOP + 44, ink(lw * 0.6))
     elif outfit == 'hoodie':
-        hood = skia.Path(); hood.moveTo(-60, BODY_TOP - 2); hood.quadTo(0, BODY_TOP + 44, 60, BODY_TOP - 2); c.drawPath(hood, ink(lw * .8))
-        for sx_i in (-1, 1): c.drawLine(sx_i * 16, BODY_TOP + 20, sx_i * 18, BODY_TOP + 84, ink(lw * .55, spec['shirt']))
-        pk = skia.Path(); pk.moveTo(-48, BODY_BOT - 6); pk.lineTo(-38, BODY_BOT - 66); pk.lineTo(38, BODY_BOT - 66); pk.lineTo(48, BODY_BOT - 6); c.drawPath(pk, ink(lw * .6))
-    elif outfit in ('tshirt', 'dress', 'sweater'):
-        nk = skia.Path(); nk.addArc(skia.Rect(-34, BODY_TOP - 30, 34, BODY_TOP + 26), 20, 140); c.drawPath(nk, ink(lw * .7))
+        hood = skia.Path(); hood.moveTo(-sw * 0.85, BODY_TOP - 2); hood.quadTo(0, BODY_TOP + 42, sw * 0.85, BODY_TOP - 2)
+        c.drawPath(hood, ink(lw * 0.8))
+        for sx_i in (-1, 1): c.drawLine(sx_i * 14, BODY_TOP + 18, sx_i * 16, BODY_TOP + 80, ink(lw * 0.55, spec['shirt']))
+        pk = skia.Path(); pk.moveTo(-ww * 0.75, BODY_BOT - 6); pk.lineTo(-ww * 0.60, BODY_BOT - 58); pk.lineTo(ww * 0.60, BODY_BOT - 58); pk.lineTo(ww * 0.75, BODY_BOT - 6)
+        c.drawPath(pk, ink(lw * 0.6))
+    elif outfit == 'dress':
+        nk = skia.Path(); nk.addArc(skia.Rect(-26, BODY_TOP - 16, 26, BODY_TOP + 32), 15, 150); c.drawPath(nk, ink(lw * 0.68))
+    elif outfit in ('tshirt', 'sweater'):
+        nk = skia.Path(); nk.addArc(skia.Rect(-30, BODY_TOP - 28, 30, BODY_TOP + 26), 20, 140); c.drawPath(nk, ink(lw * 0.7))
         if outfit == 'sweater':
-            for yy in (BODY_BOT - 22,): c.drawLine(-84, yy, 84, yy, ink(lw * .6))
-    if spec.get('hanky'): poly(c, [(30, BODY_TOP + 96), (52, BODY_TOP + 92), (48, BODY_TOP + 76), (40, BODY_TOP + 86), (33, BODY_TOP + 76)], spec['hanky'], lw * .55)
+            for yy in (BODY_BOT - 20,): c.drawLine(-hw, yy, hw, yy, ink(lw * 0.6))
+    if spec.get('hanky'):
+        poly(c, [(28, BODY_TOP + 96), (48, BODY_TOP + 92), (44, BODY_TOP + 76), (38, BODY_TOP + 86), (30, BODY_TOP + 76)], spec['hanky'], lw * 0.55)
     c.restore()
 
-    # 3. Outer outline of composite garment silhouette
+    # 7. Outer outline of composite garment
     c.drawPath(suit_silhouette, ink(lw))
 
-    # 4. Foreground crossing arms pass
+    # 8. Foreground crossing arms
     for arm in crossing_arms:
         c.drawPath(arm['poly'], fp(spec['suit']))
         samples = arm['samples']
@@ -433,101 +675,121 @@ def draw_char(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.0, b
         arm_stroke.lineTo(samples[-1][0] - samples[-1][2], samples[-1][1] - samples[-1][3])
         for i in range(len(samples) - 2, 1, -1):
             arm_stroke.lineTo(samples[i][0] - samples[i][2], samples[i][1] - samples[i][3])
-        c.drawPath(arm_stroke, ink(lw * .85))
+        c.drawPath(arm_stroke, ink(lw * 0.85))
 
-    # 5. Cuffs and hands
+    # 9. Cuffs and hands
     for arm in arm_data:
         samples = arm['samples']
         hx_i, hy_i = arm['hx'], arm['hy']
         cuff = skia.Path()
-        cuff.moveTo(hx_i - samples[-1][2], hy_i - samples[-1][3])
-        cuff.lineTo(hx_i + samples[-1][2], hy_i + samples[-1][3])
-        c.drawPath(cuff, ink(lw * .5, spec['suit_d']))
+        cuff.moveTo(hx_i - samples[-1][2], hy_i - samples[-1][3]); cuff.lineTo(hx_i + samples[-1][2], hy_i + samples[-1][3])
+        c.drawPath(cuff, ink(lw * 0.5, spec['suit_d']))
         if arm['show']:
-            circ(c, hx_i, hy_i, 12.0, spec['skin'], lw * .7)
+            circ(c, hx_i, hy_i, arm_thick * 0.65, spec['skin'], lw * 0.7)
+
+    # 10. Head & Face
     c.save(); c.translate(0, HEAD_CY); c.rotate(tilt)
-    head = skia.Path(); head.addCircle(0, 0, R); hair = spec.get('hair', 'short')
-    if hair == 'bald':
-        for sx in (-1, 1):
-            tf = skia.Path(); tf.moveTo(sx * 84, -44)
-            for (px, py) in ((112, -34), (98, -18), (118, -4), (100, 10), (112, 26), (86, 34)): tf.lineTo(sx * px, py)
-            tf.close(); shape(c, tf, spec.get('hair_col', '#8A8A92'), lw * .8)
-    if hair == 'curly':
-        for i in range(11):
-            a = math.radians(165 + i * 21); circ(c, (R + 4) * math.cos(a), (R + 4) * math.sin(a) + 6, 34, spec['hair_col'], lw * .8)
-    if hair == 'bun': circ(c, 0, -R - 26, 44, spec['hair_col'], lw)
+    head = skia.Path(); head.addCircle(0, 0, R)
     c.drawPath(head, fp(spec['skin'])); c.save(); c.clipPath(head, doAntiAlias=True)
     lit = skia.Path(head); lit.offset(light * 7, -17); c.drawPath(skia.Op(head, lit, skia.PathOp.kDifference_PathOp), fp(spec['skin_d']))
-    if rim: rm = skia.Path(head); rm.offset(-light * 11, 4); c.drawPath(skia.Op(head, rm, skia.PathOp.kDifference_PathOp), fp(rim, 215))
+    if rim:
+        rm = skia.Path(head); rm.offset(-light * 11, 4); c.drawPath(skia.Op(head, rm, skia.PathOp.kDifference_PathOp), fp(rim, 215))
     c.restore()
-    if hair == 'slick':
-        hp = skia.Path(); hp.moveTo(-R - 4, -4); hp.arcTo(skia.Rect(-R - 4, -R - 5, R + 4, R + 3), 181, 178, False); fs = face * 14
-        hp.cubicTo(R - 6, -40, 56 + fs, -70, 4 + fs, -62); hp.cubicTo(-36 + fs, -58, -78, -44, -R - 4, -4); hp.close()
-        shape(c, hp, spec['hair_col'], lw)
-        shn = skia.Path(); shn.addArc(skia.Rect(-R + 20, -R + 14, R - 20, R - 14), 208 if light < 0 else 282, 50); c.drawPath(shn, ink(lw * 1.3, (92, 96, 122)))
-    elif hair in ('short', 'bun', 'long', 'curly'):
-        _hair_cap(c, R, face, spec['hair_col'], lw, -58 if hair != 'curly' else -66)
+
+    if hair == 'short':
+        _draw_hair_short(c, R, face, spec['hair_col'], lw)
+    elif hair == 'long':
+        _draw_hair_long_front(c, R, face, spec['hair_col'], lw)
+    elif hair == 'bun':
+        _draw_hair_bun(c, R, face, spec['hair_col'], lw)
+    elif hair == 'curly':
+        _draw_hair_curly(c, R, face, spec['hair_col'], lw)
+    elif hair == 'slick':
+        _draw_hair_slick(c, R, face, spec['hair_col'], lw, light=light)
+    elif hair == 'bald':
+        _draw_hair_bald(c, R, spec.get('hair_col', '#8A8A92'), lw)
+
     c.drawPath(head, ink(lw))
+
     if hat == 'fedora':
         crown = skia.Path(); crown.moveTo(-R + 6, -56); crown.cubicTo(-R - 2, -R - 82, R + 2, -R - 82, R - 6, -56); crown.close()
         shape(c, crown, spec['hat_col'], lw); c.save(); c.clipPath(crown, doAntiAlias=True)
-        c.drawRect(skia.Rect(-R, -86, R, -56), fp(spec['hat_band'])); c.drawLine(-R, -86, R, -86, ink(lw * .7)); c.restore()
+        c.drawRect(skia.Rect(-R, -86, R, -56), fp(spec['hat_band'])); c.drawLine(-R, -86, R, -86, ink(lw * 0.7)); c.restore()
         c.drawPath(crown, ink(lw)); oval(c, -R - 40, -70, R + 40, -40, spec['hat_col'], lw)
     elif hat == 'cap':
         cp = skia.Path(); cp.moveTo(-R - 2, -40); cp.arcTo(skia.Rect(-R - 2, -R - 10, R + 2, R), 182, 176, False); cp.close(); shape(c, cp, spec['hat_col'], lw)
         d = 1 if face >= 0 else -1; br = skia.Path(); br.moveTo(d * 10, -44); br.quadTo(d * (R + 70), -52, d * (R + 76), -30); br.lineTo(d * 10, -34); br.close(); shape(c, br, spec['hat_col'], lw)
+
     fx = face * 40; eyy = -6
     for ex0 in (-30, 30):
-        ex = ex0 + fx; far = (face > 0 and ex0 > 0) or (face < 0 and ex0 < 0); sq = 1 - .3 * abs(face) if far else 1.0
+        ex = ex0 + fx; far = (face > 0 and ex0 > 0) or (face < 0 and ex0 < 0); sq = 1 - 0.3 * abs(face) if far else 1.0
         if eyes == 'wide':
-            oval(c, ex - 17 * sq, eyy - 17, ex + 17 * sq, eyy + 17, '#FBFBF7', lw * .7)
+            oval(c, ex - 17 * sq, eyy - 17, ex + 17 * sq, eyy + 17, '#FBFBF7', lw * 0.7)
             c.drawOval(skia.Rect(ex - 5.5 * sq + pupil * 6, eyy - 5.5, ex + 5.5 * sq + pupil * 6, eyy + 5.5), fp(INK))
         elif eyes == 'closed':
-            e = skia.Path(); e.moveTo(ex - 11 * sq, eyy); e.quadTo(ex, eyy + 9, ex + 11 * sq, eyy); c.drawPath(e, ink(lw * .8))
+            e = skia.Path(); e.moveTo(ex - 11 * sq, eyy); e.quadTo(ex, eyy + 9, ex + 11 * sq, eyy); c.drawPath(e, ink(lw * 0.8))
         elif eyes == 'half':
             c.save(); c.clipRect(skia.Rect(ex - 20, eyy - 3, ex + 20, eyy + 20)); c.drawOval(skia.Rect(ex - 6.5 * sq, eyy - 9, ex + 6.5 * sq, eyy + 9), fp(INK)); c.restore()
-            c.drawLine(ex - 13 * sq, eyy - 4, ex + 13 * sq, eyy - 4, ink(lw * .8))
+            c.drawLine(ex - 13 * sq, eyy - 4, ex + 13 * sq, eyy - 4, ink(lw * 0.8))
         else:
-            py = -4 if pupil < 0 and eyes == 'dot' and abs(pupil) > .5 else 0
+            py = -4 if pupil < 0 and eyes == 'dot' and abs(pupil) > 0.5 else 0
             c.drawOval(skia.Rect(ex - 5.5 * sq, eyy - 8 + py, ex + 5.5 * sq, eyy + 8 + py), fp(INK)); c.drawCircle(ex + 1.5, eyy - 3 + py, 1.8, fp((255, 255, 255), 220))
         inner = 1 if ex0 < 0 else -1; by = eyy - 29 - brow * 9
-        c.drawLine(ex - 13 * sq, by + (brow_tilt * 7 if inner < 0 else -brow_tilt * 7), ex + 13 * sq, by + (brow_tilt * 7 if inner > 0 else -brow_tilt * 7), ink(lw * .78))
+        c.drawLine(ex - 13 * sq, by + (brow_tilt * 7 if inner < 0 else -brow_tilt * 7),
+                   ex + 13 * sq, by + (brow_tilt * 7 if inner > 0 else -brow_tilt * 7), ink(lw * 0.78))
+
     if spec.get('glasses'):
         for ex0 in (-30, 30):
-            ex = ex0 + fx; far = (face > 0 and ex0 > 0) or (face < 0 and ex0 < 0); sq = 1 - .3 * abs(face) if far else 1.0
-            g = skia.Path(); g.addOval(skia.Rect(ex - 24 * sq, eyy - 24, ex + 24 * sq, eyy + 24)); c.drawPath(g, fp((225, 240, 255), 55)); c.drawPath(g, ink(lw * .7))
-        c.drawLine(fx - 7, eyy - 3, fx + 7, eyy - 3, ink(lw * .7))
+            ex = ex0 + fx; far = (face > 0 and ex0 > 0) or (face < 0 and ex0 < 0); sq = 1 - 0.3 * abs(face) if far else 1.0
+            g = skia.Path(); g.addOval(skia.Rect(ex - 24 * sq, eyy - 24, ex + 24 * sq, eyy + 24)); c.drawPath(g, fp((225, 240, 255), 55)); c.drawPath(g, ink(lw * 0.7))
+        c.drawLine(fx - 7, eyy - 3, fx + 7, eyy - 3, ink(lw * 0.7))
+
     mx, my = face * 34, 42
     if spec.get('beard'):
         bd = skia.Path(); bd.moveTo(-R + 6, 6); bd.quadTo(-R + 4, R - 4, mx, R + 18); bd.quadTo(R - 4, R - 4, R - 6, 6)
-        bd.quadTo(R * .5, 40, mx + 26, 30); bd.quadTo(mx, 22, mx - 26, 30); bd.quadTo(-R * .5, 40, -R + 6, 6); bd.close()
-        shape(c, bd, spec['hair_col'], lw * .8)
+        bd.quadTo(R * 0.5, 40, mx + 26, 30); bd.quadTo(mx, 22, mx - 26, 30); bd.quadTo(-R * 0.5, 40, -R + 6, 6); bd.close()
+        shape(c, bd, spec['hair_col'], lw * 0.8)
+
     if spec.get('moustache'):
         mu = skia.Path(); mu.moveTo(mx, my - 20)
         mu.cubicTo(mx - 12, my - 28, mx - 30, my - 22, mx - 40, my - 30); mu.cubicTo(mx - 30, my - 10, mx - 12, my - 12, mx, my - 15)
         mu.cubicTo(mx + 12, my - 12, mx + 30, my - 10, mx + 40, my - 30); mu.cubicTo(mx + 30, my - 22, mx + 12, my - 28, mx, my - 20); mu.close()
         c.drawPath(mu, fp(spec['hair_col']))
-    if mouth == 'smile': m = skia.Path(); m.moveTo(mx - 17, my - 2); m.quadTo(mx, my + 13, mx + 17, my - 2); c.drawPath(m, ink(lw * .8))
+
+    if mouth == 'smile': m = skia.Path(); m.moveTo(mx - 17, my - 2); m.quadTo(mx, my + 13, mx + 17, my - 2); c.drawPath(m, ink(lw * 0.82))
     elif mouth == 'smirk':
-        d = 1 if face >= 0 else -1; m = skia.Path(); m.moveTo(mx - 15 * d, my + 3); m.quadTo(mx + 4 * d, my + 12, mx + 20 * d, my - 6); c.drawPath(m, ink(lw * .8))
-    elif mouth == 'flat': c.drawLine(mx - 12, my + 2, mx + 12, my + 2, ink(lw * .8))
-    elif mouth == 'o': oval(c, mx - 8, my - 9, mx + 8, my + 11, '#5A1A1E', lw * .7)
-    elif mouth == 'mid': oval(c, mx - 12, my - 4, mx + 12, my + 10, '#5A1A1E', lw * .7)
+        d = 1 if face >= 0 else -1; m = skia.Path(); m.moveTo(mx - 15 * d, my + 3); m.quadTo(mx + 4 * d, my + 12, mx + 20 * d, my - 6); c.drawPath(m, ink(lw * 0.82))
+    elif mouth == 'flat': c.drawLine(mx - 12, my + 2, mx + 12, my + 2, ink(lw * 0.82))
+    elif mouth == 'o': oval(c, mx - 8, my - 9, mx + 8, my + 11, '#5A1A1E', lw * 0.75)
+    elif mouth == 'mid': oval(c, mx - 12, my - 4, mx + 12, my + 10, '#5A1A1E', lw * 0.75)
     elif mouth == 'open':
         mp = skia.Path(); mp.moveTo(mx - 20, my - 5); mp.lineTo(mx + 20, my - 5); mp.cubicTo(mx + 19, my + 24, mx - 19, my + 24, mx - 20, my - 5); mp.close()
         c.drawPath(mp, fp('#5A1A1E')); c.save(); c.clipPath(mp, doAntiAlias=True)
         c.drawRect(skia.Rect(mx - 22, my - 6, mx + 22, my + 2), fp('#FAFAF4')); c.drawOval(skia.Rect(mx - 11, my + 9, mx + 11, my + 26), fp('#D05860')); c.restore()
-        c.drawPath(mp, ink(lw * .7))
+        c.drawPath(mp, ink(lw * 0.7))
+
     if sparkle > 0:
         k = pop(sparkle) * (1 if sparkle < 1 else max(0, 2 - sparkle)); sx_, sy_ = mx + 26 * (1 if face >= 0 else -1), my - 8; st = skia.Path()
         for i in range(8):
             r_ = (20 if i % 2 == 0 else 5) * k; a = i * math.pi / 4; (st.moveTo if i == 0 else st.lineTo)(sx_ + r_ * math.cos(a), sy_ + r_ * math.sin(a))
         st.close(); c.drawPath(st, fp('#FFFFFF'))
+
     if sweat >= 0:
         sx0, sy0 = (-1 if face > 0 else 1) * 62, -66 + 30 * (sweat % 1.0)
         d = skia.Path(); d.moveTo(sx0, sy0 - 19); d.cubicTo(sx0 + 12, sy0 - 3, sx0 + 11, sy0 + 10, sx0, sy0 + 10); d.cubicTo(sx0 - 11, sy0 + 10, sx0 - 12, sy0 - 3, sx0, sy0 - 19); d.close()
-        shape(c, d, '#8FC8EE', lw * .7)
-    c.restore(); c.restore()
+        shape(c, d, '#8FC8EE', lw * 0.7)
+
+    c.restore()
+
+    # Temporary verification debug marker
+    use_dbg = DEBUG_MARKER if debug_marker is None else debug_marker
+    if use_dbg:
+        dbg_p = skia.Paint(Color=skia.Color(0, 240, 120), AntiAlias=True)
+        c.drawCircle(0, BODY_TOP + 30, 8, dbg_p)
+        dbg_ink = ink(lw * 0.6, (0, 60, 20))
+        c.drawCircle(0, BODY_TOP + 30, 8, dbg_ink)
+
+    c.restore()
 
 
 def walk_legs(phase, stride=46, lift=20):  # legs=walk_legs((t-t0)*11) with bob=7*abs(sin(phase))

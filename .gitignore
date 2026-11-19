@@ -35,3 +35,7 @@ python-2d-long-form/**/work/
 .DS_Store
 Thumbs.db
 
+
+# Temporary scratch and QC
+scratch/
+out/character_redesign_qc/
