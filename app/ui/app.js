@@ -1186,6 +1186,11 @@ async function loadVideosList() {
     if (!appState.currentPlayingFilename && appState.videosList.length > 0) {
       playVideo(appState.videosList[0].url, appState.videosList[0].filename, false);
     }
+
+    // Nếu đang đứng ở Tab 3 và đã chọn dự án, cập nhật kiểm tra video xem trước
+    if (typeof aiState !== "undefined" && aiState.selectedProjectId) {
+      loadPreviewForCurrentProject();
+    }
   } catch (err) {
     const isDocType = err.message && (err.message.includes("Unexpected token '<'") || err.message.includes("<!DOCTYPE") || err.message.includes("is not valid JSON"));
     if (isDocType) {
@@ -1550,6 +1555,32 @@ function setupSse() {
     playVideo(data.videoUrl, data.videoName || "video.mp4", true);
     showToast(`🎉 Dựng xong video "${data.videoName || 'video'}" trong ${data.executionTimeSec || 0}s!`);
 
+    // Đồng thời nạp và phát trực tiếp tại màn hình Section C của Tab 3 (Video Preview)
+    const previewVideo = document.getElementById("previewVideoPlayer");
+    const previewImg = document.getElementById("previewFrameImage");
+    const previewPlaceholder = document.getElementById("previewPlaceholder");
+    const previewStatusInfo = document.getElementById("previewStatusInfo");
+    const previewStatusText = document.getElementById("previewStatusText");
+    const btnPlayExisting = document.getElementById("btnPlayExistingVideo");
+
+    if (previewVideo && data.videoUrl) {
+      previewVideo.src = data.videoUrl;
+      previewVideo.classList.remove("hidden");
+      if (previewImg) previewImg.classList.add("hidden");
+      if (previewPlaceholder) previewPlaceholder.classList.add("hidden");
+      if (previewStatusInfo && previewStatusText) {
+        previewStatusInfo.classList.remove("hidden");
+        previewStatusText.innerHTML = `🎥 Đang phát video xem trước: <strong>${escapeHtml(data.videoName || "video.mp4")}</strong> (${data.executionTimeSec || 0}s)`;
+      }
+      if (btnPlayExisting) {
+        btnPlayExisting.classList.remove("hidden");
+        btnPlayExisting.textContent = `▶️ Phát Video Đã Dựng`;
+      }
+      switchPreviewMode("video");
+      previewVideo.load();
+      previewVideo.play().catch(() => {});
+    }
+
     window.dispatchEvent(new Event("sse_render_complete"));
 
     if (data.fallbackUsed) {
@@ -1788,9 +1819,12 @@ function handleAiProjectChanged() {
     slider.max = (cfg.durationInFrames || 300) - 1;
     slider.value = 0;
     aiState.currentFrame = 0;
-    document.getElementById("currentFrameLabel").textContent = "Frame: 0";
+    document.getElementById("currentFrameLabel").textContent = "Frame: 0 (0.00s)";
     document.getElementById("totalFramesLabel").textContent = `${cfg.durationInFrames || 300} frames`;
   }
+
+  // Tự động kiểm tra và nạp video đã có của dự án này vào màn hình xem trước
+  loadPreviewForCurrentProject();
 
   // Tự động thẩm định (Validation) để nạp danh sách file và assets
   validateCurrentAiProject();
@@ -1989,13 +2023,181 @@ async function validateCurrentAiProject() {
   }
 }
 
-// 3. Điều khiển Timeline & Soi Frame (Frame Inspector)
+// 3. Điều khiển Timeline & Soi Frame (Frame Inspector) & Video Preview
+function findExistingVideoForProject(projectId, projectName = "") {
+  if (!appState.videosList || appState.videosList.length === 0) return null;
+
+  // 1. Khớp theo projectId trong metadata
+  let match = appState.videosList.find((v) => v.projectId === projectId);
+  if (match) return match;
+
+  // 2. Khớp theo tên file hoặc tiêu đề
+  const safeId = (projectId || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const safeName = (projectName || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  match = appState.videosList.find((v) => {
+    const fn = (v.filename || "").toLowerCase();
+    const title = (v.title || "").toLowerCase();
+    if (safeId && (fn.includes(safeId) || title.includes(safeId))) return true;
+    if (safeName && (fn.includes(safeName) || title.includes(safeName))) return true;
+    return false;
+  });
+  if (match) return match;
+
+  // 3. Quy tắc riêng cho các dự án demo
+  if (projectId.includes("reaction-time") || projectId.includes("thanhhai")) {
+    match = appState.videosList.find((v) => v.filename.includes("reaction_time") || v.filename.includes("thanhhai"));
+  } else if (projectId.includes("demo-10s")) {
+    match = appState.videosList.find((v) => v.filename.includes("DemoAnimation10s") || v.filename.includes("CharacterRig"));
+  }
+
+  return match || null;
+}
+
+// Tự động nạp bản xem trước (nếu đã có video) cho dự án đang chọn
+function loadPreviewForCurrentProject() {
+  const projectId = aiState.selectedProjectId;
+  if (!projectId) return;
+
+  const project = aiState.projects.find((p) => p.id === projectId);
+  const previewVideo = document.getElementById("previewVideoPlayer");
+  const previewImg = document.getElementById("previewFrameImage");
+  const previewPlaceholder = document.getElementById("previewPlaceholder");
+  const previewStatusInfo = document.getElementById("previewStatusInfo");
+  const previewStatusText = document.getElementById("previewStatusText");
+  const btnPlayExisting = document.getElementById("btnPlayExistingVideo");
+
+  const existing = findExistingVideoForProject(projectId, project?.name || project?.folderName);
+
+  if (existing) {
+    if (btnPlayExisting) {
+      btnPlayExisting.classList.remove("hidden");
+      btnPlayExisting.textContent = `▶️ Phát Video Đã Dựng (${existing.sizeMb}MB)`;
+    }
+
+    if (previewVideo) {
+      previewVideo.src = existing.url;
+      previewVideo.classList.remove("hidden");
+      if (previewImg) previewImg.classList.add("hidden");
+      if (previewPlaceholder) previewPlaceholder.classList.add("hidden");
+      if (previewStatusInfo && previewStatusText) {
+        previewStatusInfo.classList.remove("hidden");
+        previewStatusText.innerHTML = `🎥 Đang nạp video có sẵn: <strong>${escapeHtml(existing.filename)}</strong> (${existing.sizeMb} MB - ${existing.formattedTime})`;
+      }
+      switchPreviewMode("video");
+      previewVideo.load();
+    }
+  } else {
+    if (btnPlayExisting) btnPlayExisting.classList.add("hidden");
+    if (previewVideo) {
+      previewVideo.pause();
+      previewVideo.removeAttribute("src");
+      previewVideo.classList.add("hidden");
+    }
+    if (previewImg) previewImg.classList.add("hidden");
+    if (previewStatusInfo) previewStatusInfo.classList.add("hidden");
+    if (previewPlaceholder) {
+      previewPlaceholder.classList.remove("hidden");
+      previewPlaceholder.innerHTML = `
+        <div style="font-size: 40px; margin-bottom: 10px;">🎞️</div>
+        <div style="font-weight: 600; color: #e2e8f0; font-size: 15px;">Chưa có bản xem trước</div>
+        <div style="font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.6;">
+          Bấm <strong style="color: #38bdf8;">"▶ Dựng bản xem trước nhanh (5s)"</strong> bên dưới để xem video hoạt hình chuyển động,<br/>
+          hoặc chọn frame rồi bấm <strong style="color: #c084fc;">"📷 Soi Khung Hình Này"</strong> để chụp ảnh khung hình bất kỳ!
+        </div>
+      `;
+    }
+    switchPreviewMode("video");
+  }
+}
+
+// Chuyển chế độ hiển thị giữa Video và Soi Frame
+function switchPreviewMode(mode) {
+  const btnVideo = document.getElementById("btnModeVideo");
+  const btnFrame = document.getElementById("btnModeFrame");
+  const previewVideo = document.getElementById("previewVideoPlayer");
+  const previewImg = document.getElementById("previewFrameImage");
+  const previewPlaceholder = document.getElementById("previewPlaceholder");
+
+  if (mode === "video") {
+    if (btnVideo) btnVideo.classList.add("active");
+    if (btnFrame) btnFrame.classList.remove("active");
+
+    if (previewVideo && previewVideo.getAttribute("src")) {
+      previewVideo.classList.remove("hidden");
+      if (previewImg) previewImg.classList.add("hidden");
+      if (previewPlaceholder) previewPlaceholder.classList.add("hidden");
+    } else {
+      if (previewPlaceholder) previewPlaceholder.classList.remove("hidden");
+      if (previewVideo) previewVideo.classList.add("hidden");
+      if (previewImg) previewImg.classList.add("hidden");
+    }
+  } else if (mode === "frame") {
+    if (btnFrame) btnFrame.classList.add("active");
+    if (btnVideo) btnVideo.classList.remove("active");
+
+    if (previewImg && previewImg.getAttribute("src")) {
+      previewImg.classList.remove("hidden");
+      if (previewVideo) previewVideo.classList.add("hidden");
+      if (previewPlaceholder) previewPlaceholder.classList.add("hidden");
+    } else {
+      // Nếu chưa có ảnh chụp frame, tự động chụp frame hiện tại
+      inspectCurrentFrame();
+    }
+  }
+}
+
+// Phát video có sẵn của dự án
+function playExistingProjectVideo() {
+  const projectId = aiState.selectedProjectId;
+  const project = aiState.projects.find((p) => p.id === projectId);
+  const existing = findExistingVideoForProject(projectId, project?.name || project?.folderName);
+  if (!existing) {
+    showToast("Chưa có video nào được dựng cho dự án này. Hãy bấm 'Dựng bản xem trước nhanh (5s)'!");
+    return;
+  }
+  const previewVideo = document.getElementById("previewVideoPlayer");
+  const previewImg = document.getElementById("previewFrameImage");
+  const previewPlaceholder = document.getElementById("previewPlaceholder");
+  const previewStatusInfo = document.getElementById("previewStatusInfo");
+  const previewStatusText = document.getElementById("previewStatusText");
+
+  if (previewVideo) {
+    previewVideo.src = existing.url;
+    previewVideo.classList.remove("hidden");
+    if (previewImg) previewImg.classList.add("hidden");
+    if (previewPlaceholder) previewPlaceholder.classList.add("hidden");
+    if (previewStatusInfo && previewStatusText) {
+      previewStatusInfo.classList.remove("hidden");
+      previewStatusText.innerHTML = `🎥 Đang phát: <strong>${escapeHtml(existing.filename)}</strong> (${existing.sizeMb} MB)`;
+    }
+    switchPreviewMode("video");
+    previewVideo.load();
+    previewVideo.play().catch(() => {});
+    showToast(`▶️ Đang phát video "${existing.filename}"`);
+  }
+}
+
+// Chuyển sang Tab Thư viện Video
+function switchToLibraryTab() {
+  switchTab("tab2");
+  const target = document.getElementById("videosListContainer");
+  if (target) target.scrollIntoView({ behavior: "smooth" });
+}
+
 function onFrameSliderInput(event) {
   const frame = parseInt(event.target.value, 10) || 0;
   aiState.currentFrame = frame;
   const fps = aiState.currentValidation?.config?.fps || 30;
   const sec = (frame / fps).toFixed(2);
-  document.getElementById("currentFrameLabel").textContent = `Frame: ${frame} (${sec}s)`;
+  const label = document.getElementById("currentFrameLabel");
+  if (label) label.textContent = `Frame: ${frame} (${sec}s)`;
+
+  // Nếu đang hiển thị video trong player preview, đồng bộ tua video tới giây đó luôn
+  const previewVideo = document.getElementById("previewVideoPlayer");
+  if (previewVideo && !previewVideo.classList.contains("hidden") && previewVideo.duration) {
+    previewVideo.currentTime = Math.min(previewVideo.duration, Number(sec));
+  }
 }
 
 function stepFrame(delta) {
@@ -2034,11 +2236,23 @@ async function inspectCurrentFrame() {
     const img = document.getElementById("previewFrameImage");
     const video = document.getElementById("previewVideoPlayer");
     const placeholder = document.getElementById("previewPlaceholder");
+    const previewStatusInfo = document.getElementById("previewStatusInfo");
+    const previewStatusText = document.getElementById("previewStatusText");
 
     img.src = data.frameUrl;
     img.classList.remove("hidden");
     video.classList.add("hidden");
     placeholder.classList.add("hidden");
+
+    if (previewStatusInfo && previewStatusText) {
+      previewStatusInfo.classList.remove("hidden");
+      previewStatusText.innerHTML = `📷 Đang soi Frame tĩnh: <strong>Frame ${data.frame}</strong> (${data.width}×${data.height}) - ${(data.frame / (aiState.currentValidation?.config?.fps || 30)).toFixed(2)}s`;
+    }
+
+    const btnVideo = document.getElementById("btnModeVideo");
+    const btnFrame = document.getElementById("btnModeFrame");
+    if (btnFrame) btnFrame.classList.add("active");
+    if (btnVideo) btnVideo.classList.remove("active");
 
     showToast(`📷 Đã chụp Frame ${data.frame} (${data.width}×${data.height}) thành công!`);
   } catch (err) {
@@ -2074,11 +2288,23 @@ async function inspectContactSheet() {
     const img = document.getElementById("previewFrameImage");
     const video = document.getElementById("previewVideoPlayer");
     const placeholder = document.getElementById("previewPlaceholder");
+    const previewStatusInfo = document.getElementById("previewStatusInfo");
+    const previewStatusText = document.getElementById("previewStatusText");
 
     img.src = data.sheetUrl;
     img.classList.remove("hidden");
     video.classList.add("hidden");
     placeholder.classList.add("hidden");
+
+    if (previewStatusInfo && previewStatusText) {
+      previewStatusInfo.classList.remove("hidden");
+      previewStatusText.innerHTML = `📋 Đang hiển thị: <strong>Contact Sheet toàn bộ 14 Shots</strong>`;
+    }
+
+    const btnVideo = document.getElementById("btnModeVideo");
+    const btnFrame = document.getElementById("btnModeFrame");
+    if (btnFrame) btnFrame.classList.add("active");
+    if (btnVideo) btnVideo.classList.remove("active");
 
     showToast("📋 Đã nạp thành công Contact Sheet toàn bộ 14 Shots!");
   } catch (err) {
@@ -2120,6 +2346,34 @@ async function startAiRender(isTest = false) {
   btnFull.disabled = true;
   btnCancel.classList.remove("hidden");
   aiState.isRendering = true;
+
+  // Nếu là dựng thử 5s, cập nhật ngay màn hình Preview
+  if (isTest) {
+    const previewVideo = document.getElementById("previewVideoPlayer");
+    const previewImg = document.getElementById("previewFrameImage");
+    const previewPlaceholder = document.getElementById("previewPlaceholder");
+    const previewStatusInfo = document.getElementById("previewStatusInfo");
+    const previewStatusText = document.getElementById("previewStatusText");
+
+    if (previewVideo) previewVideo.classList.add("hidden");
+    if (previewImg) previewImg.classList.add("hidden");
+    if (previewPlaceholder) {
+      previewPlaceholder.classList.remove("hidden");
+      previewPlaceholder.innerHTML = `
+        <div style="font-size: 40px; margin-bottom: 10px;" class="pulse-anim">⚡</div>
+        <div style="color: #38bdf8; font-weight: bold; font-size: 16px;">Đang dựng nhanh 5 giây xem trước...</div>
+        <div style="font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.5;">
+          Hệ thống đang chạy Playwright & FFmpeg xuất 5 giây đầu.<br/>
+          Video sẽ tự động nạp và phát ngay tại đây khi hoàn thành!
+        </div>
+      `;
+    }
+    if (previewStatusInfo && previewStatusText) {
+      previewStatusInfo.classList.remove("hidden");
+      previewStatusText.innerHTML = `⏳ Đang dựng bản xem trước 5 giây...`;
+    }
+    switchPreviewMode("video");
+  }
 
   try {
     const res = await fetch("/api/ai-code/render", {
