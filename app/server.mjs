@@ -380,29 +380,34 @@ app.get("/api/videos", (req, res) => {
     const videos = files
       .filter((file) => file.toLowerCase().endsWith(".mp4"))
       .map((file) => {
-        const fullPath = path.join(outDir, file);
-        const stats = fs.statSync(fullPath);
-        const baseName = path.parse(file).name;
-        const metaPath = path.join(projectRoot, "out/metadata", `${baseName}.json`);
+        try {
+          const fullPath = path.join(outDir, file);
+          const stats = fs.statSync(fullPath);
+          const baseName = path.parse(file).name;
+          const metaPath = path.join(projectRoot, "out/metadata", `${baseName}.json`);
 
-        let metadata = null;
-        if (fs.existsSync(metaPath)) {
-          try {
-            metadata = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
-          } catch (e) {}
+          let metadata = null;
+          if (fs.existsSync(metaPath)) {
+            try {
+              metadata = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+            } catch (e) {}
+          }
+
+          return {
+            filename: file,
+            url: `/out/${file}?t=${stats.mtimeMs}`,
+            sizeBytes: stats.size,
+            sizeMb: (stats.size / (1024 * 1024)).toFixed(2),
+            createdAt: stats.mtime,
+            formattedTime: new Date(stats.mtime).toLocaleString("vi-VN"),
+            hasMetadata: Boolean(metadata),
+            title: metadata?.title || file
+          };
+        } catch (e) {
+          return null;
         }
-
-        return {
-          filename: file,
-          url: `/out/${file}?t=${stats.mtimeMs}`,
-          sizeBytes: stats.size,
-          sizeMb: (stats.size / (1024 * 1024)).toFixed(2),
-          createdAt: stats.mtime,
-          formattedTime: new Date(stats.mtime).toLocaleString("vi-VN"),
-          hasMetadata: Boolean(metadata),
-          title: metadata?.title || file
-        };
       })
+      .filter(Boolean)
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     res.json({ success: true, videos });
@@ -869,7 +874,7 @@ app.get("/api/ai-code/projects", (req, res) => {
               name: `[Thanh Hai 2D] ${config.projectName || ent.name}`,
               folderName: ent.name,
               type: "sample",
-              engine: "thanhhai_2d",
+              engine: "thanhhai-2d-studio",
               engineName: "Thanh Hai Learn AI 2D Studio (Canvas + Three.js)",
               isDemo: true,
               path: pDir,
@@ -902,7 +907,7 @@ app.get("/api/ai-code/projects", (req, res) => {
       }
     }
 
-    // 3. Quét imported projects (Tự động phát hiện engine)
+    // 3. Quét imported projects (Tự động nhận diện chính xác engine cho từng project)
     if (fs.existsSync(importedDir)) {
       const importedEntries = fs.readdirSync(importedDir, { withFileTypes: true });
       for (const ent of importedEntries) {
@@ -917,7 +922,7 @@ app.get("/api/ai-code/projects", (req, res) => {
 
           if (isTH) {
             config = detectThanhHaiConfig(pDir);
-            engine = "thanhhai_2d";
+            engine = "thanhhai-2d-studio";
             engineName = "Thanh Hai Learn AI 2D Studio (Canvas + Three.js)";
           } else {
             config = detectProjectConfig(pDir);
@@ -969,9 +974,9 @@ app.post("/api/ai-code/upload-zip", (req, res) => {
     // Giải nén an toàn với cơ chế bảo mật cao chống Zip Slip
     const extractResult = unzipProjectSafe(zipBuffer, targetDir);
 
-    // Tự động nhận diện loại dự án
+    // Tự động nhận diện loại dự án (Thanh Hai 2D Studio hay Remotion)
     const isTH = isThanhHaiProject(targetDir);
-    const engine = isTH ? "thanhhai_2d" : "remotion";
+    const engine = isTH ? "thanhhai-2d-studio" : "remotion";
     const validation = isTH ? validateThanhHaiProject(targetDir) : validateProject(targetDir);
 
     res.json({
@@ -988,7 +993,7 @@ app.post("/api/ai-code/upload-zip", (req, res) => {
 });
 
 /**
- * 14. Thẩm định dự án AI Code (Tự động định tuyến theo engine)
+ * 14. Thẩm định dự án AI Code (Tự động định tuyến theo engine tương ứng)
  */
 app.post("/api/ai-code/validate", (req, res) => {
   try {
@@ -1009,12 +1014,13 @@ app.post("/api/ai-code/validate", (req, res) => {
     }
 
     const isTH = isThanhHaiProject(targetDir);
+    const engine = isTH ? "thanhhai-2d-studio" : "remotion";
     const validation = isTH ? validateThanhHaiProject(targetDir) : validateProject(targetDir);
 
     res.json({
       success: true,
       projectId,
-      engine: isTH ? "thanhhai_2d" : "remotion",
+      engine,
       validation
     });
   } catch (err) {
@@ -1157,7 +1163,7 @@ app.post("/api/ai-code/render", async (req, res) => {
     }
 
     const isTH = isThanhHaiProject(targetDir);
-    const engine = isTH ? "thanhhai_2d" : "remotion";
+    const engine = isTH ? "thanhhai-2d-studio" : "remotion";
     const config = isTH ? detectThanhHaiConfig(targetDir) : detectProjectConfig(targetDir);
 
     if (customResolution) {

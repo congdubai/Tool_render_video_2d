@@ -1115,26 +1115,45 @@ async function loadVideosList() {
 
   try {
     const res = await fetch("/api/videos");
-    const contentType = res.headers.get("content-type") || "";
+    const rawText = await res.text();
 
-    if (!res.ok || !contentType.includes("application/json")) {
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseErr) {
+      // Nếu server trả về HTML (<!DOCTYPE) do chưa khởi động lại start.bat hoặc chưa nạp API mới
       container.innerHTML = `
-        <div class="empty-state" style="color: #fbbf24; line-height: 1.6;">
-          ⚠️ Máy chủ chưa nạp API danh sách video mới.<br/>
-          <strong style="color: #38bdf8;">Hãy đóng cửa sổ CMD cũ và nhấp lại file start.bat</strong> để khởi động lại máy chủ local!
+        <div class="empty-state" style="color: #fbbf24; line-height: 1.8; text-align: left; padding: 15px; background: rgba(245, 158, 11, 0.1); border: 1px dashed #f59e0b; border-radius: 8px;">
+          <div style="font-size: 14px; font-weight: bold; color: #f59e0b; margin-bottom: 8px;">
+            ⚠️ Máy chủ Node.js chưa nạp API danh sách video mới!
+          </div>
+          <div style="color: #e2e8f0; font-size: 13px;">
+            Trình duyệt nhận phản hồi dạng HTML thay vì dữ liệu JSON do tiến trình máy chủ cũ trong CMD chưa được tắt và khởi động lại.<br/>
+            <strong>Cách khắc phục cực kỳ đơn giản:</strong>
+            <ol style="margin: 8px 0 10px 20px; padding: 0;">
+              <li>Đóng cửa sổ CMD (terminal) đang chạy máy chủ cũ.</li>
+              <li>Chạy lại file <code style="background: #1e293b; color: #38bdf8; padding: 2px 6px; border-radius: 4px;">start.bat</code> để nạp bản code mới.</li>
+              <li>Quay lại trình duyệt nhấn <strong style="color: #38bdf8;">Ctrl + F5</strong> (hoặc bấm nút dưới đây).</li>
+            </ol>
+          </div>
+          <button class="btn btn-sm btn-outline" onclick="loadVideosList()" style="margin-top: 5px; color: #38bdf8; border-color: #38bdf8;">
+            🔄 Thử kết nối lại ngay
+          </button>
         </div>
       `;
       return;
     }
 
-    const data = await res.json();
-    if (!data.success) return;
+    if (!data.success) {
+      container.innerHTML = `<div class="empty-state" style="color: #f87171;">Lỗi từ máy chủ: ${escapeHtml(data.error || "Không rõ nguyên nhân")}</div>`;
+      return;
+    }
 
     appState.videosList = data.videos || [];
     if (countLabel) countLabel.textContent = `${appState.videosList.length} video`;
 
     if (appState.videosList.length === 0) {
-      container.innerHTML = `<div class="empty-state">Chưa có video nào. Hãy bấm "Dựng thử 1 video" hoặc "Dựng tất cả video"!</div>`;
+      container.innerHTML = `<div class="empty-state">Chưa có video nào trong thư mục out/. Hãy bấm "Dựng thử 1 video" hoặc "Dựng tất cả video"!</div>`;
       return;
     }
 
@@ -1168,7 +1187,35 @@ async function loadVideosList() {
       playVideo(appState.videosList[0].url, appState.videosList[0].filename, false);
     }
   } catch (err) {
-    container.innerHTML = `<div class="empty-state" style="color: #f87171;">Lỗi tải danh sách video: ${escapeHtml(err.message)}</div>`;
+    const isDocType = err.message && (err.message.includes("Unexpected token '<'") || err.message.includes("<!DOCTYPE") || err.message.includes("is not valid JSON"));
+    if (isDocType) {
+      container.innerHTML = `
+        <div class="empty-state" style="color: #fbbf24; line-height: 1.8; text-align: left; padding: 15px; background: rgba(245, 158, 11, 0.1); border: 1px dashed #f59e0b; border-radius: 8px;">
+          <div style="font-size: 14px; font-weight: bold; color: #f59e0b; margin-bottom: 8px;">
+            ⚠️ Máy chủ chưa được khởi động lại để nhận bản cập nhật mới!
+          </div>
+          <div style="color: #e2e8f0; font-size: 13px;">
+            Trình duyệt nhận phản hồi dạng HTML thay vì dữ liệu JSON.<br/>
+            <strong>Cách khắc phục:</strong>
+            <ol style="margin: 8px 0 10px 20px; padding: 0;">
+              <li>Tắt (Đóng) cửa sổ CMD đang chạy máy chủ cũ.</li>
+              <li>Chạy lại file <code style="background: #1e293b; color: #38bdf8; padding: 2px 6px; border-radius: 4px;">start.bat</code>.</li>
+              <li>Tải lại trang web (nhấn <strong style="color: #38bdf8;">Ctrl + F5</strong>).</li>
+            </ol>
+          </div>
+          <button class="btn btn-sm btn-outline" onclick="loadVideosList()" style="margin-top: 5px; color: #38bdf8; border-color: #38bdf8;">
+            🔄 Thử kết nối lại ngay
+          </button>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div class="empty-state" style="color: #f87171;">
+          Lỗi tải danh sách video: ${escapeHtml(err.message)}
+          <br/><button class="btn btn-sm btn-outline" onclick="loadVideosList()" style="margin-top: 10px; color: #38bdf8; border-color: #38bdf8;">🔄 Thử lại</button>
+        </div>
+      `;
+    }
   }
 }
 
@@ -1702,7 +1749,7 @@ function handleAiProjectChanged() {
 
   overviewBox.classList.remove("hidden");
 
-  const isTH = project.engine === "thanhhai_2d";
+  const isTH = project.engine === "thanhhai-2d-studio" || project.engine === "thanhhai_2d";
   const engineBadge = document.getElementById("aiBadgeEngine");
   const engineTag = document.getElementById("aiEngineTag");
   const btnContactSheet = document.getElementById("btnContactSheet");
@@ -1788,7 +1835,7 @@ async function handleAiZipSelected(event) {
   reader.readAsDataURL(file);
 }
 
-// 2. Thẩm định dự án Remotion AI (Validate Project)
+// 2. Thẩm định dự án Remotion hoặc Thanh Hai 2D Studio (Validate Project)
 async function validateCurrentAiProject() {
   const projectId = aiState.selectedProjectId;
   if (!projectId) {
@@ -1801,7 +1848,7 @@ async function validateCurrentAiProject() {
   const assetsList = document.getElementById("aiAssetsList");
   const filesCount = document.getElementById("aiFilesCount");
 
-  resultBox.innerHTML = '<div class="empty-state">⏳ Đang phân tích mã nguồn TypeScript, cấu trúc và dependencies...</div>';
+  resultBox.innerHTML = '<div class="empty-state">⏳ Đang phân tích cấu trúc dự án và kiểm tra engine...</div>';
 
   try {
     const res = await fetch("/api/ai-code/validate", {
@@ -1815,6 +1862,26 @@ async function validateCurrentAiProject() {
 
     const val = data.validation;
     aiState.currentValidation = val;
+    const isTH = data.engine === "thanhhai-2d-studio" || val.engine === "thanhhai-2d-studio";
+
+    // Cập nhật nhãn Badge Engine
+    const engineBadge = document.getElementById("aiBadgeEngine");
+    const engineTag = document.getElementById("aiEngineTag");
+    const btnContactSheet = document.getElementById("btnContactSheet");
+
+    if (engineBadge) {
+      engineBadge.textContent = isTH ? "Engine: Thanh Hai 2D Studio" : "Engine: Remotion 2D";
+      engineBadge.style.color = isTH ? "#c084fc" : "#38bdf8";
+      engineBadge.style.borderColor = isTH ? "#a855f7" : "#0284c7";
+    }
+    if (engineTag) {
+      engineTag.textContent = isTH ? "CANVAS / THREE.JS" : "REMOTION TSX";
+      engineTag.style.backgroundColor = isTH ? "#7c3aed" : "#0284c7";
+    }
+    if (btnContactSheet) {
+      if (isTH) btnContactSheet.classList.remove("hidden");
+      else btnContactSheet.classList.add("hidden");
+    }
 
     // A. Cập nhật cây file
     if (filesTree && val.files) {
@@ -1833,7 +1900,7 @@ async function validateCurrentAiProject() {
     if (assetsList && val.assets) {
       let html = "";
       if (val.assets.found.length === 0 && val.assets.missing.length === 0) {
-        html = '<div class="empty-state" style="padding: 10px;">Dự án dùng tài nguyên dựng sẵn hoặc vẽ bằng code SVG/Canvas.</div>';
+        html = '<div class="empty-state" style="padding: 10px;">Dự án dùng tài nguyên dựng sẵn hoặc vẽ trực tiếp bằng Canvas/Three.js.</div>';
       } else {
         val.assets.found.forEach((a) => {
           html += `<div class="asset-item"><span>🖼️ ${escapeHtml(a)}</span> <span class="asset-badge-found">✅ Đã có</span></div>`;
@@ -1855,25 +1922,46 @@ async function validateCurrentAiProject() {
       </div>
     `;
 
-    // Chi tiết kiểm tra
-    reportHtml += `
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px;">
-        <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
-          <span style="color: #94a3b8; font-size: 11px;">ENTRYPOINT:</span><br/>
-          <strong style="color: ${val.errors.some(e => e.includes('entrypoint')) ? '#f87171' : '#38bdf8'}; font-family: monospace;">
-            ${val.config?.entryPoint || 'Chưa có'}
-          </strong>
+    // Chi tiết kiểm tra theo từng Engine tương ứng
+    if (isTH) {
+      // Giao diện thẩm định chuẩn cho Thanh Hai 2D Studio
+      reportHtml += `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px;">
+          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+            <span style="color: #94a3b8; font-size: 11px;">ENGINE:</span><br/>
+            <strong style="color: #c084fc; font-family: monospace;">Thanh Hai 2D Studio (Canvas/Three.js)</strong>
+          </div>
+          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+            <span style="color: #94a3b8; font-size: 11px;">KỊCH BẢN & SHOTS:</span><br/>
+            <strong style="color: #38bdf8; font-family: monospace;">${val.shots?.length || val.config?.shotsCount || 0} cảnh (${val.config?.style || 'dusk'} style)</strong>
+          </div>
+          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+            <span style="color: #94a3b8; font-size: 11px;">MÔI TRƯỜNG THỰC THI:</span><br/>
+            <strong style="color: #10b981;">Playwright Chromium + FFmpeg</strong>
+          </div>
         </div>
-        <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
-          <span style="color: #94a3b8; font-size: 11px;">COMPOSITION ID:</span><br/>
-          <strong style="color: #38bdf8; font-family: monospace;">${val.config?.compositionId || 'Chưa rõ'}</strong>
+      `;
+    } else {
+      // Giao diện thẩm định chuẩn cho Remotion
+      reportHtml += `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px;">
+          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+            <span style="color: #94a3b8; font-size: 11px;">ENTRYPOINT:</span><br/>
+            <strong style="color: ${val.errors.some(e => e.includes('entrypoint')) ? '#f87171' : '#38bdf8'}; font-family: monospace;">
+              ${val.config?.entryPoint || 'src/index.ts'}
+            </strong>
+          </div>
+          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+            <span style="color: #94a3b8; font-size: 11px;">COMPOSITION ID:</span><br/>
+            <strong style="color: #38bdf8; font-family: monospace;">${val.config?.compositionId || 'MainVideo'}</strong>
+          </div>
+          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
+            <span style="color: #94a3b8; font-size: 11px;">DEPENDENCIES:</span><br/>
+            <strong style="color: #10b981;">${val.dependencies?.allowed?.join(', ') || 'react, remotion'}</strong>
+          </div>
         </div>
-        <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
-          <span style="color: #94a3b8; font-size: 11px;">DEPENDENCIES:</span><br/>
-          <strong style="color: #10b981;">${val.dependencies?.allowed?.join(', ') || 'react, remotion'}</strong>
-        </div>
-      </div>
-    `;
+      `;
+    }
 
     // Danh sách lỗi
     if (val.errors && val.errors.length > 0) {
