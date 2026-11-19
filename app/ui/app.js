@@ -2127,23 +2127,24 @@ function loadPreviewForCurrentProject() {
   const btnPlayExisting = document.getElementById("btnPlayExistingVideo");
 
   const existing = findExistingVideoForProject(projectId, project?.name || project?.folderName);
+  const videoToLoad = existing || (appState.videosList && appState.videosList.length > 0 ? appState.videosList[0] : null);
 
-  if (existing) {
+  if (videoToLoad) {
     if (btnPlayExisting) {
       btnPlayExisting.classList.remove("hidden");
-      btnPlayExisting.textContent = `▶️ Phát Video Đã Dựng (${existing.sizeMb}MB)`;
+      btnPlayExisting.textContent = `▶️ Phát Video (${videoToLoad.sizeMb}MB)`;
     }
 
     if (previewVideo) {
-      previewVideo.src = existing.url;
+      previewVideo.src = videoToLoad.url;
       previewVideo.classList.remove("hidden");
       if (previewImg) previewImg.classList.add("hidden");
       if (previewPlaceholder) previewPlaceholder.classList.add("hidden");
       if (previewStatusInfo && previewStatusText) {
         previewStatusInfo.classList.remove("hidden");
-        previewStatusText.innerHTML = `🎥 Đang nạp video có sẵn: <strong>${escapeHtml(existing.filename)}</strong> (${existing.sizeMb} MB - ${existing.formattedTime})`;
+        const isMatched = Boolean(videoToLoad === existing);
+        previewStatusText.innerHTML = `🎥 ${isMatched ? 'Video của dự án này' : 'Video gần nhất trong thư mục out/'}: <strong>${escapeHtml(videoToLoad.filename)}</strong> (${videoToLoad.sizeMb} MB)`;
       }
-      switchPreviewMode("video");
       previewVideo.load();
     }
   } else {
@@ -2161,12 +2162,11 @@ function loadPreviewForCurrentProject() {
         <div style="font-size: 48px; margin-bottom: 12px;">🎬</div>
         <div style="font-weight: 700; color: #f8fafc; font-size: 16px;">Sẵn Sàng Dựng Video</div>
         <div style="font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.6;">
-          Bấm nút <strong style="color: #38bdf8;">"🚀 Render Video MP4 Hoàn Chỉnh"</strong> bên dưới.<br/>
+          Hãy bấm nút <strong style="color: #38bdf8;">"🚀 Render Video MP4 Hoàn Chỉnh"</strong> ở trên.<br/>
           Video sau khi dựng xong sẽ tự động hiển thị và phát trực tiếp ngay trên khung màn hình này!
         </div>
       `;
     }
-    switchPreviewMode("video");
   }
 }
 
@@ -2200,19 +2200,20 @@ function switchPreviewMode(mode) {
       if (previewVideo) previewVideo.classList.add("hidden");
       if (previewPlaceholder) previewPlaceholder.classList.add("hidden");
     } else {
-      // Nếu chưa có ảnh chụp frame, tự động chụp frame hiện tại
       inspectCurrentFrame();
     }
   }
 }
 
-// Phát video có sẵn của dự án
+// Phát video có sẵn của dự án hoặc video gần nhất trong thư viện
 function playExistingProjectVideo() {
   const projectId = aiState.selectedProjectId;
   const project = aiState.projects.find((p) => p.id === projectId);
   const existing = findExistingVideoForProject(projectId, project?.name || project?.folderName);
-  if (!existing) {
-    showToast("Chưa có video nào được dựng cho dự án này. Hãy bấm 'Dựng bản xem trước nhanh (5s)'!");
+  const videoToPlay = existing || (appState.videosList && appState.videosList.length > 0 ? appState.videosList[0] : null);
+
+  if (!videoToPlay) {
+    showToast("Chưa có video nào trong thư mục out/. Hãy bấm nút 'Render Video' ở trên!");
     return;
   }
   const previewVideo = document.getElementById("previewVideoPlayer");
@@ -2222,18 +2223,17 @@ function playExistingProjectVideo() {
   const previewStatusText = document.getElementById("previewStatusText");
 
   if (previewVideo) {
-    previewVideo.src = existing.url;
+    previewVideo.src = videoToPlay.url;
     previewVideo.classList.remove("hidden");
     if (previewImg) previewImg.classList.add("hidden");
     if (previewPlaceholder) previewPlaceholder.classList.add("hidden");
     if (previewStatusInfo && previewStatusText) {
       previewStatusInfo.classList.remove("hidden");
-      previewStatusText.innerHTML = `🎥 Đang phát: <strong>${escapeHtml(existing.filename)}</strong> (${existing.sizeMb} MB)`;
+      previewStatusText.innerHTML = `🎥 Đang phát: <strong>${escapeHtml(videoToPlay.filename)}</strong> (${videoToPlay.sizeMb} MB)`;
     }
-    switchPreviewMode("video");
     previewVideo.load();
     previewVideo.play().catch(() => {});
-    showToast(`▶️ Đang phát video "${existing.filename}"`);
+    showToast(`▶️ Đang phát video "${videoToPlay.filename}"`);
   }
 }
 
@@ -2451,7 +2451,9 @@ async function startAiRender(isTest = false) {
     if (!data.success) throw new Error(data.error);
 
     showToast(`🚀 ${data.message}`);
-    logsContent.innerHTML += `<div>[${new Date().toLocaleTimeString()}] Máy chủ đã nhận lệnh, đang nạp Remotion Engine...</div>`;
+    const isTH = project?.engine === "thanhhai-2d-studio";
+    const engineDisplay = isTH ? "Thanh Hai 2D Studio (Canvas + Three.js)" : "Remotion 2D Engine";
+    logsContent.innerHTML += `<div>[${new Date().toLocaleTimeString()}] Máy chủ đã nhận lệnh, đang nạp ${engineDisplay}...</div>`;
   } catch (err) {
     aiState.isRendering = false;
     btnFull.disabled = false;

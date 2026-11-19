@@ -426,36 +426,23 @@
       </div>
     </section>
 
-    <!-- Khu vực B: Màn Hình Video & Dựng Video (Video Player & Render Engine) -->
+    <!-- Khu vực B: Cấu Hình Render & Màn Hình Video -->
     <section class="card">
       <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h2>B. Màn Hình Video & Render</h2>
-          <span class="hint">Nhấn nút Render bên dưới, video dựng xong sẽ tự động hiển thị và phát ngay tại đây</span>
+          <h2>B. Cấu Hình & Render Video</h2>
+          <span class="hint">Cài đặt thông số, bấm Render để tự động xuất và phát video trực tiếp bên dưới</span>
         </div>
         <div id="previewStatusInfo" class="preview-status-info hidden" style="margin: 0; padding: 4px 10px;">
-          <span id="previewStatusText">🎥 Đang phát video vừa gen ra</span>
+          <span id="previewStatusText">🎥 Đang phát video thành phẩm</span>
         </div>
       </div>
       <div class="card-body">
         <div class="preview-inspector-layout" style="display: flex; flex-direction: column; align-items: center;">
-          <!-- Khung màn hình hiển thị Video Player -->
           <div class="preview-screen-wrap" style="width: 100%; max-width: 860px;">
-            <div id="previewContainer" class="preview-container">
-              <video id="previewVideoPlayer" class="preview-video hidden" controls playsinline></video>
-              <img id="previewFrameImage" class="preview-frame-img hidden" alt="Frame preview" />
-              <div id="previewPlaceholder" class="preview-placeholder">
-                <div style="font-size: 52px; margin-bottom: 12px;">🎬</div>
-                <div style="font-weight: 700; color: #f8fafc; font-size: 17px;" id="previewPlaceholderTitle">Sẵn Sàng Dựng Video</div>
-                <div style="font-size: 13px; color: #94a3b8; margin-top: 8px; line-height: 1.6;" id="previewPlaceholderDesc">
-                  Bấm nút <strong style="color: #38bdf8;">"🚀 Render Video MP4 Hoàn Chỉnh"</strong> bên dưới.<br/>
-                  Video sau khi dựng xong sẽ tự động hiển thị và phát trực tiếp ngay trên khung màn hình này!
-                </div>
-              </div>
-            </div>
-
-            <!-- Tùy chọn cấu hình xuất video tinh gọn -->
-            <div class="render-settings-grid" style="margin-top: 16px;">
+            
+            <!-- 1. Tùy chọn cấu hình xuất video tinh gọn -->
+            <div class="render-settings-grid" style="margin-bottom: 16px;">
               <div class="setting-item">
                 <label for="aiResolutionSelect">Độ phân giải:</label>
                 <select id="aiResolutionSelect" class="select-control">
@@ -490,8 +477,8 @@
               </div>
             </div>
 
-            <!-- Nút bấm Render Video trực tiếp -->
-            <div class="action-bar" style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <!-- 2. Nút bấm Render Video trực tiếp -->
+            <div class="action-bar" style="margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
               <button id="btnAiRenderFull" class="btn btn-primary btn-lg" style="flex: 2; font-weight: 700; font-size: 15px;" onclick="startAiRender(false)">
                 🚀 Render Video MP4 Hoàn Chỉnh
               </button>
@@ -503,8 +490,8 @@
               </button>
             </div>
 
-            <!-- Tiến độ Render SSE -->
-            <div id="aiRenderProgressWrap" class="render-progress-wrap hidden" style="margin-top: 16px;">
+            <!-- 3. Tiến độ Render SSE -->
+            <div id="aiRenderProgressWrap" class="render-progress-wrap hidden" style="margin-bottom: 16px;">
               <div class="progress-info-row">
                 <span id="aiRenderStatusText">Đang khởi động Render Engine...</span>
                 <span id="aiRenderTimeRemainingText">Còn lại: ~...</span>
@@ -518,7 +505,27 @@
               </div>
             </div>
 
-            <!-- Hộp nhật ký Render Logs -->
+            <!-- 4. KHUNG PHÁT VIDEO THÀNH PHẨM (NẰM NGAY BÊN DƯỚI NÚT VÀ TIẾN ĐỘ) -->
+            <div style="margin-top: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; color: #e2e8f0; font-size: 14px;">📺 Màn Hình Phát Video Thành Phẩm:</span>
+              <button class="btn btn-sm btn-outline" id="btnPlayExistingVideo" onclick="playExistingProjectVideo()" style="font-size: 11px; padding: 3px 8px; border-color: #10b981; color: #34d399;">
+                🔄 Nạp video vừa dựng gần nhất
+              </button>
+            </div>
+            <div id="previewContainer" class="preview-container">
+              <video id="previewVideoPlayer" class="preview-video hidden" controls playsinline></video>
+              <img id="previewFrameImage" class="preview-frame-img hidden" alt="Frame preview" />
+              <div id="previewPlaceholder" class="preview-placeholder">
+                <div style="font-size: 48px; margin-bottom: 10px;">🎬</div>
+                <div style="font-weight: 700; color: #f8fafc; font-size: 16px;" id="previewPlaceholderTitle">Chưa Có Video Để Phát</div>
+                <div style="font-size: 13px; color: #94a3b8; margin-top: 6px; line-height: 1.6;" id="previewPlaceholderDesc">
+                  Hãy bấm nút <strong style="color: #38bdf8;">"🚀 Render Video MP4 Hoàn Chỉnh"</strong> ở trên.<br/>
+                  Video dựng xong sẽ tự động hiển thị và phát ngay tại đây!
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. Hộp nhật ký Render Logs -->
             <div id="aiRenderLogsBox" class="ai-render-logs hidden" style="margin-top: 14px;">
               <div class="logs-header">NHẬT KÝ RENDER THỜI GIAN THỰC:</div>
               <div id="aiRenderLogsContent" class="logs-content"></div>
@@ -527,15 +534,12 @@
         </div>
       </div>
     </section>
-        </div>
-      </div>
-    </section>
   </main>
 
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=2.8"></script>
+  <script src="app.js?v=2.9"></script>
 </body>
 </html>
 
