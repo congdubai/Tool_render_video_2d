@@ -661,10 +661,106 @@ function escapeHtml(text) {
 const aiState = {
   projects: [],
   selectedProjectId: null,
+  selectedCompositionId: null,
+  availableCompositions: [],
   currentValidation: null,
   currentFrame: 0,
   isRendering: false
 };
+
+// Cập nhật dropdown chọn Composition
+function updateAiCompositionDropdown(compositions = [], selectedId = null) {
+  const compSettingItem = document.getElementById("aiCompositionSettingItem");
+  const compSelect = document.getElementById("aiCompositionSelect");
+  if (!compSelect) return;
+
+  const project = aiState.projects.find((p) => p.id === aiState.selectedProjectId);
+  const engine = project?.engine || "remotion";
+  const isRemotion = engine === "remotion" || !engine || engine === "auto";
+
+  if (!isRemotion) {
+    if (compSettingItem) compSettingItem.classList.add("hidden");
+    return;
+  }
+
+  if (compSettingItem) compSettingItem.classList.remove("hidden");
+
+  compSelect.innerHTML = "";
+
+  if (!compositions || compositions.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = selectedId || "MainVideo";
+    opt.textContent = selectedId || "MainVideo";
+    compSelect.appendChild(opt);
+    aiState.selectedCompositionId = opt.value;
+    updateAiCompBadge(opt.value);
+    return;
+  }
+
+  // 6. Nếu chỉ có một composition, tự động chọn composition đó
+  // 7. Nếu có nhiều composition, hiển thị dropdown để người dùng chọn
+  compositions.forEach((c) => {
+    const opt = document.createElement("option");
+    const id = typeof c === "string" ? c : c.id;
+    opt.value = id;
+    const meta = typeof c === "object" && c.width ? ` (${c.width}×${c.height}, ${c.fps}fps)` : "";
+    opt.textContent = `${id}${meta}`;
+    compSelect.appendChild(opt);
+  });
+
+  // Chọn composition phù hợp hoặc cái đầu tiên
+  const match = compositions.find((c) => (typeof c === "string" ? c : c.id) === selectedId);
+  const chosenId = match
+    ? (typeof match === "string" ? match : match.id)
+    : (typeof compositions[0] === "string" ? compositions[0] : compositions[0].id);
+
+  compSelect.value = chosenId;
+  aiState.selectedCompositionId = chosenId;
+  updateAiCompBadge(chosenId);
+}
+
+function updateAiCompBadge(compTitle) {
+  const badge = document.getElementById("aiBadgeComp");
+  if (badge) {
+    badge.textContent = `Comp: ${compTitle || "MainVideo"}`;
+  }
+}
+
+// Khi người dùng đổi Composition trên dropdown
+function handleAiCompositionChanged() {
+  const compSelect = document.getElementById("aiCompositionSelect");
+  if (!compSelect) return;
+
+  const newCompId = compSelect.value;
+  aiState.selectedCompositionId = newCompId;
+  updateAiCompBadge(newCompId);
+
+  // Cập nhật thông số badge nếu có metadata
+  const compMeta = aiState.availableCompositions.find((c) => (typeof c === "string" ? c : c.id) === newCompId);
+  if (compMeta && typeof compMeta === "object") {
+    if (compMeta.width && compMeta.height) {
+      const resBadge = document.getElementById("aiBadgeRes");
+      if (resBadge) resBadge.textContent = `${compMeta.width}×${compMeta.height}`;
+    }
+    if (compMeta.fps) {
+      const fpsBadge = document.getElementById("aiBadgeFps");
+      if (fpsBadge) fpsBadge.textContent = `${compMeta.fps} FPS`;
+    }
+    if (compMeta.durationInFrames) {
+      const fps = compMeta.fps || 30;
+      const durSec = (compMeta.durationInFrames / fps).toFixed(1);
+      const durBadge = document.getElementById("aiBadgeDuration");
+      if (durBadge) durBadge.textContent = `${compMeta.durationInFrames} frames (~${durSec}s)`;
+
+      const slider = document.getElementById("previewFrameSlider");
+      if (slider) {
+        slider.max = compMeta.durationInFrames - 1;
+      }
+    }
+  }
+
+  showToast(`🎯 Đã chọn Composition: "${newCompId}"`);
+}
 
 // 1. Tải danh sách các dự án Remotion AI
 async function loadAiProjectsList() {
@@ -897,10 +993,15 @@ function handleAiProjectChanged() {
 
   if (isPython) {
     document.getElementById("aiBadgeComp").textContent = `Shots: ${cfg.shotsCount || 31} cảnh (${cfg.mood || 'mystery'} mood)`;
+    updateAiCompositionDropdown([], null);
   } else if (isTH) {
     document.getElementById("aiBadgeComp").textContent = `Shots: ${cfg.shotsCount || 14} cảnh (${cfg.style || 'dusk'} style)`;
+    updateAiCompositionDropdown([], null);
   } else {
-    document.getElementById("aiBadgeComp").textContent = `Comp: ${cfg.compositionId || "MainVideo"}`;
+    const initialComps = cfg.compositions || (cfg.compositionId ? [{ id: cfg.compositionId, width: cfg.width, height: cfg.height, fps: cfg.fps, durationInFrames: cfg.durationInFrames }] : []);
+    aiState.availableCompositions = initialComps;
+    aiState.selectedCompositionId = cfg.compositionId || (initialComps[0]?.id || initialComps[0] || null);
+    updateAiCompositionDropdown(aiState.availableCompositions, aiState.selectedCompositionId);
   }
 
   // Tự động kiểm tra và nạp video đã có của dự án này vào màn hình xem trước
@@ -939,6 +1040,12 @@ async function handleAiZipSelected(event) {
       if (!data.success) throw new Error(data.error);
 
       aiState.selectedProjectId = data.projectId;
+      if (data.compositionId) {
+        aiState.selectedCompositionId = data.compositionId;
+      }
+      if (data.compositions) {
+        aiState.availableCompositions = data.compositions;
+      }
       await loadAiProjectsList();
 
       const previewContainer = document.getElementById("previewContainer");
@@ -987,6 +1094,19 @@ async function validateCurrentAiProject() {
     const engine = data.engine || val.engine || "remotion";
     const isPython = engine === "python-2d-long-form";
     const isTH = engine === "thanhhai-2d-studio" || engine === "thanhhai_2d";
+
+    // Cập nhật compositions thực tế nếu là Remotion
+    if (!isPython && !isTH) {
+      const realComps = data.compositions || val.compositions || [];
+      if (realComps.length > 0) {
+        aiState.availableCompositions = realComps;
+        const exists = realComps.some(c => (typeof c === "string" ? c : c.id) === aiState.selectedCompositionId);
+        if (!exists || realComps.length === 1) {
+          aiState.selectedCompositionId = typeof realComps[0] === "string" ? realComps[0] : realComps[0].id;
+        }
+        updateAiCompositionDropdown(aiState.availableCompositions, aiState.selectedCompositionId);
+      }
+    }
 
     // Cập nhật nhãn Badge Engine
     const engineBadge = document.getElementById("aiBadgeEngine");
@@ -1120,7 +1240,8 @@ async function validateCurrentAiProject() {
           </div>
           <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
             <span style="color: #94a3b8; font-size: 11px;">COMPOSITION ID:</span><br/>
-            <strong style="color: #38bdf8; font-family: monospace;">${val.config?.compositionId || 'MainVideo'}</strong>
+            <strong style="color: #38bdf8; font-family: monospace;">${aiState.selectedCompositionId || val.config?.compositionId || 'MainVideo'}</strong>
+            ${(aiState.availableCompositions && aiState.availableCompositions.length > 1) ? `<span style="color: #94a3b8; font-size: 11px;">(${aiState.availableCompositions.length} comps)</span>` : ''}
           </div>
           <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
             <span style="color: #94a3b8; font-size: 11px;">DEPENDENCIES:</span><br/>
@@ -1412,7 +1533,7 @@ async function inspectCurrentFrame() {
     const res = await fetch("/api/ai-code/preview-frame", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, frame })
+      body: JSON.stringify({ projectId, frame, compositionId: aiState.selectedCompositionId })
     });
 
     const data = await res.json();
@@ -1515,6 +1636,23 @@ async function startAiRender(isTest = false) {
     return;
   }
 
+  // 5. Trước khi render, kiểm tra ID có nằm trong danh sách composition thực tế hay không.
+  // 6. Nếu chỉ có một composition, tự động chọn composition đó.
+  // 7. Nếu có nhiều composition, hiển thị dropdown để người dùng chọn.
+  const isRemotion = !project?.engine || project.engine === "remotion" || project.engine === "auto";
+  if (isRemotion && aiState.availableCompositions && aiState.availableCompositions.length > 0) {
+    if (aiState.availableCompositions.length === 1) {
+      const single = aiState.availableCompositions[0];
+      aiState.selectedCompositionId = typeof single === "string" ? single : single.id;
+    } else {
+      const validIds = aiState.availableCompositions.map((c) => (typeof c === "string" ? c : c.id));
+      if (!aiState.selectedCompositionId || !validIds.includes(aiState.selectedCompositionId)) {
+        aiState.selectedCompositionId = validIds[0];
+      }
+    }
+    updateAiCompBadge(aiState.selectedCompositionId);
+  }
+
   const resSelect = document.getElementById("aiResolutionSelect").value;
   const fpsSelect = document.getElementById("aiFpsSelect").value;
   const gpuMode = document.getElementById("aiGpuModeSelect").value;
@@ -1571,6 +1709,7 @@ async function startAiRender(isTest = false) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         projectId,
+        compositionId: aiState.selectedCompositionId,
         engineOverride,
         accelerationMode: gpuMode,
         isTest,

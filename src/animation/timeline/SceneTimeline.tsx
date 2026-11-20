@@ -171,3 +171,4 @@ export const SceneTimeline: React.FC<{ project: StoryboardProject }> = ({ projec
     </div>
   );
 };
+

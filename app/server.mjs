@@ -12,7 +12,12 @@ import { detectGpu } from "../lib/gpu.mjs";
 import { safeParseJson, isSafePath } from "../lib/validate.mjs";
 import { generateAllVoices } from "../lib/voice.mjs";
 import { unzipProjectSafe, detectProjectConfig, listProjectFiles, validateProject } from "../lib/project-loader.mjs";
-import { bundleDynamicProject, renderDynamicStill, renderDynamicVideo } from "../lib/dynamic-render.mjs";
+import {
+  bundleDynamicProject,
+  renderDynamicStill,
+  renderDynamicVideo,
+  getProjectCompositions
+} from "../lib/dynamic-render.mjs";
 import {
   ENGINE_TYPES,
   ENGINE_DISPLAY_NAMES,
@@ -545,7 +550,7 @@ app.get("/api/ai-code/projects", (req, res) => {
 /**
  * 13. Tải lên và giải nén file ZIP dự án (Hỗ trợ Remotion, Thanh Hai Studio & Python Long Form)
  */
-app.post("/api/ai-code/upload-zip", (req, res) => {
+app.post("/api/ai-code/upload-zip", async (req, res) => {
   try {
     const { zipBase64, filename = "project.zip", manualEngine = null } = req.body;
     if (!zipBase64) {
@@ -568,6 +573,32 @@ app.post("/api/ai-code/upload-zip", (req, res) => {
     const detected = detectEngine(targetDir, { manualEngine });
     const validation = validateEngine(targetDir, manualEngine || detected.engineType);
 
+    let actualCompositions = validation.compositions || detected.config?.compositions || [];
+    if (detected.engineType === ENGINE_TYPES.REMOTION) {
+      try {
+        const comps = await getProjectCompositions({ projectDir: targetDir });
+        if (comps.length > 0) {
+          actualCompositions = comps;
+          validation.compositions = comps;
+          detected.config = detected.config || {};
+          detected.config.compositions = comps;
+          const match = comps.find((c) => c.id === detected.config.compositionId);
+          detected.config.compositionId = match ? match.id : comps[0].id;
+
+          const vCfgPath = path.join(targetDir, "video.config.json");
+          if (fs.existsSync(vCfgPath)) {
+            try {
+              const cur = JSON.parse(fs.readFileSync(vCfgPath, "utf-8"));
+              cur.compositionId = detected.config.compositionId;
+              fs.writeFileSync(vCfgPath, JSON.stringify(cur, null, 2), "utf-8");
+            } catch (e) {}
+          }
+        }
+      } catch (e) {
+        console.warn("Không thể bundle đọc composition khi upload:", e.message);
+      }
+    }
+
     res.json({
       success: true,
       projectId,
@@ -577,6 +608,8 @@ app.post("/api/ai-code/upload-zip", (req, res) => {
       engine: detected.engineType,
       engineName: detected.engineName,
       extractedCount: extractResult.extractedFiles.length,
+      compositionId: detected.config?.compositionId,
+      compositions: actualCompositions,
       validation
     });
   } catch (err) {
@@ -587,7 +620,7 @@ app.post("/api/ai-code/upload-zip", (req, res) => {
 /**
  * 14. Thẩm định dự án AI Code (Tự động định tuyến theo engine tương ứng)
  */
-app.post("/api/ai-code/validate", (req, res) => {
+app.post("/api/ai-code/validate", async (req, res) => {
   try {
     const { projectId, engineOverride = null } = req.body;
     if (!projectId) {
@@ -609,11 +642,31 @@ app.post("/api/ai-code/validate", (req, res) => {
 
     const validation = validateEngine(targetDir, engineOverride);
 
+    let actualCompositions = validation.compositions || validation.config?.compositions || [];
+    if (validation.engine === ENGINE_TYPES.REMOTION) {
+      try {
+        const comps = await getProjectCompositions({ projectDir: targetDir });
+        if (comps.length > 0) {
+          actualCompositions = comps;
+          validation.compositions = comps;
+          validation.config = validation.config || {};
+          validation.config.compositions = comps;
+          const match = comps.find((c) => c.id === validation.config.compositionId);
+          validation.config.compositionId = match ? match.id : comps[0].id;
+        }
+      } catch (e) {
+        // Fallback to statically scanned compositions
+      }
+    }
+    validation.compositions = actualCompositions;
+
     res.json({
       success: true,
       projectId,
       engine: validation.engine,
       engineName: validation.engineName,
+      compositionId: validation.config?.compositionId,
+      compositions: actualCompositions,
       validation
     });
   } catch (err) {
@@ -626,7 +679,7 @@ app.post("/api/ai-code/validate", (req, res) => {
  */
 app.post("/api/ai-code/preview-frame", async (req, res) => {
   try {
-    const { projectId, frame = 0, engineOverride = null } = req.body;
+    const { projectId, frame = 0, engineOverride = null, compositionId = null } = req.body;
     if (!projectId) {
       return res.status(400).json({ success: false, error: "Thiếu mã dự án (projectId)." });
     }
@@ -685,6 +738,7 @@ app.post("/api/ai-code/preview-frame", async (req, res) => {
     const stillResult = await renderDynamicStill({
       projectDir: targetDir,
       config,
+      compositionId,
       frame: Number(frame)
     });
 
@@ -750,6 +804,7 @@ app.post("/api/ai-code/render", async (req, res) => {
   try {
     const {
       projectId,
+      compositionId = null,
       engineOverride = null,
       accelerationMode = "cpu",
       concurrency = null,
@@ -859,6 +914,7 @@ app.post("/api/ai-code/render", async (req, res) => {
         const renderResult = await renderEngineVideo({
           projectDir: targetDir,
           engineType: engine,
+          compositionId,
           outputPath: finalOutputPath,
           isTest,
           customResolution,

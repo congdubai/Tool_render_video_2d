@@ -502,3 +502,4 @@ export const Stickman: React.FC<StickmanProps> = ({
     </g>
   );
 };
+

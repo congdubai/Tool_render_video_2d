@@ -142,3 +142,4 @@ export interface StoryboardProject {
   characterStyle: "stickman-v2";
   scenes: StoryboardScene[];
 }
+

@@ -365,3 +365,4 @@ export const CastleScene: React.FC<CastleSceneProps> = ({
     </svg>
   );
 };
+
