@@ -257,6 +257,40 @@ def make_look(d):
     color, shirt, tie, bowtie, hair slick|short|bun|long|curly|bald|none, hair_col, glasses, moustache,
     beard, hat fedora|cap|none, hat_col, build slim|medium|athletic."""
     d = dict(d or {})
+
+    # Chibi V9 Character Spec
+    if d.get('style') in ('chibi_v9', 'chibi') or d.get('outfit') == 'chibi_v9' or d.get('chibi'):
+        d['style'] = 'chibi_v9'
+        sk = d.get('skin', '#F8EAC1')
+        if sk in SKINS:
+            d['skin'] = SKINS[sk][0]
+            d.setdefault('skin_d', SKINS[sk][1])
+        else:
+            d['skin'] = sk
+            d.setdefault('skin_d', shade(sk, .84) if sk.startswith('#') else '#D6AE84')
+        d.setdefault('hair_col', '#343536')
+        d.setdefault('color', '#6E7A64')
+        d.setdefault('jacket_seam', '#414A3D')
+        d.setdefault('pocket', '#8C8B68')
+        d.setdefault('sleeve_near', '#778370')
+        d.setdefault('sleeve_far', '#596751')
+        d.setdefault('pants_near', '#74816B')
+        d.setdefault('pants_far', '#596450')
+        d.setdefault('boots', '#222222')
+        d.setdefault('boots_far', '#252525')
+        d.setdefault('backpack', '#56624B')
+        d.setdefault('backpack_stripe', '#9CA17D')
+        d.setdefault('backpack_strap', '#465341')
+        d.setdefault('ink', '#191918')
+        d.setdefault('show_backpack', True)
+        d.setdefault('shoulder_w', 46)
+        d.setdefault('chest_w', 44)
+        d.setdefault('waist_w', 40)
+        d.setdefault('hip_w', 44)
+        d.setdefault('belly_curve', 0.0)
+        d.setdefault('skirt_flare', 0.0)
+        d.setdefault('arm_thick', 16.0)
+        return d
     sk = d.get('skin', 'tan')
     if sk in SKINS:
         d.setdefault('skin_d', SKINS[sk][1])
@@ -542,11 +576,223 @@ def _draw_hair_bald(c, R, colr, lw):
         shape(c, tf, colr, lw * 0.8)
 
 
+def draw_chibi_v9(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.0, brow_tilt=0.0,
+                  arms=('down', 'down'), tilt=0.0, bob=0.0, squash=0.0, sweat=-1.0, light=-1,
+                  rim=None, hat=None, legs=None, pupil=0.0, sparkle=0.0, debug_marker=None):
+    """Draw Chibi V9 puppet: 3/4 round head, black oval eyes, dark ink outlines,
+    short block limbs, rear backpack, opposite arm swing, stable layer ordering.
+    Far arm is strictly mounted behind backpack and torso."""
+    spec = make_look(spec)
+    lw = max(5.2, 4.0 / s)
+    ink_col = spec.get('ink', '#191918')
+
+    c.save()
+    c.translate(x, y)
+    c.scale(s, s)
+
+    # Flip horizontally if facing left (keeping 3/4 perspective consistent)
+    if face < -0.1:
+        c.scale(-1, 1)
+
+    # 1. Shadow
+    c.drawOval(skia.Rect(-74, -8, 74, 16), fp('#171715', 46))
+
+    # Kinematics from legs & walk cycle
+    swing = 0.0
+    lift_far = 0.0
+    lift_near = 0.0
+    is_walking = False
+
+    if legs:
+        is_walking = True
+        fx2 = legs[1][1]
+        swing = fx2 * 0.85
+        lift_far = legs[0][2] * 0.45
+        lift_near = legs[1][2] * 0.45
+
+    # Lean & bounce
+    lean = tilt + (swing * 0.12 if is_walking else 0.0)
+    c.translate(0, -bob)
+    if squash:
+        c.scale(1 + squash * 0.5, 1 - squash)
+
+    # 2. Far Leg (hip at -17, -87)
+    c.save()
+    c.translate(-17, -87)
+    c.rotate(-swing)
+    poly(c, [(-20, -4), (16, -4), (24, 53), (-10, 59), (-23, 22)], spec['pants_far'], lw, ink_col)
+    c.save()
+    c.translate(7, 61 - lift_far)
+    c.rotate(swing * 0.25)
+    c.scale(0.78, 0.78)
+    p_boot_far = skia.Path()
+    p_boot_far.moveTo(-17, -5); p_boot_far.lineTo(18, -7); p_boot_far.lineTo(43, 12); p_boot_far.quadTo(48, 22, 32, 25); p_boot_far.lineTo(-23, 25); p_boot_far.quadTo(-32, 23, -31, 15); p_boot_far.close()
+    shape(c, p_boot_far, spec['boots_far'], lw, ink_col)
+    c.restore()
+    c.restore()
+
+    # 3. Far Arm (shoulder at -54, -176, strictly behind backpack!)
+    far_arm_ang = -4.0
+    if is_walking:
+        forward_far = 0.5 + 0.5 * (-swing / 28.0 if swing != 0 else 0)
+        far_arm_ang = -3.0 - 16.0 * forward_far
+    elif arms[0] not in ('down',):
+        far_arm_ang = -25.0
+
+    c.save()
+    c.rotate(lean, -5, -162)
+    c.save()
+    c.translate(-54, -176)
+    c.rotate(far_arm_ang)
+    p_sleeve_far = skia.Path()
+    p_sleeve_far.moveTo(-5, -2); p_sleeve_far.quadTo(3, -7, 9, 0); p_sleeve_far.quadTo(15, 11, 13, 28); p_sleeve_far.lineTo(9, 68); p_sleeve_far.quadTo(5, 74, -3, 72)
+    p_sleeve_far.lineTo(-10, 67); p_sleeve_far.quadTo(-12, 52, -12, 32); p_sleeve_far.lineTo(-13, 12); p_sleeve_far.quadTo(-12, 2, -5, -2); p_sleeve_far.close()
+    shape(c, p_sleeve_far, spec['sleeve_far'], lw * 0.85, ink_col)
+    p_hand_far = skia.Path()
+    p_hand_far.moveTo(-4, 69); p_hand_far.quadTo(3, 68, 9, 66); p_hand_far.lineTo(10, 83); p_hand_far.quadTo(7, 90, 0, 90); p_hand_far.quadTo(-8, 89, -9, 82); p_hand_far.lineTo(-9, 71); p_hand_far.close()
+    shape(c, p_hand_far, spec['skin'], lw * 0.6, ink_col)
+    c.restore() # far arm
+    c.restore() # lean
+
+    # 4. Backpack (rear left, snug against torso back)
+    if spec.get('show_backpack', True):
+        p_bp = skia.Path()
+        p_bp.moveTo(-54, -183); p_bp.quadTo(-88, -186, -90, -158); p_bp.lineTo(-89, -107); p_bp.quadTo(-71, -96, -53, -113); p_bp.close()
+        shape(c, p_bp, spec['backpack'], lw * 1.1, ink_col)
+        p_bps = skia.Path()
+        p_bps.moveTo(-72, -166); p_bps.quadTo(-80, -141, -73, -119)
+        c.drawPath(p_bps, ink(lw * 1.1, spec['backpack_stripe']))
+
+    # 5. Near Leg (hip at 17, -87)
+    c.save()
+    c.translate(17, -87)
+    c.rotate(swing)
+    poly(c, [(-18, -4), (20, -4), (24, 54), (-13, 60), (-23, 24)], spec['pants_near'], lw, ink_col)
+    c.save()
+    c.translate(7, 62 - lift_near)
+    c.rotate(-swing * 0.25)
+    c.scale(0.78, 0.78)
+    p_boot_near = skia.Path()
+    p_boot_near.moveTo(-17, -5); p_boot_near.lineTo(18, -7); p_boot_near.lineTo(45, 12); p_boot_near.quadTo(49, 22, 33, 25); p_boot_near.lineTo(-24, 25); p_boot_near.quadTo(-33, 23, -32, 15); p_boot_near.close()
+    shape(c, p_boot_near, spec['boots'], lw, ink_col)
+    c.restore()
+    c.restore()
+
+    # 6. Torso Group
+    c.save()
+    c.rotate(lean, -5, -162)
+
+    # Torso body
+    p_torso = skia.Path()
+    p_torso.moveTo(-48, -189); p_torso.quadTo(-11, -207, 35, -187); p_torso.lineTo(50, -91); p_torso.quadTo(-2, -73, -48, -92); p_torso.close()
+    shape(c, p_torso, spec['color'], lw * 1.25, ink_col)
+
+    # Side seam & horizontal pocket lines
+    p_seam = skia.Path()
+    p_seam.moveTo(-30, -185); p_seam.quadTo(-22, -144, -27, -98)
+    c.drawPath(p_seam, ink(lw, spec['jacket_seam']))
+    line(c, -22, -152, 41, -140, lw, spec['jacket_seam'])
+    line(c, -20, -113, 43, -111, lw, spec['jacket_seam'])
+
+    # Chest pocket
+    poly(c, [(7, -146), (34, -141), (34, -108), (7, -109)], spec['pocket'], lw * 0.7, ink_col)
+
+    # Backpack strap on rear shoulder
+    if spec.get('show_backpack', True):
+        p_strap = skia.Path()
+        p_strap.moveTo(-37, -183); p_strap.quadTo(-20, -172, -19, -149); p_strap.lineTo(-18, -115)
+        c.drawPath(p_strap, ink(lw * 1.8, ink_col))
+        c.drawPath(p_strap, ink(lw, spec['backpack_strap']))
+
+    # 7. Near Arm (in front of torso)
+    near_arm_ang = 6.0
+    if is_walking:
+        near_arm_ang = swing * 0.46
+    else:
+        a1 = arms[1] if isinstance(arms, (tuple, list)) else 'down'
+        if isinstance(a1, tuple): a1 = a1[0]
+        if a1 in ('wave', 'salute', 'hi'):
+            near_arm_ang = -105.0 + math.sin(x * 0.1) * 14.0
+        elif a1 in ('point', 'reach'):
+            near_arm_ang = -72.0
+        elif a1 in ('chin', 'think'):
+            near_arm_ang = -65.0
+        elif a1 in ('arms_crossed', 'fold'):
+            near_arm_ang = -35.0
+
+    c.save()
+    c.translate(34, -180)
+    c.rotate(near_arm_ang)
+    poly(c, [(-12, -5), (18, -4), (18, 51), (-8, 56), (-21, 14)], spec['sleeve_near'], lw, ink_col)
+    p_hand_near = skia.Path()
+    p_hand_near.moveTo(-8, 52); p_hand_near.lineTo(17, 50); p_hand_near.lineTo(18, 67); p_hand_near.quadTo(7, 80, -8, 70); p_hand_near.close()
+    shape(c, p_hand_near, spec['skin'], lw * 0.85, ink_col)
+    c.restore()
+
+    # 8. Head (pivot at 1, -201)
+    head_ang = -lean * 0.4
+    c.save()
+    c.translate(1, -201)
+    c.rotate(head_ang)
+
+    # Round head silhouette
+    p_head = skia.Path()
+    p_head.moveTo(-58, -99); p_head.quadTo(-79, -56, -56, -16); p_head.quadTo(-27, 24, 27, 11)
+    p_head.quadTo(79, -2, 83, -52); p_head.quadTo(82, -99, 38, -112); p_head.quadTo(-13, -131, -58, -99); p_head.close()
+    shape(c, p_head, spec['skin'], lw * 1.25, ink_col)
+
+    # Eyes: Oval black 3/4
+    if eyes == 'closed':
+        line(c, 19, -54, 35, -54, lw * 0.85, ink_col)
+        line(c, 54, -53, 69, -53, lw * 0.85, ink_col)
+    else:
+        ry = 17 if pupil <= 0 else 19
+        c.drawOval(skia.Rect(21, -53 - ry, 35, -53 + ry), fp(ink_col))
+        c.drawOval(skia.Rect(55, -51 - ry, 69, -51 + ry), fp(ink_col))
+
+    # Mouth
+    if mouth == 'open':
+        p_m = skia.Path()
+        p_m.moveTo(62, -16); p_m.quadTo(73, -4, 82, -15); p_m.quadTo(73, -21, 62, -16); p_m.close()
+        c.drawPath(p_m, fp(ink_col))
+    elif mouth in ('mid', 'o'):
+        c.drawOval(skia.Rect(66, -18, 78, -10), fp(ink_col))
+    elif mouth in ('fear', 'shock', 'gasp', 'worried'):
+        c.drawOval(skia.Rect(65, -20, 79, -8), fp(ink_col))
+        c.drawOval(skia.Rect(65, -20, 79, -8), ink(lw * 0.5, ink_col))
+    else:
+        p_m = skia.Path()
+        p_m.moveTo(65, -14); p_m.quadTo(74, -9, 80, -15)
+        c.drawPath(p_m, ink(lw * 0.65, ink_col))
+
+    # Helmet dome & brim
+    p_helm = skia.Path()
+    p_helm.moveTo(-66, -81); p_helm.quadTo(-69, -159, -3, -163); p_helm.quadTo(64, -166, 77, -91); p_helm.lineTo(75, -72); p_helm.quadTo(5, -85, -68, -71); p_helm.close()
+    shape(c, p_helm, spec['hair_col'], lw * 1.25, ink_col)
+
+    p_brim = skia.Path()
+    p_brim.moveTo(-87, -76); p_brim.quadTo(-15, -101, 91, -76); p_brim.quadTo(91, -58, 53, -53); p_brim.lineTo(-69, -58); p_brim.quadTo(-87, -61, -87, -76); p_brim.close()
+    shape(c, p_brim, spec['hair_col'], lw * 1.1, ink_col)
+
+    # Highlight line
+    p_hi = skia.Path()
+    p_hi.moveTo(-40, -141); p_hi.quadTo(-1, -159, 36, -138)
+    c.drawPath(p_hi, ink(lw * 0.7, '#666869', 140))
+
+    c.restore() # head
+    c.restore() # torso group
+    c.restore() # root
+
+
 def draw_char(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.0, brow_tilt=0.0, arms=('down', 'down'),
               tilt=0.0, bob=0.0, squash=0.0, sweat=-1.0, light=-1, rim=None, hat=None, legs=None, pupil=0.0, sparkle=0.0,
               debug_marker=None):
     """x,y = feet. s=1 -> head radius 100 px. Balanced body silhouette, seamless shoulders, sculpted hair."""
     spec = make_look(spec)
+    if spec.get('style') in ('chibi_v9', 'chibi') or spec.get('outfit') == 'chibi_v9' or spec.get('chibi'):
+        return draw_chibi_v9(c, x, y, s, spec, face=face, eyes=eyes, mouth=mouth, brow=brow, brow_tilt=brow_tilt,
+                             arms=arms, tilt=tilt, bob=bob, squash=squash, sweat=sweat, light=light, rim=rim,
+                             hat=hat, legs=legs, pupil=pupil, sparkle=sparkle, debug_marker=debug_marker)
     lw = max(5.2, 4.0 / s); R = HEAD_R; outfit = spec.get('outfit', 'suit')
     hat = spec.get('hat') if hat is None else hat
 

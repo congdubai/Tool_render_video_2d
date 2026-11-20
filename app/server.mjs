@@ -474,20 +474,27 @@ app.get("/api/ai-code/projects", (req, res) => {
       }
     }
 
-    // 3. Quét mẫu Remotion demo
+    // 3. Quét mẫu sample-projects (Tự động nhận diện Remotion, Thanh Hai, hoặc Python 2D)
     if (fs.existsSync(sampleDir)) {
       const sampleEntries = fs.readdirSync(sampleDir, { withFileTypes: true });
       for (const ent of sampleEntries) {
         if (ent.isDirectory()) {
           const pDir = path.join(sampleDir, ent.name);
-          const config = detectProjectConfig(pDir);
+          const detected = detectEngine(pDir);
+          const engine = detected.engineType;
+          const engineName = detected.engineName;
+          const config = detected.config || getEngineConfig(pDir, engine);
+          let engTag = "Remotion 2D";
+          if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) engTag = "Python 2D";
+          else if (engine === ENGINE_TYPES.THANH_HAI) engTag = "Thanh Hai 2D";
+
           sampleProjects.push({
             id: `sample_${ent.name}`,
-            name: `⭐ [MẪU DEMO] ${config.projectName || ent.name} • Remotion 2D`,
+            name: `⭐ [MẪU DEMO] ${config.projectName || ent.name} • ${engTag}`,
             folderName: ent.name,
             type: "sample",
-            engine: ENGINE_TYPES.REMOTION,
-            engineName: ENGINE_DISPLAY_NAMES[ENGINE_TYPES.REMOTION],
+            engine: engine,
+            engineName: engineName,
             isDemo: true,
             path: pDir,
             config
@@ -768,7 +775,9 @@ app.post("/api/ai-code/contact-sheet", async (req, res) => {
     }
 
     let targetDir = path.join(projectRoot, "imported_projects", projectId);
-    if (projectId.startsWith("thanhhai_")) {
+    if (projectId.startsWith("sample_")) {
+      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
+    } else if (projectId.startsWith("thanhhai_")) {
       targetDir = path.join(projectRoot, "thanhhai-2d-studio/examples", projectId.replace("thanhhai_", ""));
     } else if (projectId.startsWith("python_")) {
       targetDir = path.join(projectRoot, "python-2d-long-form/examples", projectId.replace("python_", ""));

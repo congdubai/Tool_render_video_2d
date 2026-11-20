@@ -5,6 +5,7 @@ import skia
 from .kit import *
 
 AMBIENT = dict(night='#4C5CA0', dusk='#9C7FA6', day='#F2EEE8')
+PADX = 900; PADY = 600
 _r = random.Random(7)
 STARS = [(_r.uniform(-300, W + 300), _r.uniform(-200, 760), _r.choice((1.6, 2.0, 2.6, 3.2)), _r.uniform(0, 6)) for _ in range(130)]
 SPECK = [(_r.uniform(-200, W + 200), _r.uniform(-100, H + 100), _r.uniform(1.5, 4.5), _r.uniform(40, 110)) for _ in range(300)]
@@ -318,5 +319,125 @@ def set_map(c, o):
     return dict(floor=None, ambient=None, lights=[], bulbs=[])
 
 
+def set_whatif_bedroom(c, o):
+    """What If 1cm: Bedroom floor, giant bed, giant mattress and window."""
+    floor = 820
+    # Room wall
+    rect(c, -PADX, -PADY, W + PADX, floor, '#EFE8D0', 0)
+    # Floor planks
+    rect(c, -PADX, floor, W + PADX, H + PADY, '#BD956C', 0)
+    for x in range(-PADX, W + PADX, 160):
+        line(c, x, floor, x - 40, H + PADY, 3, '#A37955')
+    line(c, -PADX, floor, W + PADX, floor, 8, '#705238')
+
+    # Giant window on left
+    rect(c, 100, 80, 650, 520, '#D4E8F8', 12)
+    rect(c, 120, 100, 630, 500, '#EDF6FD', 8)
+    line(c, 375, 100, 375, 500, 8, '#B8CFE2')
+    line(c, 120, 300, 630, 300, 8, '#B8CFE2')
+
+    # Giant Bed frame & mattress in background
+    rect(c, 850, 220, 1920 + PADX, floor, '#8B6546', 16)
+    rect(c, 900, 480, 1920 + PADX, floor, '#B8D5E5', 20)
+    rect(c, 920, 390, 1450, 490, '#FFFFFF', 24)
+    rect(c, 1250, 500, 1920 + PADX, floor, '#3E5B80', 16)
+
+    # Giant Bedside lamp
+    rect(c, 700, 580, 880, floor, '#A87E58', 8)
+    line(c, 790, 580, 790, 420, 10, '#D4AF37')
+    poly(c, [(730, 420), (850, 420), (880, 330), (700, 330)], '#FFF4D0', 6)
+    c.drawCircle(790, 380, 70, fp('#FFF2A3', 60, blur=25))
+    return dict(floor=floor, ambient='#F2EEE8', lights=[], bulbs=[(790, 380, 320, '#FFD98A', 60)])
+
+
+def set_whatif_shoe(c, o):
+    """What If 1cm: Floor with giant shoe like a mountain."""
+    floor = 820
+    rect(c, -PADX, -PADY, W + PADX, floor, '#E6DDC8', 0)
+    rect(c, -PADX, floor, W + PADX, H + PADY, '#B08860', 0)
+    for x in range(-PADX, W + PADX, 160): line(c, x, floor, x - 40, H + PADY, 3, '#946F4C')
+    line(c, -PADX, floor, W + PADX, floor, 8, '#6B4F35')
+
+    # Giant Sneaker
+    # Rubber sole
+    rect(c, 880, 730, 1900 + PADX, floor, '#292B2E', 18)
+    line(c, 880, 780, 1900 + PADX, 780, 6, '#464950')
+    # Main shoe body
+    rect(c, 940, 380, 1850 + PADX, 740, '#424C5C', 40)
+    # Toe cap
+    p_toe = skia.Path()
+    p_toe.moveTo(880, 730); p_toe.quadTo(940, 560, 1220, 560); p_toe.lineTo(1220, 740); p_toe.close()
+    shape(c, p_toe, '#25272B', 8)
+    # Giant laces
+    for i in range(5):
+        lx = 1200 + i * 85
+        line(c, lx, 460, lx + 65, 530, 14, '#FFFFFF')
+        line(c, lx + 65, 460, lx, 530, 14, '#E2E8F0')
+    return dict(floor=floor, ambient='#F2EEE8', lights=[], bulbs=[])
+
+
+def set_whatif_foot(c, o):
+    """What If 1cm: Ground with shadow and giant descending foot."""
+    floor = 820
+    rect(c, -PADX, -PADY, W + PADX, floor, '#D0C2AC', 0)
+    rect(c, -PADX, floor, W + PADX, H + PADY, '#9E7752', 0)
+    for x in range(-PADX, W + PADX, 160): line(c, x, floor, x - 40, H + PADY, 3, '#825F3E')
+    line(c, -PADX, floor, W + PADX, floor, 8, '#594028')
+
+    # Giant foot shadow growing on floor
+    c.drawOval(skia.Rect(750, 770, 1800, 840), fp('#111317', 160, blur=24))
+
+    # Giant leg & descending foot
+    rect(c, 1050, -400, 1500, 320, '#E5CEB5', 24)
+    p_foot = skia.Path()
+    p_foot.moveTo(900, 480); p_foot.lineTo(1680, 480); p_foot.lineTo(1680, 320); p_foot.lineTo(1050, 320); p_foot.close()
+    shape(c, p_foot, '#D7BC9F', 10)
+    # Giant toes
+    for idx, tx in enumerate([920, 990, 1060, 1130, 1200]):
+        circ(c, tx, 480, 40 - idx * 2, '#D7BC9F', 8)
+    return dict(floor=floor, ambient='#9C7FA6', lights=[], bulbs=[])
+
+
+def set_whatif_ant(c, o):
+    """What If 1cm: Macro ground perspective with giant ant."""
+    floor = 820
+    rect(c, -PADX, -PADY, W + PADX, floor, '#C5BC9E', 0)
+    rect(c, -PADX, floor, W + PADX, H + PADY, '#8A6A47', 0)
+    for x in range(-PADX, W + PADX, 160): line(c, x, floor, x - 40, H + PADY, 3, '#6E5235')
+    line(c, -PADX, floor, W + PADX, floor, 8, '#4A3622')
+
+    # Giant pebbles
+    c.drawOval(skia.Rect(180, 800, 260, 835), fp('#64748B', 180))
+    c.drawOval(skia.Rect(540, 805, 610, 832), fp('#475569', 180))
+
+    # Giant Ant body (facing left toward Chibi)
+    # Abdomen
+    c.drawOval(skia.Rect(1380, 660, 1680, 800), fp('#321F18'))
+    c.drawOval(skia.Rect(1380, 660, 1680, 800), ink(7, '#1A0F0B'))
+    # Thorax
+    c.drawOval(skia.Rect(1230, 690, 1420, 790), fp('#3F271E'))
+    c.drawOval(skia.Rect(1230, 690, 1420, 790), ink(7, '#1A0F0B'))
+    # Head
+    c.drawOval(skia.Rect(1100, 680, 1260, 780), fp('#492D23'))
+    c.drawOval(skia.Rect(1100, 680, 1260, 780), ink(7, '#1A0F0B'))
+    # Ant eye
+    circ(c, 1145, 715, 14, '#1A0F0B', 4)
+    circ(c, 1148, 712, 4, '#FFFFFF', 0)
+    # Antennae
+    p_ant1 = skia.Path(); p_ant1.moveTo(1120, 690); p_ant1.quadTo(1060, 600, 980, 610)
+    p_ant2 = skia.Path(); p_ant2.moveTo(1135, 685); p_ant2.quadTo(1080, 570, 1000, 560)
+    c.drawPath(p_ant1, ink(8, '#1A0F0B'))
+    c.drawPath(p_ant2, ink(8, '#1A0F0B'))
+    # 6 giant legs
+    for lx in (1270, 1340, 1410):
+        p_leg1 = skia.Path(); p_leg1.moveTo(lx, 740); p_leg1.lineTo(lx - 90, 680); p_leg1.lineTo(lx - 140, floor)
+        p_leg2 = skia.Path(); p_leg2.moveTo(lx + 20, 740); p_leg2.lineTo(lx + 110, 680); p_leg2.lineTo(lx + 160, floor)
+        c.drawPath(p_leg1, ink(9, '#221410'))
+        c.drawPath(p_leg2, ink(9, '#221410'))
+    return dict(floor=floor, ambient='#F2EEE8', lights=[], bulbs=[])
+
+
 SETS = dict(office=set_office, home=set_home, street=set_street, skyline=set_skyline, board=set_board, table=set_table,
-            void=set_void, black=set_black, map=set_map)
+            void=set_void, black=set_black, map=set_map,
+            whatif_bedroom=set_whatif_bedroom, whatif_shoe=set_whatif_shoe,
+            whatif_foot=set_whatif_foot, whatif_ant=set_whatif_ant)

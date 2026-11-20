@@ -875,6 +875,33 @@ function selectDemoProject() {
   }
 }
 
+// Chọn nhanh Demo project Chibi 2D Cut-out (10s)
+function selectChibiDemoProject() {
+  const select = document.getElementById("aiProjectSelect");
+  const chibi = aiState.projects.find((p) => p.id === "sample_chibi-engine-demo-10s" || p.id.includes("chibi-engine-demo"));
+  if (chibi && select) {
+    select.value = chibi.id;
+    handleAiProjectChanged();
+    showToast(`👶 Đã chọn dự án mẫu Chibi 2D Engine: "${chibi.name}"`);
+  } else {
+    showToast("Đang tải lại danh sách dự án...");
+    loadAiProjectsList();
+  }
+}
+
+// Bật/tắt bảng điều khiển Chibi Animation Test Panel
+function toggleChibiTestPanel() {
+  const panel = document.getElementById("chibiTestPanel");
+  if (!panel) return;
+  const isHidden = panel.classList.contains("hidden");
+  if (isHidden) {
+    panel.classList.remove("hidden");
+    showToast("🎭 Đã mở bảng Chibi Animation Studio");
+  } else {
+    panel.classList.add("hidden");
+  }
+}
+
 // Chọn nhanh Demo project Thanh Hai 2D Studio (Reaction Time - 14 Shots)
 function selectThanhHaiDemoProject() {
   const select = document.getElementById("aiProjectSelect");

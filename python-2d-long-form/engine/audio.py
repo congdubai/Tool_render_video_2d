@@ -135,10 +135,12 @@ def build(P, mood=None, music_db=-17.0, sfx_db=-9.0):
     from .shots import build as build_shot
     setup(P); tl = _G["tl"]; story = _G["story"]; mood = mood or story.get("mood", "mystery")
     from .render import voice_path
-    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", voice_path(P), "-ac", "2", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout
-    vx = np.frombuffer(raw, dtype=np.float32).reshape(-1, 2).astype(np.float64)
+    vp = voice_path(P)
     L = tl.duration; N = int(L * SR) + SR; voice = np.zeros((N, 2))
-    for (a, b, o) in tl.voice_segments(): place(voice, vx[int(a * SR):int(b * SR)], o)
+    if vp and os.path.exists(vp):
+        raw = subprocess.run(["ffmpeg", "-v", "error", "-i", vp, "-ac", "2", "-ar", str(SR), "-f", "f32le", "-"], capture_output=True, check=True).stdout
+        vx = np.frombuffer(raw, dtype=np.float32).reshape(-1, 2).astype(np.float64)
+        for (a, b, o) in tl.voice_segments(): place(voice, vx[int(a * SR):int(b * SR)], o)
     mutes = [(s["t0"], s["t1"]) for s in tl.shots if s["silent"] and s["spec"].get("kind") == "title"]
     music = music_bed(L, mood, mutes)[:N]; sfx = np.zeros((N, 2)); whips = whip_flags(tl)
     for (a, b) in mutes: place(sfx, boom(), a, .6)
@@ -188,5 +190,9 @@ def mux(P, title="final"):
     safe = re.sub(r"[^A-Za-z0-9_-]+", "_", title).strip("_") or "final"; os.makedirs(os.path.join(P, "out"), exist_ok=True)
     if os.environ.get("RM_RES", "1080") != "1080": safe += f"_{os.environ['RM_RES']}p"
     out = os.path.join(P, "out", f"{safe}.mp4")
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", v, "-i", a, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-shortest", "-movflags", "+faststart", out], check=True)
+    if os.path.exists(a):
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", v, "-i", a, "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "256k", "-shortest", "-movflags", "+faststart", out], check=True)
+    else:
+        # Silent video output: Add silent audio track for maximum player compatibility
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", v, "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000", "-c:v", "copy", "-c:a", "aac", "-b:a", "128k", "-shortest", "-movflags", "+faststart", out], check=True)
     print("final ->", out); return out

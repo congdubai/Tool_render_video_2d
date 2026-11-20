@@ -11,9 +11,11 @@ _G = {}
 
 class Env:
     """Voice loudness on the output clock -> mouth shapes (open/mid/closed held 3 frames)."""
-    def __init__(self, tl, voice_path, cache=None):
+    def __init__(self, tl, voice_path=None, cache=None):
         if cache and os.path.exists(cache):
             self.track = json.load(open(cache)); return
+        if not voice_path or not os.path.exists(voice_path):
+            self.track = ['closed'] * max(1, tl.total_frames); return
         x = load_audio(voice_path, 16000); sr = 16000; N = tl.total_frames; hop = sr / FPS
         rms = np.zeros(N)
         for (a, b, o) in tl.voice_segments():
@@ -35,11 +37,23 @@ class Env:
 
 
 def load_project(P):
-    story = json.load(open(os.path.join(P, "story.json"), encoding="utf-8"))
-    timing = json.load(open(os.path.join(P, "timing.json"), encoding="utf-8"))
+    story_file = os.path.join(P, "story.json")
+    if not os.path.exists(story_file):
+        raise SystemExit(f"story.json not found in project folder: {P}")
+    story = json.load(open(story_file, encoding="utf-8"))
+
+    timing_file = os.path.join(P, "timing.json")
+    if os.path.exists(timing_file):
+        timing = json.load(open(timing_file, encoding="utf-8"))
+    else:
+        from .timing import generate_default_timing
+        timing = generate_default_timing(P, story)
+        with open(timing_file, "w", encoding="utf-8") as f:
+            json.dump(timing, f, indent=1, ensure_ascii=False)
+
     tl = Timeline(story, timing)
     cast = {k: make_look(v) for k, v in story.get("cast", {}).items()}
-    for sh in story["shots"]:  # validate cast ids early
+    for sh in story.get("shots", []):  # validate cast ids early
         ids = [d.get("id") for d in sh.get("chars", [])] + [sh.get("who")] + [sh.get(s, {}).get("who") for s in ("left", "right")]
         for i in ids:
             if i and i not in cast: raise SystemExit(f"shot uses unknown cast id '{i}'. Cast: {', '.join(cast)}")
@@ -47,15 +61,21 @@ def load_project(P):
 
 
 def voice_path(P):
-    for f in sorted(os.listdir(P)):
-        if f.lower().startswith("voice.") or f.lower().startswith("voiceover."): return os.path.join(P, f)
-    raise SystemExit("no voice.* file in project folder")
+    try:
+        for f in sorted(os.listdir(P)):
+            if f.lower().startswith("voice.") or f.lower().startswith("voiceover."):
+                return os.path.join(P, f)
+    except Exception:
+        pass
+    return None
 
 
 def setup(P):
     if _G.get("P") == P: return
     story, tl, cast = load_project(P); os.makedirs(os.path.join(P, "work"), exist_ok=True)
-    env = Env(tl, voice_path(P), os.path.join(P, "work", "mouth.json"))
+    vp = voice_path(P)
+    cache_path = os.path.join(P, "work", "mouth.json") if vp else None
+    env = Env(tl, vp, cache_path)
     _G.update(P=P, story=story, tl=tl, cast=cast, env=env)
 
 

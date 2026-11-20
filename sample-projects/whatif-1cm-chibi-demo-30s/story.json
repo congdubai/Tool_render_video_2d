@@ -1,0 +1,122 @@
+{
+  "title": "Nếu bạn chỉ cao 1 cm? — What If Chibi V9 Demo",
+  "mood": "tense",
+  "lang": "vi",
+  "duration": 30,
+  "fps": 30,
+  "cast": {
+    "chibi": {
+      "style": "chibi_v9",
+      "outfit": "chibi_v9",
+      "skin": "fair",
+      "color": "#6E7A64",
+      "hair": "helmet",
+      "hair_col": "#343536",
+      "suit_col": "#6E7A64",
+      "skin_col": "#F8EAC1"
+    }
+  },
+  "shots": [
+    {
+      "kind": "wide",
+      "s": [0],
+      "set": "whatif_bedroom",
+      "chars": [
+        {
+          "id": "chibi",
+          "x": 680,
+          "y": 820,
+          "s": 0.85,
+          "emotion": "shocked",
+          "pose": "think",
+          "face": 0.8
+        }
+      ],
+      "labels": [
+        {
+          "text": "WHAT IF: CAO 1 CM?",
+          "at": "centimet",
+          "color": "cream",
+          "x": 960,
+          "y": 180
+        }
+      ]
+    },
+    {
+      "kind": "wide",
+      "s": [1],
+      "set": "whatif_shoe",
+      "chars": [
+        {
+          "id": "chibi",
+          "x": 420,
+          "y": 820,
+          "s": 0.72,
+          "emotion": "worried",
+          "pose": "walk",
+          "face": 1.0
+        }
+      ],
+      "labels": [
+        {
+          "text": "GIÀY THỂ THAO KHỔNG LỒ",
+          "at": "giày",
+          "color": "cream",
+          "x": 960,
+          "y": 180
+        }
+      ]
+    },
+    {
+      "kind": "wide",
+      "s": [2],
+      "set": "whatif_foot",
+      "chars": [
+        {
+          "id": "chibi",
+          "x": 480,
+          "y": 820,
+          "s": 0.68,
+          "emotion": "shocked",
+          "pose": "run",
+          "face": 1.0
+        }
+      ],
+      "labels": [
+        {
+          "text": "BƯỚC CHÂN TỬ THẦN",
+          "at": "chân",
+          "color": "cream",
+          "x": 960,
+          "y": 180
+        }
+      ]
+    },
+    {
+      "kind": "wide",
+      "s": [3],
+      "set": "whatif_ant",
+      "chars": [
+        {
+          "id": "chibi",
+          "x": 460,
+          "y": 820,
+          "s": 0.75,
+          "emotion": "nervous",
+          "pose": "wave",
+          "face": 1.0
+        }
+      ],
+      "labels": [
+        {
+          "text": "CHẠM TRÁN QUÁI VẬT KIẾN",
+          "at": "kiến",
+          "color": "cream",
+          "x": 960,
+          "y": 180
+        }
+      ]
+    }
+  ]
+}
+

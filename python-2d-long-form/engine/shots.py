@@ -536,7 +536,7 @@ class Crowd(Shot):
 
 
 KINDS = dict(wide=Wide, dialogue=Wide, walk=Walk, closeup=Closeup, title=Title, skyline=Skyline, table=Table, map=Map, chart=Chart,
-             counter=Counter, icon=Icon, list=ListItem, versus=Versus, crowd=Crowd)
+             counter=Counter, icon=Icon, list=ListItem, versus=Versus, crowd=Crowd, whatif=Wide)
 
 
 def build(sh, tl, cast, env):

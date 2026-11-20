@@ -58,12 +58,22 @@ def main():
         print(f"\n[{lang}] {len(ss)} sentences, {nw} words, about {nw / wpm:.1f} min at {wpm} wpm ({nw / (wpm * 1.07):.1f}-{nw / (wpm * .93):.1f} min)"); return
     if cmd in ("align", "all") and (cmd == "align" or not os.path.exists(os.path.join(P, "timing.json"))):
         from .render import voice_path
-        ss = sentences(open(os.path.join(P, "script.txt"), encoding="utf-8").read()); t = time.time()
-        T = align(ss, voice_path(P)); json.dump(T, open(os.path.join(P, "timing.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
-        print(f"[{lang}] aligned {len(T['sentences'])} sentences, {T['duration']:.1f} s of voice, method={T['method']} matched={T['matched']:.0%} ({time.time() - t:.0f}s)")
-        if T["method"] == "fallback": print("WARNING: no speech model; timing is estimated from pauses. Check the plan carefully.")
-        bad = [s for s in T["sentences"] if s["end"] - s["start"] < .25]
-        if bad: print("very short sentences (check):", [s["i"] for s in bad])
+        from .timing import generate_default_timing
+        story_file = os.path.join(P, "story.json")
+        story = json.load(open(story_file, encoding="utf-8")) if os.path.exists(story_file) else {}
+        vp = voice_path(P)
+        script_file = os.path.join(P, "script.txt")
+        if not os.path.exists(script_file) or vp is None:
+            T = generate_default_timing(P, story)
+            json.dump(T, open(os.path.join(P, "timing.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+            print(f"[{lang}] generated fallback timing ({T['duration']:.1f}s, {len(T.get('sentences', []))} sentences)")
+        else:
+            ss = sentences(open(script_file, encoding="utf-8").read()); t = time.time()
+            T = align(ss, vp); json.dump(T, open(os.path.join(P, "timing.json"), "w", encoding="utf-8"), indent=1, ensure_ascii=False)
+            print(f"[{lang}] aligned {len(T['sentences'])} sentences, {T['duration']:.1f} s of voice, method={T['method']} matched={T['matched']:.0%} ({time.time() - t:.0f}s)")
+            if T["method"] == "fallback": print("WARNING: no speech model; timing is estimated from pauses. Check the plan carefully.")
+            bad = [s for s in T["sentences"] if s["end"] - s["start"] < .25]
+            if bad: print("very short sentences (check):", [s["i"] for s in bad])
         if cmd == "align": return
     if cmd in ("plan", "all"):
         from .render import load_project, whip_flags

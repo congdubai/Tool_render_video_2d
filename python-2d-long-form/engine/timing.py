@@ -136,7 +136,10 @@ def align(script_sents, audio_path):
             j = int(min(len(st) - 1, syl[k] / tot * len(st))); times[k] = float(st[j]) if len(st) else k * .35
     # interpolate gaps
     known = [k for k, t in enumerate(times) if t is not None]
-    if not known: raise SystemExit("alignment failed: no words found")
+    if not known:
+        # Proportional word placement fallback when ASR does not match words
+        times = [round((k / max(1, len(sw))) * L, 3) for k in range(len(sw))]
+        known = list(range(len(sw)))
     for k in range(len(times)):
         if times[k] is None:
             prev = max([j for j in known if j < k], default=None); nxt = min([j for j in known if j > k], default=None)
@@ -167,3 +170,115 @@ def align(script_sents, audio_path):
                 else: continue
                 break
     return dict(duration=round(L, 3), method=method, matched=round(matched, 3), sentences=out)
+
+
+def generate_default_timing(project_dir, story=None):
+    """Generate a clean, schema-compliant timing.json dictionary when timing.json is missing.
+    Differentiates:
+    - Audio-backed timing (when voice.* exists, calculates exact duration from audio)
+    - Storyboard-backed timing (when shots have explicit durations, hold, or start/end)
+    - Default preview timing (when neither audio nor timing is provided)
+    """
+    if story is None:
+        story_file = os.path.join(project_dir, "story.json")
+        story = json.load(open(story_file, encoding="utf-8")) if os.path.exists(story_file) else {}
+
+    shots = story.get("shots", [])
+    script_file = os.path.join(project_dir, "script.txt")
+    script_sents = sentences(open(script_file, encoding="utf-8").read()) if os.path.exists(script_file) else []
+
+    # Check for voice file
+    vp = None
+    try:
+        for f in sorted(os.listdir(project_dir)):
+            if f.lower().startswith("voice.") or f.lower().startswith("voiceover."):
+                vp = os.path.join(project_dir, f)
+                break
+    except Exception:
+        pass
+
+    # If voice exists and script exists, try align
+    if vp and script_sents:
+        try:
+            return align(script_sents, vp)
+        except Exception:
+            pass
+
+    # Audio duration if voice exists
+    audio_dur = None
+    if vp:
+        try:
+            res = subprocess.run(
+                ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", vp],
+                capture_output=True, text=True
+            )
+            if res.returncode == 0 and res.stdout.strip():
+                audio_dur = float(res.stdout.strip())
+        except Exception:
+            pass
+
+    # Compute duration from shots
+    shot_durations = []
+    for sh in shots:
+        dur = sh.get("hold") or sh.get("duration")
+        if dur is None and "start" in sh and "end" in sh:
+            dur = float(sh["end"]) - float(sh["start"])
+        if dur is None:
+            dur = 3.0  # sensible default per shot
+        shot_durations.append(max(0.5, float(dur)))
+
+    total_duration = audio_dur or (sum(shot_durations) if shot_durations else float(story.get("duration", 30.0)))
+    total_duration = max(1.0, round(total_duration, 3))
+
+    out_sents = []
+    # If script_sents exists, distribute them across total_duration
+    if script_sents:
+        n = len(script_sents)
+        step = total_duration / max(1, n)
+        for i, s in enumerate(script_sents):
+            s_start = round(i * step, 3)
+            s_end = round(min(total_duration, (i + 1) * step), 3)
+            raw_words = s.split()
+            w_step = (s_end - s_start) / max(1, len(raw_words))
+            words_data = [
+                {"w": w, "n": norm(w), "t": round(s_start + idx * w_step, 3)}
+                for idx, w in enumerate(raw_words)
+            ]
+            out_sents.append({
+                "i": i,
+                "text": s,
+                "start": s_start,
+                "end": s_end,
+                "words": words_data
+            })
+    else:
+        # Generate sentences matching shot indices so spoken shots s: [i] work seamlessly
+        cum_t = 0.0
+        for i, sh in enumerate(shots):
+            dur = shot_durations[i] if i < len(shot_durations) else 3.0
+            s_start = round(cum_t, 3)
+            s_end = round(cum_t + dur, 3)
+            cum_t = s_end
+            text = sh.get("scene") or sh.get("text") or sh.get("title") or f"Scene {i + 1}"
+            raw_words = text.split()
+            w_step = (s_end - s_start) / max(1, len(raw_words))
+            words_data = [
+                {"w": w, "n": norm(w), "t": round(s_start + idx * w_step, 3)}
+                for idx, w in enumerate(raw_words)
+            ]
+            out_sents.append({
+                "i": i,
+                "text": text,
+                "start": s_start,
+                "end": s_end,
+                "words": words_data
+            })
+
+    method = "audio_fallback" if audio_dur else "default_preview"
+    return {
+        "duration": total_duration,
+        "method": method,
+        "matched": 1.0,
+        "sentences": out_sents
+    }
+

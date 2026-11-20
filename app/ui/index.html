@@ -194,6 +194,9 @@
               <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; flex: 1;" onclick="selectDemoProject()">
                 ⭐ Mẫu Remotion (10s)
               </button>
+              <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24; flex: 1;" onclick="selectChibiDemoProject()">
+                👶 Mẫu Chibi 2D (Demo 10s)
+              </button>
               <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; flex: 1;" onclick="selectThanhHaiDemoProject()">
                 🎨 Mẫu Thanh Hai 2D (Reaction Time)
               </button>
@@ -240,14 +243,68 @@
           <h2>B. Cấu Hình & Render Video</h2>
           <span class="hint">Cài đặt thông số, bấm Render để tự động xuất và phát video trực tiếp bên dưới</span>
         </div>
-        <div id="previewStatusInfo" class="preview-status-info hidden" style="margin: 0; padding: 4px 10px;">
-          <span id="previewStatusText">🎥 Đang phát video thành phẩm</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24;" onclick="toggleChibiTestPanel()">
+            🎭 Chibi Animation Test
+          </button>
+          <div id="previewStatusInfo" class="preview-status-info hidden" style="margin: 0; padding: 4px 10px;">
+            <span id="previewStatusText">🎥 Đang phát video thành phẩm</span>
+          </div>
         </div>
       </div>
       <div class="card-body">
         <div class="preview-inspector-layout" style="display: flex; flex-direction: column; align-items: center;">
           <div class="preview-screen-wrap" style="width: 100%; max-width: 860px;">
             
+            <!-- Khu vực Chibi Animation Quick Test (Có thể bật/tắt) -->
+            <div id="chibiTestPanel" class="hidden" style="background: #1e293b; border: 1px solid #f59e0b; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <strong style="color: #fbbf24; font-size: 14px;">🎭 CHIBI 2D ANIMATION STUDIO & QUICK TEST</strong>
+                <span class="hint-small" style="color: #94a3b8;">Giai đoạn 1 • Chibi V9 Cut-out Rig</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 10px;">
+                <div class="setting-item">
+                  <label for="chibiActionSelect">Animation Hành Động:</label>
+                  <select id="chibiActionSelect" class="select-control">
+                    <option value="walk" selected>🚶 Đi bộ (Walk - 2 tay ngược pha)</option>
+                    <option value="run">🏃 Chạy (Run - sải chân & nhún)</option>
+                    <option value="idle">🧍 Đứng yên (Idle - thở & chớp mắt)</option>
+                    <option value="wave">👋 Vẫy chào (Wave)</option>
+                    <option value="point">👉 Chỉ tay (Point)</option>
+                    <option value="talk">🗣️ Nói chuyện (Talk - khẩu hình)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="chibiFacingSelect">Hướng nhân vật:</label>
+                  <select id="chibiFacingSelect" class="select-control">
+                    <option value="right" selected>➡️ Sang phải (Góc 3/4)</option>
+                    <option value="left">⬅️ Sang trái (Góc 3/4)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="chibiSpeedSelect">Tốc độ chuyển động:</label>
+                  <select id="chibiSpeedSelect" class="select-control">
+                    <option value="0.75">0.75x (Chậm)</option>
+                    <option value="1.0" selected>1.0x (Tiêu chuẩn)</option>
+                    <option value="1.25">1.25x (Nhanh)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="chibiBackpackSelect">Balo sau lưng:</label>
+                  <select id="chibiBackpackSelect" class="select-control">
+                    <option value="true" selected>🎒 Đeo balo (Bám lưng)</option>
+                    <option value="false">❌ Không đeo balo</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                <span style="font-size: 12px; color: #94a3b8; margin-right: auto;">💡 Mẹo: Bấm Mẫu Chibi 2D để xem chuyển động đầy đủ 10 giây</span>
+                <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="selectChibiDemoProject()">
+                  🎬 Mở Dự Án Mẫu Chibi
+                </button>
+              </div>
+            </div>
+
             <!-- 1. Tùy chọn cấu hình xuất video & Engine -->
             <div class="render-settings-grid" style="margin-bottom: 16px;">
               <div class="setting-item">

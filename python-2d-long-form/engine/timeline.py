@@ -41,7 +41,10 @@ class Timeline:
         for k, sh in enumerate(shots):
             r = srange(sh)
             if r is None:
-                d = fr(float(sh.get("hold", 1.6))); t0 = vcur + G
+                dur = sh.get("hold") or sh.get("duration")
+                if dur is None and "start" in sh and "end" in sh:
+                    dur = float(sh["end"]) - float(sh["start"])
+                d = fr(float(dur or 1.6)); t0 = vcur + G
                 self.gaps.append((vcur, d)); G += d
                 self.shots.append(dict(k=k, spec=sh, t0=t0, t1=t0 + d, sents=[], silent=True)); continue
             v0 = cut[k]; nxt = next((cut[j] for j in spoken if j > k), None)
@@ -72,10 +75,16 @@ class Timeline:
         for si in shot["sents"]:
             ws = self.S[si]["words"]
             for j in range(len(ws) - len(target) + 1):
-                if [w["n"] for w in ws[j:j + len(target)]] == target: return self.out(ws[j]["t"])
+                wns = [w.get("n", norm(w.get("w", ""))) for w in ws[j:j + len(target)]]
+                if wns == target:
+                    wt = ws[j].get("t", ws[j].get("start", t0))
+                    return self.out(wt)
         for si in shot["sents"]:  # loose: prefix match on first word
             for w in self.S[si]["words"]:
-                if target and w["n"].startswith(target[0][:5]): return self.out(w["t"])
+                wn = w.get("n", norm(w.get("w", "")))
+                if target and wn.startswith(target[0][:5]):
+                    wt = w.get("t", w.get("start", t0))
+                    return self.out(wt)
         self.warn.append(f"shot {shot['k']}: cue '{at}' not found in its sentences, using 40%")
         return t0 + (t1 - t0) * .4
 
