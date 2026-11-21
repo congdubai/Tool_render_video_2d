@@ -34,6 +34,7 @@ python-2d-long-form/**/work/
 # OS files
 .DS_Store
 Thumbs.db
+.project-metadata.json
 
 
 # Temporary scratch and QC
