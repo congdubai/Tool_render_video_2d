@@ -716,7 +716,7 @@ app.post("/api/ai-code/validate", async (req, res) => {
  */
 app.post("/api/ai-code/preview-frame", async (req, res) => {
   try {
-    const { projectId, frame = 0, engineOverride = null, compositionId = null } = req.body;
+    const { projectId, frame = 0, engineOverride = null, compositionId = null, characterRenderer = null } = req.body;
     if (!projectId) {
       return res.status(400).json({ success: false, error: "Thiếu mã dự án (projectId)." });
     }
@@ -755,7 +755,8 @@ app.post("/api/ai-code/preview-frame", async (req, res) => {
       const stillResult = await renderThanhHaiStill({
         projectDir: targetDir,
         time: timeInSec,
-        scale: 0.5
+        scale: 0.5,
+        characterRenderer
       });
 
       const relPath = path.relative(path.join(projectRoot, "out"), stillResult.framePath).replace(/\\/g, "/");
@@ -799,7 +800,7 @@ app.post("/api/ai-code/preview-frame", async (req, res) => {
  */
 app.post("/api/ai-code/contact-sheet", async (req, res) => {
   try {
-    const { projectId, engineOverride = null } = req.body;
+    const { projectId, engineOverride = null, characterRenderer = null } = req.body;
     if (!projectId) {
       return res.status(400).json({ success: false, error: "Thiếu mã dự án (projectId)." });
     }
@@ -818,7 +819,7 @@ app.post("/api/ai-code/contact-sheet", async (req, res) => {
     }
 
     const detected = detectEngine(targetDir, { manualEngine: engineOverride });
-    const previewRes = await previewEngine(targetDir, detected.engineType, { contactSheet: true });
+    const previewRes = await previewEngine(targetDir, detected.engineType, { contactSheet: true, characterRenderer });
 
     res.json({
       success: true,
@@ -850,7 +851,8 @@ app.post("/api/ai-code/render", async (req, res) => {
       isTest = false,
       customVideoName = null,
       customResolution = null,
-      customFps = null
+      customFps = null,
+      characterRenderer = null
     } = req.body;
 
     if (!projectId) {
@@ -988,6 +990,7 @@ app.post("/api/ai-code/render", async (req, res) => {
           customFps,
           accelerationMode,
           concurrency: concurrency || 4,
+          characterRenderer,
           checkCanceled: () => currentRenderCancellation,
           onProgress: (p) => {
             const pct = Math.round(p.progress * 100);

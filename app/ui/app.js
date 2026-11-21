@@ -936,8 +936,21 @@ function handleEngineSelectChanged() {
   const chosen = engineSelect ? engineSelect.value : "auto";
   aiState.manualEngineOverride = chosen;
   showToast(`⚙️ Đã chuyển Engine sang: ${chosen === "auto" ? "Tự động nhận diện" : chosen}`);
+  const charSettingItem = document.getElementById("aiCharacterSettingItem");
+  if (charSettingItem) {
+    if (chosen === "thanhhai-2d-studio") charSettingItem.classList.remove("hidden");
+    else if (chosen !== "auto") charSettingItem.classList.add("hidden");
+  }
   validateCurrentAiProject();
 }
+
+function handleAiCharacterChanged() {
+  const charSelect = document.getElementById("aiCharacterSelect");
+  if (!charSelect) return;
+  aiState.selectedCharacterRenderer = charSelect.value;
+  showToast(`🎭 Character Renderer: ${charSelect.value === 'chibi' ? 'Chibi V9 (Cut-out Animation)' : 'Nhân vật gốc Thanh Hai'}`);
+}
+window.handleAiCharacterChanged = handleAiCharacterChanged;
 
 // Khi người dùng đổi lựa chọn dự án trên dropdown
 function handleAiProjectChanged() {
@@ -972,10 +985,16 @@ function handleAiProjectChanged() {
   const engineTag = document.getElementById("aiEngineTag");
   const btnContactSheet = document.getElementById("btnAiContactSheet");
   const compSettingItem = document.getElementById("aiCompositionSettingItem");
+  const charSettingItem = document.getElementById("aiCharacterSettingItem");
 
   if (compSettingItem) {
     if (isRemotion) compSettingItem.classList.remove("hidden");
     else compSettingItem.classList.add("hidden");
+  }
+
+  if (charSettingItem) {
+    if (isTH) charSettingItem.classList.remove("hidden");
+    else charSettingItem.classList.add("hidden");
   }
 
   if (engineBadge) {
@@ -1354,11 +1373,13 @@ async function previewCurrentProjectStills() {
   try {
     const engineSelect = document.getElementById("aiEngineSelect");
     const engineOverride = (engineSelect && engineSelect.value !== "auto") ? engineSelect.value : (aiState.manualEngineOverride || null);
+    const charSelect = document.getElementById("aiCharacterSelect");
+    const characterRenderer = charSelect ? charSelect.value : "chibi";
 
     const res = await fetch("/api/ai-code/contact-sheet", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, engineOverride })
+      body: JSON.stringify({ projectId, engineOverride, characterRenderer })
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
@@ -1595,10 +1616,13 @@ async function inspectCurrentFrame() {
   btn.textContent = "⏳ Đang chụp frame...";
 
   try {
+    const charSelect = document.getElementById("aiCharacterSelect");
+    const characterRenderer = charSelect ? charSelect.value : "chibi";
+
     const res = await fetch("/api/ai-code/preview-frame", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId, frame, compositionId: aiState.selectedCompositionId })
+      body: JSON.stringify({ projectId, frame, compositionId: aiState.selectedCompositionId, characterRenderer })
     });
 
     const data = await res.json();
@@ -1647,10 +1671,13 @@ async function inspectContactSheet() {
   btn.textContent = "⏳ Đang tạo Contact Sheet...";
 
   try {
+    const charSelect = document.getElementById("aiCharacterSelect");
+    const characterRenderer = charSelect ? charSelect.value : "chibi";
+
     const res = await fetch("/api/ai-code/contact-sheet", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId })
+      body: JSON.stringify({ projectId, characterRenderer })
     });
 
     const data = await res.json();
@@ -1768,6 +1795,8 @@ async function startAiRender(isTest = false) {
   try {
     const engineSelect = document.getElementById("aiEngineSelect");
     const engineOverride = (engineSelect && engineSelect.value !== "auto") ? engineSelect.value : (aiState.manualEngineOverride || null);
+    const charSelect = document.getElementById("aiCharacterSelect");
+    const characterRenderer = charSelect ? charSelect.value : "chibi";
 
     const res = await fetch("/api/ai-code/render", {
       method: "POST",
@@ -1780,7 +1809,8 @@ async function startAiRender(isTest = false) {
         isTest,
         customVideoName: nameInput,
         customResolution: resSelect === "project" ? null : resSelect,
-        customFps: fpsSelect === "project" ? null : fpsSelect
+        customFps: fpsSelect === "project" ? null : fpsSelect,
+        characterRenderer
       })
     });
 
