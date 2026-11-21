@@ -25,6 +25,8 @@
   "outfit": {
     "id": "labcoat_scientist",
     "type": "labcoat",
+    "bottomType": "pants",
+    "shoeType": "casual",
     "topColor": "#f3f4f6",
     "topColor2": "#cbd5e1",
     "pantsColor": "#1f2937",

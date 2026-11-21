@@ -1,38 +1,73 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-120 -180 240 220" width="480" height="440" style="background:#0f172a; border-radius:8px;">
-<line x1="-120" y1="0" x2="120" y2="0" stroke="#334155" stroke-width="2" stroke-dasharray="6 4" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-120 -180 240 220" width="480" height="440" style="background:#ffffff; border-radius:8px;">
+<line x1="-120" y1="0" x2="120" y2="0" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6 4" />
 <rect x="-18" y="-36" width="36" height="4" rx="2" fill="#78350f" />
 <rect x="-16" y="-32" width="4" height="32" fill="#451a03" />
 <rect x="12" y="-32" width="4" height="32" fill="#451a03" />
 <g transform="scale(1 1)" stroke-linecap="round" stroke-linejoin="round">
-<ellipse cx="0" cy="2" rx="28" ry="6" fill="rgba(0,0,0,0.35)" />
-<line x1="-8" y1="-36" x2="20" y2="-34" stroke="#fbcfe8" stroke-width="14" />
-<line x1="20" y1="-34" x2="20" y2="0" stroke="#fbcfe8" stroke-width="13" />
-<ellipse cx="24" cy="0" rx="9" ry="5.5" fill="#831843" stroke="#191918" stroke-width="3" />
-<line x1="-6" y1="-70" x2="8" y2="-56" stroke="#ec4899" stroke-width="11" />
-<line x1="8" y1="-56" x2="12" y2="-40" stroke="#ec4899" stroke-width="10" />
-<circle cx="12" cy="-40" r="5.5" fill="#ffe8d6" stroke="#191918" stroke-width="2.5" />
-<polygon points="-16,-44 16,-44 18,-28 -18,-28" fill="#fbcfe8" stroke="#191918" stroke-width="4" />
-<path d="M -15 -72 Q 0 -78 15 -72 L 17 -36 L -17 -36 Z" fill="#ec4899" stroke="#191918" stroke-width="4.5" />
-<line x1="8" y1="-36" x2="24" y2="-36" stroke="#fbcfe8" stroke-width="14" />
-<line x1="24" y1="-36" x2="24" y2="0" stroke="#fbcfe8" stroke-width="13" />
-<ellipse cx="28" cy="0" rx="9" ry="5.5" fill="#831843" stroke="#191918" stroke-width="3" />
-<line x1="6" y1="-70" x2="14" y2="-54" stroke="#ec4899" stroke-width="11" />
-<line x1="14" y1="-54" x2="18" y2="-38" stroke="#ec4899" stroke-width="10" />
-<circle cx="18" cy="-38" r="5.5" fill="#ffe8d6" stroke="#191918" stroke-width="2.5" />
-<g transform="translate(2 -106)">
-<circle cx="-22.932000000000002" cy="-24.695999999999998" r="16" fill="#5b3a29" stroke="#191918" stroke-width="4" />
-<circle cx="0" cy="0" r="35.28" fill="#ffe8d6" stroke="#191918" stroke-width="4.5" />
-<circle cx="-24.695999999999998" cy="-2" r="7.5" fill="#ffe8d6" stroke="#191918" stroke-width="3.5" />
-<ellipse cx="-5" cy="6" rx="6.5" ry="3.5" fill="#fca5a5" opacity="0.75" />
-<ellipse cx="17" cy="6" rx="6.5" ry="3.5" fill="#fca5a5" opacity="0.75" />
-<path d="M -11 -4 Q -5 -12 1 -4" stroke="#191918" stroke-width="4.2" stroke-linecap="round" fill="none" />
-<path d="M 11 -4 Q 17 -12 23 -4" stroke="#191918" stroke-width="4.2" stroke-linecap="round" fill="none" />
-<line x1="-11" y1="-17" x2="1" y2="-17" stroke="#191918" stroke-width="3" stroke-linecap="round" />
-<line x1="11" y1="-17" x2="23" y2="-17" stroke="#191918" stroke-width="3" stroke-linecap="round" />
-<path d="M 10 0 Q 13 2 11 4" stroke="#191918" stroke-width="2.5" stroke-linecap="round" fill="none" />
-<path d="M 3 11 Q 9 17 15 11" stroke="#191918" stroke-width="3.2" stroke-linecap="round" fill="none" />
-<path d="M -33.8688 -5.292 Q -31.752000000000002 -39.513600000000004 0 -40.9248 Q 31.752000000000002 -39.513600000000004 33.8688 -5.292 Q 17.64 -22.932000000000002 0 -19.404000000000003 Q -17.64 -22.932000000000002 -33.8688 -5.292 Z" fill="#5b3a29" stroke="#191918" stroke-width="4" />
-<path d="M -15.876000000000001 -31.752000000000002 Q 0 -35.985600000000005 15.876000000000001 -31.752000000000002" stroke="rgba(255,255,255,0.4)" stroke-width="4" stroke-linecap="round" fill="none" />
+  <ellipse cx="0" cy="2" rx="30" ry="6" fill="rgba(0,0,0,0.22)" />
+  <!-- Far Arm -->
+  <line x1="-16" y1="-76" x2="-19" y2="-58" stroke="#ec4899" stroke-width="12" />
+  <line x1="-19" y1="-58" x2="-19" y2="-42" stroke="#ec4899" stroke-width="10.5" />
+  <circle cx="-19" cy="-58" r="5.5" fill="#ec4899" />
+  <circle cx="-19" cy="-42" r="6" fill="#ffe8d6" stroke="#191918" stroke-width="2.5" />
+  <!-- Far Leg -->
+  <line x1="-10" y1="-40" x2="-10" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
+  <line x1="-10" y1="-20" x2="-10" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <circle cx="-10" cy="-20" r="5.5" fill="#ffe8d6" />
+  <ellipse cx="-10" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
+  <!-- Far Shoe -->
+<g transform="translate(-10 0) rotate(0)">
+  <path d="M -10 -2.2 L 13 -2.2 L 13 0 L -10 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
+  <path d="M -9 -7 Q -2 -8 5 -7 Q 13 -6 13 -2.2 L -10 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
+  <path d="M -6 -7 Q -1 -5 4 -7" stroke="#191918" stroke-width="1.8" fill="none" />
+  <path d="M 3 -5.5 Q 7 -4.5 8 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
 </g>
+  <!-- Near Leg -->
+  <line x1="10" y1="-40" x2="12" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
+  <line x1="12" y1="-20" x2="12" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <circle cx="12" cy="-20" r="5.5" fill="#ffe8d6" />
+  <ellipse cx="12" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
+  <!-- Near Shoe -->
+<g transform="translate(12 0) rotate(0)">
+  <path d="M -10 -2.2 L 13 -2.2 L 13 0 L -10 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
+  <path d="M -9 -7 Q -2 -8 5 -7 Q 13 -6 13 -2.2 L -10 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
+  <path d="M -6 -7 Q -1 -5 4 -7" stroke="#191918" stroke-width="1.8" fill="none" />
+  <path d="M 3 -5.5 Q 7 -4.5 8 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+</g>
+  <!-- Pelvis & Garment Layer -->
+  <path d="M -17 -42 L 18 -42 L 24 -22 Q 2 -18 -22 -22 Z" fill="#fbcfe8" stroke="#191918" stroke-width="3.5" />
+  <path d="M 4 -38 L 5 -21" stroke="#191918" stroke-width="2" stroke-linecap="round" opacity="0.4" />
+  <!-- Neck -->
+  <path d="M -6 -90 L 8 -90 L 10 -74 L -8 -74 Z" fill="#ffe8d6" stroke="#191918" stroke-width="3" />
+  <ellipse cx="1" cy="-87" rx="7" ry="3" fill="rgba(0,0,0,0.12)" />
+  <!-- Torso & Clothing -->
+  <path d="M -18 -76 Q 2 -82 20 -76 L 17 -42 Q 0 -39 -16 -42 Z" fill="#ec4899" stroke="#191918" stroke-width="4" />
+  <path d="M -9 -77 Q 1 -70 11 -77" stroke="#191918" stroke-width="3.5" fill="none" />
+  <!-- Head Group -->
+  <g transform="translate(1 -118)">
+    <circle cx="-22.932000000000002" cy="-24.695999999999998" r="17" fill="#5b3a29" stroke="#191918" stroke-width="4" />
+    <!-- Skull Contour -->
+    <path d="M -2 -36 C 21 -36, 35 -22, 36 -6 C 37 10, 38 18, 33 28 C 26 37, 14 38, 4 38 C -8 38, -22 36, -30 26 C -36 16, -35 8, -34 -4 C -34 -22, -21 -36, -2 -36 Z" fill="#ffe8d6" stroke="#191918" stroke-width="4" />
+    <path d="M -34 -4 Q -42 2 -33 10" fill="#ffe8d6" stroke="#191918" stroke-width="3" />
+    <ellipse cx="-5" cy="14" rx="5" ry="3" fill="#fca5a5" opacity="0.4" />
+    <ellipse cx="19" cy="14" rx="6" ry="3" fill="#fca5a5" opacity="0.4" />
+    <path d="M -11 5 Q -5 -2 1 5" stroke="#191918" stroke-width="3.8" stroke-linecap="round" fill="none" />
+    <path d="M 12 5 Q 18 -2 24 5" stroke="#191918" stroke-width="3.8" stroke-linecap="round" fill="none" />
+    <path d="M -11 -8 Q -5 -10 1 -8" stroke="#191918" stroke-width="2.8" stroke-linecap="round" fill="none" />
+    <path d="M 12 -8 Q 18 -10 24 -8" stroke="#191918" stroke-width="2.8" stroke-linecap="round" fill="none" />
+    <path d="M 10 5 Q 12 7 10 9" stroke="#191918" stroke-width="2.2" stroke-linecap="round" fill="none" />
+    <path d="M 2 19 Q 7 24 12 19" stroke="#191918" stroke-width="3" stroke-linecap="round" fill="none" />
+    <!-- Hair (Front & Bangs) -->
+    <path d="M -36 -4 C -37 -26, -22 -40, 2 -40 C 26 -40, 39 -24, 38 -4 C 37 8, 35 15, 33 16 C 31 10, 30 2, 26 -4 L 20 -2 L 12 -10 L 4 2 L -3 -8 L -12 2 L -20 -8 C -26 -1, -29 8, -32 15 C -34 10, -36 2, -36 -4 Z" fill="#5b3a29" stroke="#191918" stroke-width="3.8" />
+    <path d="M -18 -32 Q 2 -36 22 -32" stroke="#8c583e" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.6" />
+  </g>
+  <!-- Near Arm (Top Layer) -->
+  <line x1="16" y1="-76" x2="20" y2="-58" stroke="#ec4899" stroke-width="12" />
+  <line x1="20" y1="-58" x2="20" y2="-42" stroke="#ec4899" stroke-width="10.5" />
+  <circle cx="20" cy="-58" r="5.5" fill="#ec4899" />
+  <!-- Hand with distinct thumb -->
+  <g transform="translate(20 -42)">
+    <circle cx="0" cy="0" r="6" fill="#ffe8d6" stroke="#191918" stroke-width="2.5" />
+  </g>
 </g>
 </svg>

@@ -63,9 +63,11 @@ export interface ChibiProportions {
 export interface ChibiOutfitConfig {
   id?: string;
   type: 'casual' | 'hoodie' | 'tshirt' | 'suit' | 'labcoat' | 'explorer' | 'dress';
+  bottomType?: 'pants' | 'shorts' | 'skirt' | 'dress';
   topColor: string;
   topColor2?: string;
   pantsColor: string;
+  shoeType?: 'sneakers' | 'casual' | 'boots';
   shoeColor: string;
   headwear?: 'none' | 'cap' | 'capBack' | 'beanie' | 'fedora' | 'headband';
   headwearColor?: string;

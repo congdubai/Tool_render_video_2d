@@ -585,6 +585,24 @@
               </div>
 
               <div class="setting-item">
+                <label for="charEditorBottomType">Trang phục dưới:</label>
+                <select id="charEditorBottomType" class="select-control" onchange="updateLivePreview()">
+                  <option value="pants" selected>Quần dài (Pants)</option>
+                  <option value="shorts">Quần short (Shorts)</option>
+                  <option value="skirt">Váy đầm (Skirt/Dress)</option>
+                </select>
+              </div>
+
+              <div class="setting-item">
+                <label for="charEditorShoeType">Kiểu giày:</label>
+                <select id="charEditorShoeType" class="select-control" onchange="updateLivePreview()">
+                  <option value="sneakers" selected>Giày thể thao (Sneakers)</option>
+                  <option value="casual">Giày lười / Bệt (Loafers/Casual)</option>
+                  <option value="boots">Giày bốt cao cổ (Boots)</option>
+                </select>
+              </div>
+
+              <div class="setting-item">
                 <label for="charEditorTopColor">Màu áo chính:</label>
                 <input type="color" id="charEditorTopColor" value="#d64a33" style="width: 100%; height: 36px; padding: 0; border: none; cursor: pointer; border-radius: 4px;" onchange="updateLivePreview()" />
               </div>

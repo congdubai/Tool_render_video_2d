@@ -1953,6 +1953,8 @@ function selectCharacterForEditing(id) {
   const elHairStyle = document.getElementById("charEditorHairStyle");
   const elHairCol = document.getElementById("charEditorHairColor");
   const elOutfit = document.getElementById("charEditorOutfitType");
+  const elBottomType = document.getElementById("charEditorBottomType");
+  const elShoeType = document.getElementById("charEditorShoeType");
   const elTopCol = document.getElementById("charEditorTopColor");
   const elPantsCol = document.getElementById("charEditorPantsColor");
   const elShoeCol = document.getElementById("charEditorShoeColor");
@@ -1968,6 +1970,8 @@ function selectCharacterForEditing(id) {
   if (elHairStyle) elHairStyle.value = char.hair?.style || "short";
   if (elHairCol) elHairCol.value = char.hair?.color || "#4a3728";
   if (elOutfit) elOutfit.value = char.outfit?.type || "hoodie";
+  if (elBottomType) elBottomType.value = char.outfit?.bottomType || (char.outfit?.type === "dress" ? "skirt" : "pants");
+  if (elShoeType) elShoeType.value = char.outfit?.shoeType || (char.outfit?.type === "suit" ? "casual" : "sneakers");
   if (elTopCol) elTopCol.value = char.outfit?.topColor || "#d64a33";
   if (elPantsCol) elPantsCol.value = char.outfit?.pantsColor || "#2e384d";
   if (elShoeCol) elShoeCol.value = char.outfit?.shoeColor || "#1e1e24";
@@ -2044,6 +2048,8 @@ async function saveCurrentEditingCharacter() {
     },
     outfit: {
       type: document.getElementById("charEditorOutfitType")?.value || "hoodie",
+      bottomType: document.getElementById("charEditorBottomType")?.value || "pants",
+      shoeType: document.getElementById("charEditorShoeType")?.value || "sneakers",
       topColor: document.getElementById("charEditorTopColor")?.value || "#d64a33",
       pantsColor: document.getElementById("charEditorPantsColor")?.value || "#2e384d",
       shoeColor: document.getElementById("charEditorShoeColor")?.value || "#1e1e24",
@@ -2128,6 +2134,43 @@ function onHairPresetChanged(val) {
 // TRỰC QUAN HÓA LIVE SVG (RIG, POSES, EXPRESSIONS & FACING)
 // =========================================================================
 
+function renderShoeSvg({ x, y, shoeType, shoeColor, ink, isFront, isLeftFoot, footAngle = 0, isGrounded = true }) {
+  const rot = isGrounded ? 0 : footAngle;
+  let s = `<g transform="translate(${x} ${y}) rotate(${rot})">`;
+
+  if (shoeType === "boots") {
+    const bootW = isFront ? 22 : 24;
+    const xOff = isFront ? (isLeftFoot ? -9 : -12) : -11;
+    s += `<path d="M ${xOff} -4 L ${xOff + bootW} -4 L ${xOff + bootW} 0 L ${xOff} 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="2" />`;
+    s += `<line x1="${xOff + 5}" y1="-2" x2="${xOff + 5}" y2="0" stroke="#334155" stroke-width="1.8" />`;
+    s += `<line x1="${xOff + 11}" y1="-2" x2="${xOff + 11}" y2="0" stroke="#334155" stroke-width="1.8" />`;
+    s += `<line x1="${xOff + 17}" y1="-2" x2="${xOff + 17}" y2="0" stroke="#334155" stroke-width="1.8" />`;
+    s += `<path d="M ${xOff + 2} -14 L ${xOff + 18} -14 L ${xOff + 19} -7 Q ${xOff + bootW} -6 ${xOff + bootW} -4 L ${xOff} -4 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.5" />`;
+    s += `<rect x="${xOff + 1}" y="-16" width="18" height="3" rx="1" fill="#334155" stroke="${ink}" stroke-width="1.8" />`;
+  } else if (shoeType === "casual") {
+    const shoeW = isFront ? 21 : 23;
+    const xOff = isFront ? (isLeftFoot ? -9 : -12) : -10;
+    s += `<path d="M ${xOff} -2.2 L ${xOff + shoeW} -2.2 L ${xOff + shoeW} 0 L ${xOff} 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="1.8" />`;
+    s += `<path d="M ${xOff + 1} -7 Q ${xOff + 8} -8 ${xOff + 15} -7 Q ${xOff + shoeW} -6 ${xOff + shoeW} -2.2 L ${xOff} -2.2 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.2" />`;
+    s += `<path d="M ${xOff + 4} -7 Q ${xOff + 9} -5 ${xOff + 14} -7" stroke="${ink}" stroke-width="1.8" fill="none" />`;
+    s += `<path d="M ${xOff + 13} -5.5 Q ${xOff + 17} -4.5 ${xOff + 18} -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />`;
+  } else {
+    // Default: Sneakers
+    const shoeW = isFront ? 23 : 25;
+    const xOff = isFront ? (isLeftFoot ? -9 : -13) : -11;
+    s += `<path d="M ${xOff} -3.5 L ${xOff + shoeW} -3.5 L ${xOff + shoeW} 0 L ${xOff} 0 Z" fill="#ffffff" stroke="${ink}" stroke-width="2" />`;
+    s += `<line x1="${xOff + 1}" y1="-1.6" x2="${xOff + shoeW - 1}" y2="-1.6" stroke="${ink}" stroke-width="1" opacity="0.3" />`;
+    s += `<path d="M ${xOff + 1} -8 Q ${xOff + 8} -9 ${xOff + 16} -8 Q ${xOff + shoeW} -7 ${xOff + shoeW} -3.5 L ${xOff} -3.5 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.4" />`;
+    s += `<path d="M ${xOff + shoeW - 6} -3.5 Q ${xOff + shoeW - 4} -6 ${xOff + shoeW} -4 Q ${xOff + shoeW} -3.5 ${xOff + shoeW} -3.5 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.8" />`;
+    s += `<ellipse cx="${xOff + 8}" cy="-8" rx="6" ry="2" fill="#334155" stroke="${ink}" stroke-width="1.8" />`;
+    s += `<line x1="${xOff + 10}" y1="-7" x2="${xOff + 15}" y2="-5.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />`;
+    s += `<line x1="${xOff + 11}" y1="-5.2" x2="${xOff + 16}" y2="-3.8" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`;
+  }
+
+  s += `</g>`;
+  return s;
+}
+
 function updateLivePreview() {
   const svg = document.getElementById("liveCharacterSvg");
   if (!svg) return;
@@ -2139,6 +2182,8 @@ function updateLivePreview() {
   const blush = !!document.getElementById("charEditorBlush")?.checked;
   const glasses = !!document.getElementById("charEditorGlasses")?.checked;
   const outfitType = document.getElementById("charEditorOutfitType")?.value || "hoodie";
+  const bottomType = document.getElementById("charEditorBottomType")?.value || (outfitType === "dress" ? "skirt" : "pants");
+  const shoeType = document.getElementById("charEditorShoeType")?.value || (outfitType === "suit" ? "casual" : "sneakers");
   const topColor = document.getElementById("charEditorTopColor")?.value || "#d64a33";
   const pantsColor = document.getElementById("charEditorPantsColor")?.value || "#2e384d";
   const shoeColor = document.getElementById("charEditorShoeColor")?.value || "#1e1e24";
@@ -2157,40 +2202,76 @@ function updateLivePreview() {
   const flipX = isLeft ? -1 : 1;
   const ink = "#191918";
 
-  // Joint definitions based on pose
-  let hipY = -46, shY = -82, headY = -116;
-  let farArm = [-8, -64, -9, -48], nearArm = [10, -64, 12, -48];
-  let farLeg = [-8, -22, -8, 0], nearLeg = [8, -22, 8, 0];
+  // Joint definitions tailored for view perspective
+  const headY = -118;
+  const shY = -76;
+  const hipY = -42;
 
-  if (pose === "walk") {
-    farArm = [6, -67, 18, -56]; nearArm = [-2, -66, -10, -52];
-    farLeg = [-14, -26, -16, -4]; nearLeg = [16, -24, 18, 0];
-  } else if (pose === "run") {
-    farArm = [16, -72, 28, -66]; nearArm = [-4, -68, -18, -58];
-    farLeg = [-18, -32, -24, -12]; nearLeg = [24, -28, 26, 0];
-  } else if (pose === "sit") {
-    hipY = -32; shY = -68; headY = -102;
-    farArm = [4, -54, 12, -36]; nearArm = [16, -52, 22, -34];
-    farLeg = [24, -30, 26, 0]; nearLeg = [28, -32, 30, 0];
-  } else if (pose === "sit_chair") {
-    hipY = -36; shY = -72; headY = -106;
-    farArm = [8, -56, 12, -40]; nearArm = [14, -54, 18, -38];
-    farLeg = [20, -34, 20, 0]; nearLeg = [24, -36, 24, 0];
-  } else if (pose === "wave") {
-    nearArm = [18, -94, 22, -118];
-  } else if (pose === "point") {
-    nearArm = [24, -80, 40, -80];
-  } else if (pose === "talk") {
-    farArm = [8, -68, 18, -76]; nearArm = [16, -66, 26, -74];
-  } else if (pose === "phone") {
-    nearArm = [16, -72, 18, -96];
-  } else if (pose === "cup") {
-    nearArm = [14, -66, 20, -70];
+  let shFar, eFar, hFar, shNear, eNear, hNear;
+  let hipFar, kFar, fFar, hipNear, kNear, fNear;
+
+  if (isFront) {
+    // Symmetrical front view
+    shFar = [-22, -76]; eFar = [-25, -57]; hFar = [-25, -40];
+    shNear = [22, -76]; eNear = [25, -57]; hNear = [25, -40];
+    hipFar = [-13, -40]; kFar = [-14, -20]; fFar = [-15, 0];
+    hipNear = [13, -40]; kNear = [14, -20]; fNear = [15, 0];
+
+    if (pose === "walk") {
+      shFar = [-22, -76]; eFar = [-24, -62]; hFar = [-22, -48];
+      shNear = [22, -76]; eNear = [26, -60]; hNear = [28, -46];
+      kFar = [-14, -22]; fFar = [-15, -4];
+      kNear = [14, -18]; fNear = [16, 0];
+    } else if (pose === "wave") {
+      shNear = [22, -76]; eNear = [34, -80]; hNear = [38, -104];
+    } else if (pose === "point") {
+      shNear = [22, -76]; eNear = [34, -76]; hNear = [48, -76];
+    } else if (pose === "sit_chair") {
+      shFar = [-22, -70]; eFar = [-20, -52]; hFar = [-14, -36];
+      shNear = [22, -70]; eNear = [20, -52]; hNear = [14, -36];
+      hipFar = [-13, -36]; kFar = [-13, -36]; fFar = [-13, 0];
+      hipNear = [13, -36]; kNear = [13, -36]; fNear = [13, 0];
+    }
+  } else if (isSide) {
+    // Side profile view
+    shFar = [-4, -76]; eFar = [-8, -58]; hFar = [-8, -42];
+    shNear = [4, -76]; eNear = [8, -58]; hNear = [10, -42];
+    hipFar = [-4, -40]; kFar = [-4, -20]; fFar = [-2, 0];
+    hipNear = [4, -40]; kNear = [6, -20]; fNear = [8, 0];
+
+    if (pose === "walk") {
+      shFar = [-4, -76]; eFar = [14, -66]; hFar = [24, -56];
+      shNear = [4, -76]; eNear = [-8, -66]; hNear = [-18, -52];
+      hipFar = [-4, -40]; kFar = [-16, -24]; fFar = [-18, -4];
+      hipNear = [4, -40]; kNear = [18, -22]; fNear = [20, 0];
+    } else if (pose === "wave") {
+      shNear = [4, -76]; eNear = [18, -84]; hNear = [24, -108];
+    } else if (pose === "point") {
+      shNear = [4, -76]; eNear = [22, -76]; hNear = [38, -76];
+    }
+  } else {
+    // 3/4 view
+    shFar = [-16, -76]; eFar = [-19, -58]; hFar = [-19, -42];
+    shNear = [16, -76]; eNear = [20, -58]; hNear = [20, -42];
+    hipFar = [-10, -40]; kFar = [-10, -20]; fFar = [-10, 0];
+    hipNear = [10, -40]; kNear = [12, -20]; fNear = [12, 0];
+
+    if (pose === "walk") {
+      shFar = [-16, -76]; eFar = [4, -65]; hFar = [16, -54];
+      shNear = [16, -76]; eNear = [-2, -65]; hNear = [-12, -50];
+      hipFar = [-10, -40]; kFar = [-16, -24]; fFar = [-16, -4];
+      hipNear = [10, -40]; kNear = [18, -22]; fNear = [18, 0];
+    } else if (pose === "wave") {
+      shNear = [16, -76]; eNear = [30, -82]; hNear = [34, -106];
+    } else if (pose === "point") {
+      shNear = [16, -76]; eNear = [30, -76]; hNear = [44, -76];
+    } else if (pose === "sit_chair") {
+      shFar = [-16, -70]; eFar = [4, -54]; hFar = [12, -38];
+      shNear = [16, -70]; eNear = [14, -52]; hNear = [18, -36];
+      hipFar = [-10, -36]; kFar = [20, -36]; fFar = [20, 0];
+      hipNear = [10, -36]; kNear = [24, -36]; fNear = [24, 0];
+    }
   }
-
-  const r = 36 * headScale;
-  const eyeX = isFront ? [-13, 13] : isSide ? [14] : [-5, 17];
-  const eyeY = -6;
 
   // Render SVG string
   let html = "";
@@ -2200,8 +2281,8 @@ function updateLivePreview() {
 
   // Chair reference when sit_chair
   if (pose === "sit_chair") {
-    html += '<rect x="-16" y="-36" width="34" height="4" rx="2" fill="#78350f" />';
-    html += '<rect x="-14" y="-32" width="4" height="32" fill="#451a03" />';
+    html += '<rect x="-18" y="-36" width="36" height="4" rx="2" fill="#78350f" />';
+    html += '<rect x="-16" y="-32" width="4" height="32" fill="#451a03" />';
     html += '<rect x="12" y="-32" width="4" height="32" fill="#451a03" />';
   }
 
@@ -2210,102 +2291,220 @@ function updateLivePreview() {
 
   // 1. Shadow
   if (showShadow) {
-    html += `<ellipse cx="0" cy="2" rx="28" ry="6" fill="rgba(0,0,0,0.3)" />`;
+    const shadowRx = isFront ? 34 : 30;
+    html += `<ellipse cx="0" cy="2" rx="${shadowRx}" ry="6" fill="rgba(0,0,0,0.22)" />`;
   }
 
-  // 2. Far Leg
-  html += `<line x1="-8" y1="${hipY}" x2="${farLeg[0]}" y2="${farLeg[1]}" stroke="${pantsColor}" stroke-width="14" />`;
-  html += `<line x1="${farLeg[0]}" y1="${farLeg[1]}" x2="${farLeg[2]}" y2="${farLeg[3]}" stroke="${pantsColor}" stroke-width="13" />`;
-  html += `<ellipse cx="${farLeg[2] + 4}" cy="${farLeg[3]}" rx="9" ry="5.5" fill="${shoeColor}" stroke="${ink}" stroke-width="3" />`;
+  // 2. Far Arm
+  html += `<line x1="${shFar[0]}" y1="${shFar[1]}" x2="${eFar[0]}" y2="${eFar[1]}" stroke="${topColor}" stroke-width="12" />`;
+  html += `<line x1="${eFar[0]}" y1="${eFar[1]}" x2="${hFar[0]}" y2="${hFar[1]}" stroke="${topColor}" stroke-width="10.5" />`;
+  html += `<circle cx="${eFar[0]}" cy="${eFar[1]}" r="5.5" fill="${topColor}" />`;
+  html += `<circle cx="${hFar[0]}" cy="${hFar[1]}" r="6" fill="${skin}" stroke="${ink}" stroke-width="2.5" />`;
 
-  // 3. Far Arm
-  html += `<line x1="-6" y1="${shY + 2}" x2="${farArm[0]}" y2="${farArm[1]}" stroke="${topColor}" stroke-width="11" />`;
-  html += `<line x1="${farArm[0]}" y1="${farArm[1]}" x2="${farArm[2]}" y2="${farArm[3]}" stroke="${topColor}" stroke-width="10" />`;
-  html += `<circle cx="${farArm[2]}" cy="${farArm[3]}" r="5.5" fill="${skin}" stroke="${ink}" stroke-width="2.5" />`;
-
-  // 4. Torso & Pelvis
-  html += `<polygon points="-16,${hipY - 8} 16,${hipY - 8} 18,${hipY + 8} -18,${hipY + 8}" fill="${pantsColor}" stroke="${ink}" stroke-width="4" />`;
-  html += `<path d="M -15 ${shY} Q 0 ${shY - 6} 15 ${shY} L 17 ${hipY} L -17 ${hipY} Z" fill="${topColor}" stroke="${ink}" stroke-width="4.5" />`;
-
-  // Outfit specific details
-  if (outfitType === "hoodie") {
-    html += `<rect x="-10" y="${hipY - 14}" width="20" height="11" rx="3" fill="rgba(0,0,0,0.18)" stroke="${ink}" stroke-width="2.5" />`;
-    html += `<line x1="3" y1="${shY + 2}" x2="3" y2="${shY + 16}" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`;
-    html += `<line x1="9" y1="${shY + 2}" x2="9" y2="${shY + 14}" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`;
-  } else if (outfitType === "labcoat") {
-    html += `<line x1="2" y1="${shY}" x2="2" y2="${hipY + 6}" stroke="${ink}" stroke-width="2.5" />`;
-    html += `<rect x="-10" y="${shY + 8}" width="8" height="10" rx="1" fill="#f3f4f6" stroke="${ink}" stroke-width="2" />`;
-    html += `<line x1="-7" y1="${shY + 4}" x2="-7" y2="${shY + 9}" stroke="#2563eb" stroke-width="2" />`;
-  } else if (outfitType === "suit") {
-    html += `<polygon points="1,${shY} 5,${shY} 6,${hipY - 4} 3,${hipY} 0,${hipY - 4}" fill="#dc2626" stroke="${ink}" stroke-width="2" />`;
-  }
-
-  // 5. Near Leg
-  html += `<line x1="8" y1="${hipY}" x2="${nearLeg[0]}" y2="${nearLeg[1]}" stroke="${pantsColor}" stroke-width="14" />`;
-  html += `<line x1="${nearLeg[0]}" y1="${nearLeg[1]}" x2="${nearLeg[2]}" y2="${nearLeg[3]}" stroke="${pantsColor}" stroke-width="13" />`;
-  html += `<ellipse cx="${nearLeg[2] + 4}" cy="${nearLeg[3]}" rx="9" ry="5.5" fill="${shoeColor}" stroke="${ink}" stroke-width="3" />`;
-
-  // 6. Near Arm
-  html += `<line x1="6" y1="${shY + 2}" x2="${nearArm[0]}" y2="${nearArm[1]}" stroke="${topColor}" stroke-width="11" />`;
-  html += `<line x1="${nearArm[0]}" y1="${nearArm[1]}" x2="${nearArm[2]}" y2="${nearArm[3]}" stroke="${topColor}" stroke-width="10" />`;
-  html += `<circle cx="${nearArm[2]}" cy="${nearArm[3]}" r="5.5" fill="${skin}" stroke="${ink}" stroke-width="2.5" />`;
-
-  // Props
-  if (pose === "phone") {
-    html += `<g transform="translate(${nearArm[2]} ${nearArm[3]})">`;
-    html += `<rect x="-4" y="-18" width="10" height="18" rx="2.5" fill="#1e293b" stroke="${ink}" stroke-width="2.5" />`;
-    html += `<rect x="-2" y="-16" width="6" height="13" rx="1" fill="#38bdf8" />`;
-    html += `</g>`;
-  } else if (pose === "cup") {
-    html += `<g transform="translate(${nearArm[2]} ${nearArm[3]})">`;
-    html += `<polygon points="-4,-14 6,-14 4,2 -2,2" fill="#f8fafc" stroke="${ink}" stroke-width="2.5" />`;
-    html += `<path d="M 6 -10 Q 11 -7 6 -3" stroke="${ink}" stroke-width="2" fill="none" />`;
-    html += `</g>`;
-  }
-
-  // 7. Head Group
-  html += `<g transform="translate(2 ${headY})">`;
-
-  // Back Hair (bun/ponytail)
-  if (hairStyle === "bun") {
-    html += `<circle cx="${-r * 0.65}" cy="${-r * 0.7}" r="16" fill="${hairColor}" stroke="${ink}" stroke-width="4" />`;
-  } else if (hairStyle === "ponytail") {
-    html += `<path d="M ${-r * 0.5} ${-r * 0.3} Q ${-r * 1.5} ${-r * 0.2} ${-r * 1.2} ${r * 0.8}" stroke="${hairColor}" stroke-width="18" stroke-linecap="round" fill="none" />`;
-  }
-
-  // Head Skull
-  html += `<circle cx="0" cy="0" r="${r}" fill="${skin}" stroke="${ink}" stroke-width="4.5" />`;
-
-  // Ears
-  if (isFront) {
-    html += `<circle cx="${-r - 1}" cy="-2" r="7" fill="${skin}" stroke="${ink}" stroke-width="3" />`;
-    html += `<circle cx="${r + 1}" cy="-2" r="7" fill="${skin}" stroke="${ink}" stroke-width="3" />`;
+  // 3. Lower Body (Far leg, Far shoe, Near leg, Near shoe, Pelvis/Garment)
+  // 3a. Far Leg
+  if (bottomType === "pants") {
+    html += `<line x1="${hipFar[0]}" y1="${hipFar[1]}" x2="${kFar[0]}" y2="${kFar[1]}" stroke="${pantsColor}" stroke-width="14" stroke-linecap="round" />`;
+    html += `<line x1="${kFar[0]}" y1="${kFar[1]}" x2="${fFar[0]}" y2="${fFar[1] - 3}" stroke="${pantsColor}" stroke-width="12" stroke-linecap="round" />`;
+    html += `<circle cx="${kFar[0]}" cy="${kFar[1]}" r="6.5" fill="${pantsColor}" />`;
+    html += `<line x1="${fFar[0] - 6}" y1="${fFar[1] - 5}" x2="${fFar[0] + 6}" y2="${fFar[1] - 5}" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" />`;
   } else {
-    html += `<circle cx="${-r * 0.7}" cy="-2" r="7.5" fill="${skin}" stroke="${ink}" stroke-width="3.5" />`;
+    html += `<line x1="${hipFar[0]}" y1="${hipFar[1]}" x2="${kFar[0]}" y2="${kFar[1]}" stroke="${skin}" stroke-width="12" stroke-linecap="round" />`;
+    html += `<line x1="${kFar[0]}" y1="${kFar[1]}" x2="${fFar[0]}" y2="${fFar[1] - 3}" stroke="${skin}" stroke-width="10.5" stroke-linecap="round" />`;
+    html += `<circle cx="${kFar[0]}" cy="${kFar[1]}" r="5.5" fill="${skin}" />`;
+    html += `<ellipse cx="${kFar[0]}" cy="${kFar[1]}" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />`;
   }
+
+  // 3b. Far Shoe
+  const farFootAngle = fFar[1] < 0 ? -12 : (isFront ? -6 : 0);
+  html += renderShoeSvg({
+    x: fFar[0],
+    y: fFar[1],
+    shoeType,
+    shoeColor,
+    ink,
+    isFront,
+    isLeftFoot: false,
+    footAngle: farFootAngle,
+    isGrounded: fFar[1] === 0
+  });
+
+  // 3c. Near Leg
+  if (bottomType === "pants") {
+    html += `<line x1="${hipNear[0]}" y1="${hipNear[1]}" x2="${kNear[0]}" y2="${kNear[1]}" stroke="${pantsColor}" stroke-width="14" stroke-linecap="round" />`;
+    html += `<line x1="${kNear[0]}" y1="${kNear[1]}" x2="${fNear[0]}" y2="${fNear[1] - 3}" stroke="${pantsColor}" stroke-width="12" stroke-linecap="round" />`;
+    html += `<circle cx="${kNear[0]}" cy="${kNear[1]}" r="6.5" fill="${pantsColor}" />`;
+    html += `<line x1="${fNear[0] - 6}" y1="${fNear[1] - 5}" x2="${fNear[0] + 6}" y2="${fNear[1] - 5}" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" />`;
+  } else {
+    html += `<line x1="${hipNear[0]}" y1="${hipNear[1]}" x2="${kNear[0]}" y2="${kNear[1]}" stroke="${skin}" stroke-width="12" stroke-linecap="round" />`;
+    html += `<line x1="${kNear[0]}" y1="${kNear[1]}" x2="${fNear[0]}" y2="${fNear[1] - 3}" stroke="${skin}" stroke-width="10.5" stroke-linecap="round" />`;
+    html += `<circle cx="${kNear[0]}" cy="${kNear[1]}" r="5.5" fill="${skin}" />`;
+    html += `<ellipse cx="${kNear[0]}" cy="${kNear[1]}" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />`;
+  }
+
+  // 3d. Near Shoe
+  const nearFootAngle = fNear[1] < 0 ? -12 : (isFront ? 6 : 0);
+  html += renderShoeSvg({
+    x: fNear[0],
+    y: fNear[1],
+    shoeType,
+    shoeColor,
+    ink,
+    isFront,
+    isLeftFoot: true,
+    footAngle: nearFootAngle,
+    isGrounded: fNear[1] === 0
+  });
+
+  // 3e. Pelvis & Garment (Drawn OVER upper legs so legs naturally emerge from inside/below!)
+  if (bottomType === "skirt" || bottomType === "dress") {
+    if (isFront) {
+      html += `<path d="M -18 ${hipY} L 18 ${hipY} L 25 ${hipY + 20} Q 0 ${hipY + 24} -25 ${hipY + 20} Z" fill="${pantsColor}" stroke="${ink}" stroke-width="3.5" />`;
+      html += `<path d="M -7 ${hipY + 4} L -9 ${hipY + 21}" stroke="${ink}" stroke-width="2" stroke-linecap="round" opacity="0.4" />`;
+      html += `<path d="M 7 ${hipY + 4} L 9 ${hipY + 21}" stroke="${ink}" stroke-width="2" stroke-linecap="round" opacity="0.4" />`;
+    } else if (isSide) {
+      html += `<path d="M -13 ${hipY} L 13 ${hipY} L 17 ${hipY + 20} Q 0 ${hipY + 24} -15 ${hipY + 20} Z" fill="${pantsColor}" stroke="${ink}" stroke-width="3.5" />`;
+    } else {
+      html += `<path d="M -17 ${hipY} L 18 ${hipY} L 24 ${hipY + 20} Q 2 ${hipY + 24} -22 ${hipY + 20} Z" fill="${pantsColor}" stroke="${ink}" stroke-width="3.5" />`;
+      html += `<path d="M 4 ${hipY + 4} L 5 ${hipY + 21}" stroke="${ink}" stroke-width="2" stroke-linecap="round" opacity="0.4" />`;
+    }
+  } else if (bottomType === "shorts") {
+    if (isFront) {
+      html += `<polygon points="-19,${hipY - 4} 19,${hipY - 4} 20,${hipY + 14} -20,${hipY + 14}" fill="${pantsColor}" stroke="${ink}" stroke-width="3.5" />`;
+      html += `<polygon points="-5,${hipY + 14} 0,${hipY + 8} 5,${hipY + 14}" fill="${skin}" stroke="${ink}" stroke-width="2.5" />`;
+      html += `<line x1="-20" y1="${hipY + 13}" x2="-5" y2="${hipY + 13}" stroke="${ink}" stroke-width="2" />`;
+      html += `<line x1="5" y1="${hipY + 13}" x2="20" y2="${hipY + 13}" stroke="${ink}" stroke-width="2" />`;
+    } else {
+      html += `<polygon points="-16,${hipY - 4} 17,${hipY - 4} 18,${hipY + 14} -15,${hipY + 14}" fill="${pantsColor}" stroke="${ink}" stroke-width="3.5" />`;
+    }
+  } else {
+    // Long pants waistband & crotch
+    if (isFront) {
+      html += `<polygon points="-19,${hipY - 4} 19,${hipY - 4} 20,${hipY + 8} -20,${hipY + 8}" fill="${pantsColor}" stroke="${ink}" stroke-width="3.5" />`;
+      html += `<path d="M 0 ${hipY - 2} L 0 ${hipY + 6} Q 0 ${hipY + 9} 2 ${hipY + 10}" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" fill="none" />`;
+      html += `<line x1="-18" y1="${hipY - 3}" x2="18" y2="${hipY - 3}" stroke="${ink}" stroke-width="2" opacity="0.5" />`;
+    } else if (isSide) {
+      html += `<polygon points="-12,${hipY - 4} 12,${hipY - 4} 13,${hipY + 8} -11,${hipY + 8}" fill="${pantsColor}" stroke="${ink}" stroke-width="3.5" />`;
+    } else {
+      html += `<polygon points="-16,${hipY - 4} 18,${hipY - 4} 19,${hipY + 8} -15,${hipY + 8}" fill="${pantsColor}" stroke="${ink}" stroke-width="3.5" />`;
+      html += `<path d="M 2 ${hipY - 2} L 2 ${hipY + 6}" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" fill="none" />`;
+    }
+  }
+
+  // 6. Neck
+  const neckX = isFront ? 0 : 1;
+  const neckW = isFront ? 8 : 7;
+  html += `<path d="M ${neckX - neckW} ${headY + 28} L ${neckX + neckW} ${headY + 28} L ${neckX + neckW + 2} ${shY + 2} L ${neckX - neckW - 2} ${shY + 2} Z" fill="${skin}" stroke="${ink}" stroke-width="3" />`;
+  html += `<ellipse cx="${neckX}" cy="${headY + 31}" rx="${neckW}" ry="3" fill="rgba(0,0,0,0.12)" />`;
+
+  // 7. Torso & Clothing
+  const torsoBotY = outfitType === "labcoat" ? hipY + 12 : hipY;
+  if (isFront) {
+    html += `<path d="M -23 ${shY} Q 0 ${shY - 6} 23 ${shY} L 19 ${torsoBotY} Q 0 ${torsoBotY + 3} -19 ${torsoBotY} Z" fill="${topColor}" stroke="${ink}" stroke-width="4" />`;
+    html += `<path d="M -11 ${shY - 1} Q 0 ${shY + 6} 11 ${shY - 1}" stroke="${ink}" stroke-width="3.5" fill="none" />`;
+
+    if (outfitType === "hoodie") {
+      html += `<path d="M -12 ${hipY - 14} L 12 ${hipY - 14} L 14 ${hipY - 2} L -14 ${hipY - 2} Z" fill="rgba(0,0,0,0.18)" stroke="${ink}" stroke-width="2.5" />`;
+      html += `<line x1="-4" y1="${shY + 3}" x2="-4" y2="${shY + 16}" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`;
+      html += `<line x1="4" y1="${shY + 3}" x2="4" y2="${shY + 16}" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`;
+    } else if (outfitType === "labcoat") {
+      html += `<line x1="0" y1="${shY + 6}" x2="0" y2="${torsoBotY}" stroke="${ink}" stroke-width="2.5" />`;
+      html += `<polygon points="-9,${shY + 6} 0,${shY + 16} 0,${shY + 6}" fill="#e2e8f0" stroke="${ink}" stroke-width="2" />`;
+      html += `<polygon points="9,${shY + 6} 0,${shY + 16} 0,${shY + 6}" fill="#e2e8f0" stroke="${ink}" stroke-width="2" />`;
+      html += `<rect x="-14" y="${shY + 18}" width="7" height="9" rx="1" fill="#f8fafc" stroke="${ink}" stroke-width="1.8" />`;
+      html += `<line x1="-10" y1="${shY + 15}" x2="-10" y2="${shY + 20}" stroke="#2563eb" stroke-width="2" />`;
+      html += `<polygon points="-2,${shY + 10} 2,${shY + 10} 3,${shY + 22} 0,${shY + 25} -3,${shY + 22}" fill="#dc2626" />`;
+    } else if (outfitType === "suit") {
+      html += `<line x1="0" y1="${shY + 16}" x2="0" y2="${hipY}" stroke="${ink}" stroke-width="2.5" />`;
+      html += `<polygon points="-10,${shY + 4} 0,${shY + 18} -6,${shY + 18}" fill="#1e293b" stroke="${ink}" stroke-width="2" />`;
+      html += `<polygon points="10,${shY + 4} 0,${shY + 18} 6,${shY + 18}" fill="#1e293b" stroke="${ink}" stroke-width="2" />`;
+      html += `<polygon points="-3,${shY + 6} 3,${shY + 6} 4,${shY + 20} 0,${shY + 23} -4,${shY + 20}" fill="#dc2626" />`;
+    }
+  } else if (isSide) {
+    html += `<path d="M -13 ${shY} Q 2 ${shY - 5} 15 ${shY} L 13 ${torsoBotY} Q 0 ${torsoBotY + 3} -11 ${torsoBotY} Z" fill="${topColor}" stroke="${ink}" stroke-width="4" />`;
+    html += `<path d="M -6 ${shY - 1} Q 2 ${shY + 5} 10 ${shY - 1}" stroke="${ink}" stroke-width="3.5" fill="none" />`;
+  } else {
+    // 3/4 view
+    html += `<path d="M -18 ${shY} Q 2 ${shY - 6} 20 ${shY} L 17 ${torsoBotY} Q 0 ${torsoBotY + 3} -16 ${torsoBotY} Z" fill="${topColor}" stroke="${ink}" stroke-width="4" />`;
+    html += `<path d="M -9 ${shY - 1} Q 1 ${shY + 6} 11 ${shY - 1}" stroke="${ink}" stroke-width="3.5" fill="none" />`;
+
+    if (outfitType === "hoodie") {
+      html += `<path d="M -10 ${hipY - 14} L 12 ${hipY - 14} L 14 ${hipY - 2} L -11 ${hipY - 2} Z" fill="rgba(0,0,0,0.18)" stroke="${ink}" stroke-width="2.5" />`;
+      html += `<line x1="-1" y1="${shY + 3}" x2="-1" y2="${shY + 16}" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`;
+      html += `<line x1="6" y1="${shY + 3}" x2="6" y2="${shY + 16}" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`;
+    } else if (outfitType === "labcoat") {
+      html += `<line x1="2" y1="${shY + 6}" x2="3" y2="${torsoBotY}" stroke="${ink}" stroke-width="2.5" />`;
+      html += `<polygon points="-6,${shY + 6} 2,${shY + 16} 2,${shY + 6}" fill="#e2e8f0" stroke="${ink}" stroke-width="2" />`;
+      html += `<polygon points="10,${shY + 6} 2,${shY + 16} 2,${shY + 6}" fill="#e2e8f0" stroke="${ink}" stroke-width="2" />`;
+      html += `<rect x="-12" y="${shY + 18}" width="7" height="9" rx="1" fill="#f8fafc" stroke="${ink}" stroke-width="1.8" />`;
+      html += `<line x1="-9" y1="${shY + 15}" x2="-9" y2="${shY + 20}" stroke="#2563eb" stroke-width="2" />`;
+      html += `<polygon points="0,${shY + 10} 4,${shY + 10} 5,${shY + 22} 2,${shY + 25} -1,${shY + 22}" fill="#dc2626" />`;
+    }
+  }
+
+  // 8. Head Group
+  const headCenterX = isFront ? 0 : 1;
+  html += `<g transform="translate(${headCenterX} ${headY})">`;
+
+  // Back Hair
+  const r = 36 * headScale;
+  if (hairStyle === "ponytail") {
+    if (isFront) {
+      html += `<path d="M 12 -28 Q 38 -36 34 8 Q 28 4 18 -10" stroke="${hairColor}" stroke-width="14" stroke-linecap="round" fill="none" />`;
+      html += `<circle cx="16" cy="-24" r="5" fill="#f43f5e" />`;
+    } else {
+      html += `<path d="M ${-r * 0.4} ${-r * 0.3} Q ${-r * 1.5} ${-r * 0.2} ${-r * 1.2} ${r * 0.8}" stroke="${hairColor}" stroke-width="20" stroke-linecap="round" fill="none" />`;
+      html += `<circle cx="${-r * 0.4}" cy="${-r * 0.3}" r="5.5" fill="#f43f5e" />`;
+    }
+  } else if (hairStyle === "bun") {
+    html += `<circle cx="${-r * 0.65}" cy="${-r * 0.7}" r="17" fill="${hairColor}" stroke="${ink}" stroke-width="4" />`;
+  }
+
+  // Head Skull Contour with Cheeks & Tapered Chin
+  if (isFront) {
+    html += `<path d="M 0 -36 C 23 -36, 37 -22, 37 -4 C 37 12, 38 19, 31 29 C 24 37, 10 38, 0 38 C -10 38, -24 37, -31 29 C -38 19, -37 12, -37 -4 C -37 -22, -23 -36, 0 -36 Z" fill="${skin}" stroke="${ink}" stroke-width="4" />`;
+    // Ears
+    html += `<path d="M -37 -4 Q -45 2 -36 10" fill="${skin}" stroke="${ink}" stroke-width="3" />`;
+    html += `<path d="M 37 -4 Q 45 2 36 10" fill="${skin}" stroke="${ink}" stroke-width="3" />`;
+  } else if (isSide) {
+    html += `<path d="M 2 -36 C 22 -36, 34 -22, 34 -8 C 34 -2, 36 2, 37 4 C 35 10, 34 16, 28 28 C 22 36, 8 38, -2 36 C -18 32, -32 18, -32 -4 C -32 -22, -18 -36, 2 -36 Z" fill="${skin}" stroke="${ink}" stroke-width="4" />`;
+    html += `<path d="M -18 -4 Q -26 2 -18 10" fill="${skin}" stroke="${ink}" stroke-width="3" />`;
+  } else {
+    html += `<path d="M -2 -36 C 21 -36, 35 -22, 36 -6 C 37 10, 38 18, 33 28 C 26 37, 14 38, 4 38 C -8 38, -22 36, -30 26 C -36 16, -35 8, -34 -4 C -34 -22, -21 -36, -2 -36 Z" fill="${skin}" stroke="${ink}" stroke-width="4" />`;
+    html += `<path d="M -34 -4 Q -42 2 -33 10" fill="${skin}" stroke="${ink}" stroke-width="3" />`;
+  }
+
+  // Facial Features
+  const eyeY = 2;
+  const eyeX = isFront ? [-14, 14] : isSide ? [16] : [-5, 18];
 
   // Blush
   if (blush && !blink) {
-    eyeX.forEach((ex) => {
-      html += `<ellipse cx="${ex}" cy="${eyeY + 12}" rx="6.5" ry="3.5" fill="#fca5a5" opacity="0.75" />`;
-    });
+    if (isFront) {
+      html += `<ellipse cx="-16" cy="${eyeY + 12}" rx="6" ry="3" fill="#fca5a5" opacity="0.4" />`;
+      html += `<ellipse cx="16" cy="${eyeY + 12}" rx="6" ry="3" fill="#fca5a5" opacity="0.4" />`;
+    } else if (isSide) {
+      html += `<ellipse cx="18" cy="${eyeY + 12}" rx="6" ry="3" fill="#fca5a5" opacity="0.4" />`;
+    } else {
+      html += `<ellipse cx="-5" cy="${eyeY + 12}" rx="5" ry="3" fill="#fca5a5" opacity="0.4" />`;
+      html += `<ellipse cx="19" cy="${eyeY + 12}" rx="6" ry="3" fill="#fca5a5" opacity="0.4" />`;
+    }
   }
 
   // Eyes
   if (blink || expr === "sad") {
     eyeX.forEach((ex) => {
-      html += `<path d="M ${ex - 5} ${eyeY} Q ${ex} ${eyeY + 3} ${ex + 5} ${eyeY}" stroke="${ink}" stroke-width="4" stroke-linecap="round" fill="none" />`;
+      html += `<path d="M ${ex - 5} ${eyeY + 2} Q ${ex} ${eyeY + 5} ${ex + 5} ${eyeY + 2}" stroke="${ink}" stroke-width="3.5" stroke-linecap="round" fill="none" />`;
     });
   } else if (expr === "happy" || expr === "laughing") {
     eyeX.forEach((ex) => {
-      html += `<path d="M ${ex - 6} ${eyeY + 2} Q ${ex} ${eyeY - 6} ${ex + 6} ${eyeY + 2}" stroke="${ink}" stroke-width="4.2" stroke-linecap="round" fill="none" />`;
+      html += `<path d="M ${ex - 6} ${eyeY + 3} Q ${ex} ${eyeY - 4} ${ex + 6} ${eyeY + 3}" stroke="${ink}" stroke-width="3.8" stroke-linecap="round" fill="none" />`;
     });
   } else {
     eyeX.forEach((ex, i) => {
-      const rx = !isFront && i === 0 ? 4.5 : 5.2;
-      html += `<ellipse cx="${ex}" cy="${eyeY}" rx="${rx}" ry="7.8" fill="${ink}" />`;
-      html += `<circle cx="${ex + 1.8}" cy="${eyeY - 2.5}" r="2.4" fill="#ffffff" />`;
-      html += `<circle cx="${ex - 1.6}" cy="${eyeY + 3.0}" r="1.3" fill="#ffffff" />`;
+      const rx = !isFront && i === 0 ? 4.6 : 5.4;
+      html += `<ellipse cx="${ex}" cy="${eyeY}" rx="${rx}" ry="7.2" fill="${ink}" />`;
+      html += `<circle cx="${ex + 1.8}" cy="${eyeY - 2.2}" r="2.2" fill="#ffffff" />`;
     });
   }
 
@@ -2314,46 +2513,98 @@ function updateLivePreview() {
     let dy = 0;
     if (expr === "worried") dy = -2;
     if (expr === "angry") dy = 3;
-    if (expr === "surprised" || expr === "confused") dy = -4;
-    html += `<line x1="${ex - 6}" y1="${eyeY - 11 + dy}" x2="${ex + 6}" y2="${eyeY - 11 - dy}" stroke="${ink}" stroke-width="3" stroke-linecap="round" />`;
+    if (expr === "surprised" || expr === "confused") dy = -3.5;
+    html += `<path d="M ${ex - 6} ${eyeY - 10 + dy} Q ${ex} ${eyeY - 12 + dy} ${ex + 6} ${eyeY - 10 - dy}" stroke="${ink}" stroke-width="2.8" stroke-linecap="round" fill="none" />`;
   });
 
   // Nose
   if (!isFront) {
-    html += `<path d="M 10 0 Q 13 2 11 4" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" fill="none" />`;
+    const nx = isSide ? 25 : 10;
+    html += `<path d="M ${nx} 5 Q ${nx + 2} 7 ${nx} 9" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" fill="none" />`;
   }
 
   // Mouth
-  const mx = isFront ? 0 : 9;
+  const mx = isFront ? 0 : isSide ? 14 : 7;
   const my = eyeY + 18;
   if (talk > 0.1 || expr === "laughing") {
-    const openH = 3 + talk * 8 + (expr === "laughing" ? 4 : 0);
-    html += `<ellipse cx="${mx}" cy="${my}" rx="6.5" ry="${openH}" fill="${ink}" />`;
+    const openH = 3 + talk * 7 + (expr === "laughing" ? 4 : 0);
+    html += `<ellipse cx="${mx}" cy="${my}" rx="5.5" ry="${openH}" fill="${ink}" />`;
+    html += `<path d="M ${mx - 4} ${my} Q ${mx} ${my + openH - 1} ${mx + 4} ${my}" fill="#f87171" />`;
   } else if (expr === "sad") {
-    html += `<path d="M ${mx - 6} ${my + 2} Q ${mx} ${my - 3} ${mx + 6} ${my + 2}" stroke="${ink}" stroke-width="3" stroke-linecap="round" fill="none" />`;
+    html += `<path d="M ${mx - 5} ${my + 2} Q ${mx} ${my - 2} ${mx + 5} ${my + 2}" stroke="${ink}" stroke-width="3" stroke-linecap="round" fill="none" />`;
   } else {
-    html += `<path d="M ${mx - 6} ${my - 1} Q ${mx} ${my + 5} ${mx + 6} ${my - 1}" stroke="${ink}" stroke-width="3.2" stroke-linecap="round" fill="none" />`;
+    html += `<path d="M ${mx - 5} ${my - 1} Q ${mx} ${my + 4} ${mx + 5} ${my - 1}" stroke="${ink}" stroke-width="3" stroke-linecap="round" fill="none" />`;
   }
 
   // Front Hair
   if (hairStyle === "spiky") {
-    html += `<path d="M ${-r * 0.95} ${-r * 0.2} Q ${-r * 0.9} ${-r * 1.1} 0 ${-r * 1.15} Q ${r * 0.9} ${-r * 1.1} ${r * 0.95} ${-r * 0.2} L ${r * 0.7} ${-r * 0.5} L ${r * 0.3} ${-r * 0.75} L 0 ${-r * 0.6} L ${-r * 0.4} ${-r * 0.75} Z" fill="${hairColor}" stroke="${ink}" stroke-width="4" />`;
+    if (isFront) {
+      html += `<path d="M -39 -2 C -40 -26, -24 -42, 0 -42 C 24 -42, 40 -26, 39 -2 L 34 16 L 31 -2 L 24 -6 L 18 4 L 12 -8 L 4 4 L -4 -6 L -12 4 L -18 -8 L -24 -4 L -31 -2 L -34 16 Z" fill="${hairColor}" stroke="${ink}" stroke-width="3.8" />`;
+    } else {
+      html += `<path d="M -36 -4 C -37 -28, -20 -42, 4 -42 C 28 -42, 40 -26, 38 -4 L 33 16 L 28 -2 L 20 -8 L 12 4 L 2 -8 L -6 4 L -14 -8 L -24 -2 L -32 15 Z" fill="${hairColor}" stroke="${ink}" stroke-width="3.8" />`;
+    }
+  } else if (hairStyle === "ponytail" || hairStyle === "long") {
+    if (isFront) {
+      html += `<path d="M -39 -2 C -40 -24, -26 -40, 0 -40 C 26 -40, 40 -24, 39 -2 C 38 8, 36 22, 33 26 C 32 18, 31 4, 28 -4 C 22 -6, 16 0, 8 -6 C 2 -10, -2 -10, -8 -6 C -16 0, -22 -6, -28 -4 C -31 4, -32 18, -33 26 C -36 22, -38 8, -39 -2 Z" fill="${hairColor}" stroke="${ink}" stroke-width="3.8" />`;
+      html += `<path d="M -22 -32 Q 0 -36 22 -32" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linecap="round" fill="none" />`;
+    } else {
+      html += `<path d="M -36 -4 C -37 -26, -22 -40, 2 -40 C 26 -40, 39 -24, 38 -4 C 37 8, 35 22, 32 26 C 30 16, 29 2, 24 -4 C 18 -6, 12 0, 4 -6 C -6 0, -18 -6, -26 -4 C -28 4, -30 18, -32 25 Z" fill="${hairColor}" stroke="${ink}" stroke-width="3.8" />`;
+    }
   } else {
-    html += `<path d="M ${-r * 0.96} ${-r * 0.15} Q ${-r * 0.9} ${-r * 1.12} 0 ${-r * 1.16} Q ${r * 0.9} ${-r * 1.12} ${r * 0.96} ${-r * 0.15} Q ${r * 0.5} ${-r * 0.65} 0 ${-r * 0.55} Q ${-r * 0.5} ${-r * 0.65} ${-r * 0.96} ${-r * 0.15} Z" fill="${hairColor}" stroke="${ink}" stroke-width="4" />`;
-    html += `<path d="M ${-r * 0.45} ${-r * 0.9} Q 0 ${-r * 1.02} ${r * 0.45} ${-r * 0.9}" stroke="rgba(255,255,255,0.4)" stroke-width="4" stroke-linecap="round" fill="none" />`;
+    // Short / Classic Chibi Boy
+    if (isFront) {
+      html += `<path d="M -39 -2 C -40 -24, -26 -40, 0 -40 C 26 -40, 40 -24, 39 -2 C 38 6, 36 14, 34 16 C 33 11, 33 2, 31 -4 L 26 -2 L 18 -10 L 10 2 L 3 -6 L -4 2 L -12 -8 L -20 -1 L -26 -7 C -31 0, -32 9, -34 16 C -36 12, -38 4, -39 -2 Z" fill="${hairColor}" stroke="${ink}" stroke-width="3.8" />`;
+      html += `<path d="M -22 -32 Q 0 -36 22 -32" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linecap="round" fill="none" />`;
+    } else if (isSide) {
+      html += `<path d="M -34 -4 C -34 -26, -18 -40, 4 -40 C 24 -40, 36 -26, 36 -6 C 34 2, 32 10, 24 6 C 22 -2, 16 -6, 12 -2 L 4 -12 L -6 -2 C -14 -6, -20 4, -22 14 C -26 10, -32 4, -34 -4 Z" fill="${hairColor}" stroke="${ink}" stroke-width="3.8" />`;
+      html += `<path d="M -16 -32 Q 4 -36 20 -32" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linecap="round" fill="none" />`;
+    } else {
+      html += `<path d="M -36 -4 C -37 -26, -22 -40, 2 -40 C 26 -40, 39 -24, 38 -4 C 37 8, 35 15, 33 16 C 31 10, 30 2, 26 -4 L 20 -2 L 12 -10 L 4 2 L -3 -8 L -12 2 L -20 -8 C -26 -1, -29 8, -32 15 C -34 10, -36 2, -36 -4 Z" fill="${hairColor}" stroke="${ink}" stroke-width="3.8" />`;
+      html += `<path d="M -18 -32 Q 2 -36 22 -32" stroke="rgba(255,255,255,0.4)" stroke-width="3" stroke-linecap="round" fill="none" />`;
+    }
   }
 
   // Glasses
   if (glasses) {
     eyeX.forEach((ex) => {
-      html += `<circle cx="${ex}" cy="${eyeY}" r="9.5" stroke="${ink}" stroke-width="3" fill="none" />`;
+      html += `<circle cx="${ex}" cy="${eyeY}" r="9" stroke="${ink}" stroke-width="2.5" fill="none" />`;
     });
     if (eyeX.length > 1) {
-      html += `<line x1="${eyeX[0] + 9.5}" y1="${eyeY}" x2="${eyeX[1] - 9.5}" y2="${eyeY}" stroke="${ink}" stroke-width="3" />`;
+      html += `<line x1="${eyeX[0] + 9}" y1="${eyeY}" x2="${eyeX[1] - 9}" y2="${eyeY}" stroke="${ink}" stroke-width="2.5" />`;
     }
   }
 
   html += `</g>`; // End Head group
+
+  // 9. Near Arm (Layered on top of head for natural gestures)
+  html += `<line x1="${shNear[0]}" y1="${shNear[1]}" x2="${eNear[0]}" y2="${eNear[1]}" stroke="${topColor}" stroke-width="12" />`;
+  html += `<line x1="${eNear[0]}" y1="${eNear[1]}" x2="${hNear[0]}" y2="${hNear[1]}" stroke="${topColor}" stroke-width="10.5" />`;
+  html += `<circle cx="${eNear[0]}" cy="${eNear[1]}" r="5.5" fill="${topColor}" />`;
+  html += `<g transform="translate(${hNear[0]} ${hNear[1]})">`;
+  html += `<circle cx="0" cy="0" r="6" fill="${skin}" stroke="${ink}" stroke-width="2.5" />`;
+  if (pose === "point") {
+    html += `<line x1="2" y1="-2" x2="10" y2="-2" stroke="${skin}" stroke-width="4" stroke-linecap="round" />`;
+    html += `<line x1="2" y1="-2" x2="10" y2="-2" stroke="${ink}" stroke-width="2" stroke-linecap="round" />`;
+  } else if (pose === "wave") {
+    html += `<circle cx="2" cy="-3" r="3" fill="${skin}" />`;
+    html += `<line x1="0" y1="-5" x2="2" y2="-8" stroke="${ink}" stroke-width="2" stroke-linecap="round" />`;
+    html += `<line x1="3" y1="-4" x2="6" y2="-6" stroke="${ink}" stroke-width="2" stroke-linecap="round" />`;
+  }
+  html += `</g>`;
+
+  // 10. Props
+  if (pose === "phone") {
+    html += `<g transform="translate(${hNear[0]} ${hNear[1]})">`;
+    html += `<rect x="-4" y="-18" width="10" height="18" rx="2.5" fill="#1e293b" stroke="${ink}" stroke-width="2.5" />`;
+    html += `<rect x="-2" y="-16" width="6" height="13" rx="1" fill="#38bdf8" />`;
+    html += `</g>`;
+  } else if (pose === "cup") {
+    html += `<g transform="translate(${hNear[0]} ${hNear[1]})">`;
+    html += `<polygon points="-4,-14 6,-14 4,2 -2,2" fill="#f8fafc" stroke="${ink}" stroke-width="2.5" />`;
+    html += `<path d="M 6 -10 Q 11 -7 6 -3" stroke="${ink}" stroke-width="2" fill="none" />`;
+    html += `</g>`;
+  }
+
   html += `</g>`; // End Character root
 
   svg.innerHTML = html;

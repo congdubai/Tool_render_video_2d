@@ -25,6 +25,8 @@
   "outfit": {
     "id": "tshirt_cap",
     "type": "tshirt",
+    "bottomType": "pants",
+    "shoeType": "sneakers",
     "topColor": "#3b82f6",
     "topColor2": "#1d4ed8",
     "pantsColor": "#374151",

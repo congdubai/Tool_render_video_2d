@@ -25,6 +25,8 @@
   "outfit": {
     "id": "hoodie_explorer",
     "type": "hoodie",
+    "bottomType": "pants",
+    "shoeType": "sneakers",
     "topColor": "#d64a33",
     "topColor2": "#b83822",
     "pantsColor": "#2e384d",
