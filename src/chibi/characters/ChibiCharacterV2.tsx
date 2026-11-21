@@ -594,64 +594,147 @@ export const ChibiCharacterV2: React.FC<ChibiCharacterV2Props> = ({
     st: 'sneakers' | 'casual' | 'boots',
     sc: string,
     isLeftFoot: boolean,
+    isNear: boolean = true,
     footAngle: number = 0,
     isGrounded: boolean = true
   ) => {
-    // When grounded (on floor y=0), keep sole strictly flat against ground y=0, no tilt!
+    // When grounded (on floor y=0), keep sole strictly flat against ground y=0
     const rot = isGrounded ? 0 : footAngle;
 
-    if (st === 'boots') {
-      const bootW = isFront ? 22 : 24;
-      const xOff = isFront ? (isLeftFoot ? -9 : -12) : -11;
+    if (isFront) {
+      // Front View: Splay outward symmetrically via scale(isLeftFoot ? 1 : -1, 1)
+      const scaleX = isLeftFoot ? 1 : -1;
       return (
-        <g transform={`translate(${x} ${y}) rotate(${rot})`}>
-          {/* 1. Lug sole (flat at y=0) */}
-          <path d={`M ${xOff} -4 L ${xOff + bootW} -4 L ${xOff + bootW} 0 L ${xOff} 0 Z`} fill="#0f172a" stroke={ink} strokeWidth="2" />
-          <line x1={xOff + 5} y1="-2" x2={xOff + 5} y2="0" stroke="#334155" strokeWidth="1.8" />
-          <line x1={xOff + 11} y1="-2" x2={xOff + 11} y2="0" stroke="#334155" strokeWidth="1.8" />
-          <line x1={xOff + 17} y1="-2" x2={xOff + 17} y2="0" stroke="#334155" strokeWidth="1.8" />
-          {/* 2. Boot body & shaft */}
-          <path d={`M ${xOff + 2} -14 L ${xOff + 18} -14 L ${xOff + 19} -7 Q ${xOff + bootW} -6 ${xOff + bootW} -4 L ${xOff} -4 Z`} fill={sc} stroke={ink} strokeWidth="2.5" />
-          {/* 3. Cuff rim */}
-          <rect x={xOff + 1} y="-16" width="18" height="3" rx="1" fill="#334155" stroke={ink} strokeWidth="1.8" />
+        <g id={`${isLeftFoot ? 'left' : 'right'}-shoe-front`} transform={`translate(${x} ${y}) scale(${scaleX} 1) rotate(${rot})`}>
+          {st === 'boots' ? (
+            <>
+              {/* 1. Sole */}
+              <path d="M -6 -3.5 L 9.5 -3.5 Q 10.5 -3.5 10.5 -1.5 L 10.5 0 L -6.5 0 L -6.5 -1.5 Q -6.5 -3.5 -6 -3.5 Z" fill="#0f172a" stroke={ink} strokeWidth="2" />
+              <line x1="-1.5" y1="-2" x2="-1.5" y2="0" stroke="#334155" strokeWidth="1.8" />
+              <line x1="4.5" y1="-2" x2="4.5" y2="0" stroke="#334155" strokeWidth="1.8" />
+              {/* 2. Boot Upper & Heel */}
+              <path d="M -5.5 -13.5 L 6.5 -13.5 Q 8.5 -8 9.5 -3.5 L -6 -3.5 Q -6.5 -8 -5.5 -13.5 Z" fill={sc} stroke={ink} strokeWidth="2.2" />
+              {/* 3. Collar */}
+              <rect x="-6.5" y="-15" width="14" height="3" rx="1.5" fill="#334155" stroke={ink} strokeWidth="1.8" />
+              {/* 4. Toe Cap */}
+              <path d="M 3.5 -3.5 Q 4 -6.5 8.5 -3.5" fill="none" stroke={ink} strokeWidth="1.6" />
+            </>
+          ) : st === 'casual' ? (
+            <>
+              {/* 1. Sole */}
+              <path d="M -5 -2 L 8.5 -2 Q 9.5 -2 9.5 -0.8 L 9.5 0 L -5.5 0 L -5.5 -0.8 Q -5.5 -2 -5 -2 Z" fill="#0f172a" stroke={ink} strokeWidth="1.6" />
+              {/* 2. Upper & Heel */}
+              <path d="M -5 -2 Q -5.5 -6 -3 -9 L 4 -9 Q 8.5 -6 8.5 -2 Z" fill={sc} stroke={ink} strokeWidth="2" />
+              {/* 3. Collar */}
+              <path d="M -2.5 -9 Q 0.5 -7 3.5 -9" fill="#1e293b" stroke={ink} strokeWidth="1.6" />
+              {/* 4. Toe Cap */}
+              <path d="M 3.5 -2 Q 4.5 -4.5 7.5 -2" fill="none" stroke={ink} strokeWidth="1.4" opacity="0.6" />
+            </>
+          ) : (
+            <>
+              {/* 1. Sole */}
+              <path d="M -5.5 -2.8 L 9 -2.8 Q 10 -2.8 10 -1.2 L 10 0 L -6 0 L -6 -1.2 Q -6 -2.8 -5.5 -2.8 Z" fill="#ffffff" stroke={ink} strokeWidth="1.8" />
+              {/* 2. Upper & Heel */}
+              <path d="M -5 -2.8 Q -5.8 -6.5 -3.5 -9.5 L 4 -9.5 Q 8.5 -6 9 -2.8 Z" fill={sc} stroke={ink} strokeWidth="2.2" />
+              {/* 3. Collar */}
+              <ellipse cx="0.5" cy="-9.5" rx="4.8" ry="1.6" fill="#334155" stroke={ink} strokeWidth="1.6" />
+              {/* 4. Toe Cap */}
+              <path d="M 4 -2.8 Q 4 -5.5 6.8 -5.5 Q 9 -4.8 9 -2.8 Z" fill="#ffffff" stroke={ink} strokeWidth="1.6" />
+              {/* 5. Laces */}
+              <line x1="-0.8" y1="-7.8" x2="3.2" y2="-7.0" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="0.2" y1="-5.6" x2="4.2" y2="-4.8" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
+            </>
+          )}
         </g>
       );
     }
 
-    if (st === 'casual') {
-      const shoeW = isFront ? 21 : 23;
-      const xOff = isFront ? (isLeftFoot ? -9 : -12) : -10;
+    if (isSide) {
       return (
-        <g transform={`translate(${x} ${y}) rotate(${rot})`}>
-          {/* 1. Slim dark sole */}
-          <path d={`M ${xOff} -2.2 L ${xOff + shoeW} -2.2 L ${xOff + shoeW} 0 L ${xOff} 0 Z`} fill="#0f172a" stroke={ink} strokeWidth="1.8" />
-          {/* 2. Sleek shoe upper */}
-          <path d={`M ${xOff + 1} -7 Q ${xOff + 8} -8 ${xOff + 15} -7 Q ${xOff + shoeW} -6 ${xOff + shoeW} -2.2 L ${xOff} -2.2 Z`} fill={sc} stroke={ink} strokeWidth="2.2" />
-          {/* 3. Low-cut collar scoop */}
-          <path d={`M ${xOff + 4} -7 Q ${xOff + 9} -5 ${xOff + 14} -7`} stroke={ink} strokeWidth="1.8" fill="none" />
-          {/* 4. Subtle leather shine */}
-          <path d={`M ${xOff + 13} -5.5 Q ${xOff + 17} -4.5 ${xOff + 18} -3.5`} stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" fill="none" opacity={0.45} />
+        <g id="shoe-side" transform={`translate(${x} ${y}) rotate(${rot})`}>
+          {st === 'boots' ? (
+            <>
+              {/* 1. Sole */}
+              <path d="M -8 -3.8 L 11 -3.8 Q 13 -3.8 13 -1.5 Q 13 0 10.5 0 L -8 0 Z" fill="#0f172a" stroke={ink} strokeWidth="2" />
+              <line x1="-3" y1="-2" x2="-3" y2="0" stroke="#334155" strokeWidth="1.8" />
+              <line x1="3" y1="-2" x2="3" y2="0" stroke="#334155" strokeWidth="1.8" />
+              <line x1="8" y1="-2" x2="8" y2="0" stroke="#334155" strokeWidth="1.8" />
+              {/* 2. Upper & Heel */}
+              <path d="M -8 -3.8 Q -8.5 -8 -4.5 -14 L 3 -14 Q 7 -8.5 12.5 -4.5 L 12.5 -3.8 Z" fill={sc} stroke={ink} strokeWidth="2.2" />
+              {/* 3. Collar */}
+              <rect x="-5.5" y="-15.5" width="10" height="3" rx="1.5" fill="#334155" stroke={ink} strokeWidth="1.8" />
+              {/* 4. Toe Cap */}
+              <path d="M 6.5 -3.8 Q 7.5 -7 12.5 -4.5" fill="none" stroke={ink} strokeWidth="1.8" />
+            </>
+          ) : st === 'casual' ? (
+            <>
+              {/* 1. Sole */}
+              <path d="M -7 -2.2 L 10 -2.2 Q 11.5 -2.2 11.5 -0.8 Q 11.5 0 9.5 0 L -7 0 Z" fill="#0f172a" stroke={ink} strokeWidth="1.6" />
+              {/* 2. Upper & Heel */}
+              <path d="M -7 -2.2 Q -7.5 -6 -3.5 -8.5 Q 0 -6 3.5 -8.5 Q 7.5 -6.5 11 -3.2 L 11 -2.2 Z" fill={sc} stroke={ink} strokeWidth="2" />
+              {/* 3. Collar */}
+              <path d="M -3.5 -8.5 Q 0 -5.5 3.5 -8.5" fill="none" stroke={ink} strokeWidth="1.6" />
+            </>
+          ) : (
+            <>
+              {/* 1. Sole */}
+              <path d="M -7.5 -2.8 L 10.5 -2.8 Q 12.5 -2.8 12.5 -1.2 Q 12.5 0 9.5 0 L -7.5 0 Z" fill="#ffffff" stroke={ink} strokeWidth="1.8" />
+              {/* 2. Upper & Heel */}
+              <path d="M -7.5 -2.8 Q -8.2 -7 -4 -9.5 L 2.5 -9.5 Q 7 -7.5 12 -4 Q 12.5 -3 12 -2.8 Z" fill={sc} stroke={ink} strokeWidth="2.2" />
+              {/* 3. Collar */}
+              <ellipse cx="-0.8" cy="-9.5" rx="4.5" ry="1.6" fill="#334155" stroke={ink} strokeWidth="1.6" />
+              {/* 4. Toe Cap */}
+              <path d="M 6.5 -2.8 Q 7.5 -5.2 11.5 -4 Q 12 -3.2 11.8 -2.8 Z" fill="#ffffff" stroke={ink} strokeWidth="1.6" />
+              {/* 5. Laces */}
+              <line x1="0.5" y1="-8.0" x2="4.5" y2="-6.6" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="2.2" y1="-5.8" x2="6.2" y2="-4.4" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
+            </>
+          )}
         </g>
       );
     }
 
-    // Default: Sneakers
-    const shoeW = isFront ? 23 : 25;
-    const xOff = isFront ? (isLeftFoot ? -9 : -13) : -11;
+    // Three-quarter view (differentiate near and far foot scale/depth)
+    const scaleFactor = isNear ? 1.0 : 0.92;
     return (
-      <g transform={`translate(${x} ${y}) rotate(${rot})`}>
-        {/* 1. Thick white rubber sole */}
-        <path d={`M ${xOff} -3.5 L ${xOff + shoeW} -3.5 L ${xOff + shoeW} 0 L ${xOff} 0 Z`} fill="#ffffff" stroke={ink} strokeWidth="2" />
-        <line x1={xOff + 1} y1="-1.6" x2={xOff + shoeW - 1} y2="-1.6" stroke={ink} strokeWidth="1" opacity={0.3} />
-        {/* 2. Sneaker body */}
-        <path d={`M ${xOff + 1} -8 Q ${xOff + 8} -9 ${xOff + 16} -8 Q ${xOff + shoeW} -7 ${xOff + shoeW} -3.5 L ${xOff} -3.5 Z`} fill={sc} stroke={ink} strokeWidth="2.4" />
-        {/* 3. White rubber toe bumper */}
-        <path d={`M ${xOff + shoeW - 6} -3.5 Q ${xOff + shoeW - 4} -6 ${xOff + shoeW} -4 Q ${xOff + shoeW} -3.5 ${xOff + shoeW} -3.5 Z`} fill="#ffffff" stroke={ink} strokeWidth="1.8" />
-        {/* 4. Collar opening where ankle enters */}
-        <ellipse cx={xOff + 8} cy="-8" rx="6" ry="2" fill="#334155" stroke={ink} strokeWidth="1.8" />
-        {/* 5. White sneaker laces */}
-        <line x1={xOff + 10} y1="-7" x2={xOff + 15} y2="-5.5" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" />
-        <line x1={xOff + 11} y1="-5.2" x2={xOff + 16} y2="-3.8" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" />
+      <g id={`${isNear ? 'near' : 'far'}-shoe-3q`} transform={`translate(${x} ${y}) scale(${scaleFactor}) rotate(${rot})`}>
+        {st === 'boots' ? (
+          <>
+            {/* 1. Sole */}
+            <path d="M -7 -3.5 L 10.5 -3.5 Q 12 -3.5 12 -1.5 Q 12 0 10 0 L -7 0 Z" fill="#0f172a" stroke={ink} strokeWidth="2" />
+            <line x1="-2" y1="-2" x2="-2" y2="0" stroke="#334155" strokeWidth="1.8" />
+            <line x1="4" y1="-2" x2="4" y2="0" stroke="#334155" strokeWidth="1.8" />
+            {/* 2. Upper & Heel */}
+            <path d="M -7 -3.5 Q -7.5 -7.5 -4 -13.5 L 3.5 -13.5 Q 7.5 -8 11.5 -4 L 11.5 -3.5 Z" fill={sc} stroke={ink} strokeWidth="2.2" />
+            {/* 3. Collar */}
+            <rect x="-5" y="-15" width="10.5" height="3" rx="1.5" fill="#334155" stroke={ink} strokeWidth="1.8" />
+            {/* 4. Toe Cap */}
+            <path d="M 5.5 -3.5 Q 6.5 -6.5 11.5 -4" fill="none" stroke={ink} strokeWidth="1.8" />
+          </>
+        ) : st === 'casual' ? (
+          <>
+            {/* 1. Sole */}
+            <path d="M -6.5 -2.2 L 9.5 -2.2 Q 11 -2.2 11 -0.8 Q 11 0 9 0 L -6.5 0 Z" fill="#0f172a" stroke={ink} strokeWidth="1.6" />
+            {/* 2. Upper & Heel */}
+            <path d="M -6.5 -2.2 Q -7 -5.5 -3 -8.5 Q 0.5 -6 4 -8.5 Q 7.5 -6 10.5 -3.2 L 10.5 -2.2 Z" fill={sc} stroke={ink} strokeWidth="2" />
+            {/* 3. Collar */}
+            <path d="M -3 -8.5 Q 0.5 -5.8 4 -8.5" fill="none" stroke={ink} strokeWidth="1.6" />
+          </>
+        ) : (
+          <>
+            {/* 1. Sole */}
+            <path d="M -7 -2.8 L 10 -2.8 Q 11.8 -2.8 11.8 -1.2 Q 11.8 0 9.2 0 L -7 0 Z" fill="#ffffff" stroke={ink} strokeWidth="1.8" />
+            {/* 2. Upper & Heel */}
+            <path d="M -7 -2.8 Q -7.5 -6.5 -3.5 -9.5 L 3 -9.5 Q 7 -7 11.2 -3.8 L 11.2 -2.8 Z" fill={sc} stroke={ink} strokeWidth="2.2" />
+            {/* 3. Collar */}
+            <ellipse cx="-0.2" cy="-9.5" rx="4.6" ry="1.6" fill="#334155" stroke={ink} strokeWidth="1.6" />
+            {/* 4. Toe Cap */}
+            <path d="M 5.8 -2.8 Q 6.8 -5 10.8 -3.8 Q 11.2 -3.2 11 -2.8 Z" fill="#ffffff" stroke={ink} strokeWidth="1.6" />
+            {/* 5. Laces */}
+            <line x1="0.2" y1="-7.8" x2="4.2" y2="-6.4" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
+            <line x1="1.8" y1="-5.6" x2="5.8" y2="-4.2" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" />
+          </>
+        )}
       </g>
     );
   };
@@ -663,50 +746,52 @@ export const ChibiCharacterV2: React.FC<ChibiCharacterV2Props> = ({
 
     const isFarLegGrounded = skel.fFar[1] === 0;
     const isNearLegGrounded = skel.fNear[1] === 0;
-    const farFootAngle = skel.fFar[1] < 0 ? -12 : (isFront ? -6 : 0);
-    const nearFootAngle = skel.fNear[1] < 0 ? -12 : (isFront ? 6 : 0);
+    const farFootAngle = skel.fFar[1] < 0 ? -12 : 0;
+    const nearFootAngle = skel.fNear[1] < 0 ? -12 : 0;
+    const legAnkleFarY = skel.fFar[1] - 8;
+    const legAnkleNearY = skel.fNear[1] - 8;
 
     return (
       <g id="chibi-lower-body-group">
-        {/* 1. Far Leg (Bone: hipFar -> kFar -> fFar) */}
+        {/* 1. Far Leg (Bone: hipFar -> kFar -> fFar, enters collar at y = fFar[1] - 8) */}
         {bType === 'pants' ? (
           <g id="chibi-far-leg-pants">
             <line x1={skel.hipFar[0]} y1={skel.hipFar[1]} x2={skel.kFar[0]} y2={skel.kFar[1]} stroke={pantsCol} strokeWidth="14" strokeLinecap="round" />
-            <line x1={skel.kFar[0]} y1={skel.kFar[1]} x2={skel.fFar[0]} y2={skel.fFar[1] - 3} stroke={pantsCol} strokeWidth="12" strokeLinecap="round" />
+            <line x1={skel.kFar[0]} y1={skel.kFar[1]} x2={skel.fFar[0]} y2={legAnkleFarY} stroke={pantsCol} strokeWidth="12" strokeLinecap="round" />
             <circle cx={skel.kFar[0]} cy={skel.kFar[1]} r="6.5" fill={pantsCol} />
-            <line x1={skel.fFar[0] - 6} y1={skel.fFar[1] - 5} x2={skel.fFar[0] + 6} y2={skel.fFar[1] - 5} stroke={ink} strokeWidth="2.5" strokeLinecap="round" />
+            <line x1={skel.fFar[0] - 5.5} y1={legAnkleFarY - 1} x2={skel.fFar[0] + 5.5} y2={legAnkleFarY - 1} stroke={ink} strokeWidth="2.2" strokeLinecap="round" />
           </g>
         ) : (
           <g id="chibi-far-leg-bare">
             <line x1={skel.hipFar[0]} y1={skel.hipFar[1]} x2={skel.kFar[0]} y2={skel.kFar[1]} stroke={skin} strokeWidth="12" strokeLinecap="round" />
-            <line x1={skel.kFar[0]} y1={skel.kFar[1]} x2={skel.fFar[0]} y2={skel.fFar[1] - 3} stroke={skin} strokeWidth="10.5" strokeLinecap="round" />
+            <line x1={skel.kFar[0]} y1={skel.kFar[1]} x2={skel.fFar[0]} y2={legAnkleFarY} stroke={skin} strokeWidth="10.5" strokeLinecap="round" />
             <circle cx={skel.kFar[0]} cy={skel.kFar[1]} r="5.5" fill={skin} />
             <ellipse cx={skel.kFar[0]} cy={skel.kFar[1]} rx="3" ry="1.5" fill="#fca5a5" opacity={0.5} />
           </g>
         )}
 
         {/* 2. Far Shoe */}
-        {renderShoe(skel.fFar[0], skel.fFar[1], sType, shoeCol, false, farFootAngle, isFarLegGrounded)}
+        {renderShoe(skel.fFar[0], skel.fFar[1], sType, shoeCol, false, false, farFootAngle, isFarLegGrounded)}
 
-        {/* 3. Near Leg (Bone: hipNear -> kNear -> fNear) */}
+        {/* 3. Near Leg (Bone: hipNear -> kNear -> fNear, enters collar at y = fNear[1] - 8) */}
         {bType === 'pants' ? (
           <g id="chibi-near-leg-pants">
             <line x1={skel.hipNear[0]} y1={skel.hipNear[1]} x2={skel.kNear[0]} y2={skel.kNear[1]} stroke={pantsCol} strokeWidth="14" strokeLinecap="round" />
-            <line x1={skel.kNear[0]} y1={skel.kNear[1]} x2={skel.fNear[0]} y2={skel.fNear[1] - 3} stroke={pantsCol} strokeWidth="12" strokeLinecap="round" />
+            <line x1={skel.kNear[0]} y1={skel.kNear[1]} x2={skel.fNear[0]} y2={legAnkleNearY} stroke={pantsCol} strokeWidth="12" strokeLinecap="round" />
             <circle cx={skel.kNear[0]} cy={skel.kNear[1]} r="6.5" fill={pantsCol} />
-            <line x1={skel.fNear[0] - 6} y1={skel.fNear[1] - 5} x2={skel.fNear[0] + 6} y2={skel.fNear[1] - 5} stroke={ink} strokeWidth="2.5" strokeLinecap="round" />
+            <line x1={skel.fNear[0] - 5.5} y1={legAnkleNearY - 1} x2={skel.fNear[0] + 5.5} y2={legAnkleNearY - 1} stroke={ink} strokeWidth="2.2" strokeLinecap="round" />
           </g>
         ) : (
           <g id="chibi-near-leg-bare">
             <line x1={skel.hipNear[0]} y1={skel.hipNear[1]} x2={skel.kNear[0]} y2={skel.kNear[1]} stroke={skin} strokeWidth="12" strokeLinecap="round" />
-            <line x1={skel.kNear[0]} y1={skel.kNear[1]} x2={skel.fNear[0]} y2={skel.fNear[1] - 3} stroke={skin} strokeWidth="10.5" strokeLinecap="round" />
+            <line x1={skel.kNear[0]} y1={skel.kNear[1]} x2={skel.fNear[0]} y2={legAnkleNearY} stroke={skin} strokeWidth="10.5" strokeLinecap="round" />
             <circle cx={skel.kNear[0]} cy={skel.kNear[1]} r="5.5" fill={skin} />
             <ellipse cx={skel.kNear[0]} cy={skel.kNear[1]} rx="3" ry="1.5" fill="#fca5a5" opacity={0.5} />
           </g>
         )}
 
         {/* 4. Near Shoe */}
-        {renderShoe(skel.fNear[0], skel.fNear[1], sType, shoeCol, true, nearFootAngle, isNearLegGrounded)}
+        {renderShoe(skel.fNear[0], skel.fNear[1], sType, shoeCol, true, true, nearFootAngle, isNearLegGrounded)}
 
         {/* 5. Pelvis & Garment (Drawn OVER upper legs so legs naturally emerge from inside/below!) */}
         {bType === 'skirt' || bType === 'dress' ? (

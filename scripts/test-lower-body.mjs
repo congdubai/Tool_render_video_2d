@@ -20,64 +20,90 @@ export function renderChibiShoe({
   shoeCol = '#1e1e24',
   ink = '#191918',
   isFront = true,
-  isLeftFoot = false, // false = character right (screen left), true = character left (screen right)
+  isLeftFoot = false,
+  isNear = true,
   facing = 'front',
   footAngle = 0,
   isGrounded = true
 }) {
-  const isSide = facing === 'side_left' || facing === 'side_right';
-  const is3Q = facing.startsWith('three_quarter');
+  const isSide = facing === 'side_left' || facing === 'side_right' || facing === 'side';
+  const rot = isGrounded ? 0 : footAngle;
+  let s = '';
 
-  // Foot symmetry in Front view:
-  // When grounded (on floor y=0), keep sole strictly flat against ground y=0, no tilt!
-  let rot = isGrounded ? 0 : footAngle;
-
-  let s = `<g transform="translate(${x} ${y}) rotate(${rot})">\n`;
-
-  if (shoeType === 'boots') {
-    // Sturdy Boot with high shaft & lug sole
-    const bootW = isFront ? 22 : 24;
-    const xOff = isFront ? (isLeftFoot ? -9 : -12) : -11;
-    // 1. Lug sole (flat at y=0)
-    s += `  <path d="M ${xOff} -4 L ${xOff + bootW} -4 L ${xOff + bootW} 0 L ${xOff} 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="2" />\n`;
-    s += `  <line x1="${xOff + 5}" y1="-2" x2="${xOff + 5}" y2="0" stroke="#334155" stroke-width="1.8" />\n`;
-    s += `  <line x1="${xOff + 11}" y1="-2" x2="${xOff + 11}" y2="0" stroke="#334155" stroke-width="1.8" />\n`;
-    s += `  <line x1="${xOff + 17}" y1="-2" x2="${xOff + 17}" y2="0" stroke="#334155" stroke-width="1.8" />\n`;
-    // 2. Boot body & shaft up to y=-15
-    s += `  <path d="M ${xOff + 2} -14 L ${xOff + 18} -14 L ${xOff + 19} -7 Q ${xOff + bootW} -6 ${xOff + bootW} -4 L ${xOff} -4 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2.5" />\n`;
-    // 3. Cuff rim
-    s += `  <rect x="${xOff + 1}" y="-16" width="18" height="3" rx="1" fill="#334155" stroke="${ink}" stroke-width="1.8" />\n`;
-  } else if (shoeType === 'casual') {
-    // Sleek casual loafers / flats
-    const shoeW = isFront ? 21 : 23;
-    const xOff = isFront ? (isLeftFoot ? -9 : -12) : -10;
-    // 1. Slim dark sole (flat at y=0)
-    s += `  <path d="M ${xOff} -2.2 L ${xOff + shoeW} -2.2 L ${xOff + shoeW} 0 L ${xOff} 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="1.8" />\n`;
-    // 2. Sleek shoe upper
-    s += `  <path d="M ${xOff + 1} -7 Q ${xOff + 8} -8 ${xOff + 15} -7 Q ${xOff + shoeW} -6 ${xOff + shoeW} -2.2 L ${xOff} -2.2 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2.2" />\n`;
-    // 3. Low-cut collar scoop
-    s += `  <path d="M ${xOff + 4} -7 Q ${xOff + 9} -5 ${xOff + 14} -7" stroke="${ink}" stroke-width="1.8" fill="none" />\n`;
-    // 4. Subtle leather shine
-    s += `  <path d="M ${xOff + 13} -5.5 Q ${xOff + 17} -4.5 ${xOff + 18} -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />\n`;
-  } else {
-    // Default: Sneakers
-    const shoeW = isFront ? 23 : 25;
-    const xOff = isFront ? (isLeftFoot ? -9 : -13) : -11;
-    // 1. Thick white rubber sole (flat at y=0)
-    s += `  <path d="M ${xOff} -3.5 L ${xOff + shoeW} -3.5 L ${xOff + shoeW} 0 L ${xOff} 0 Z" fill="#ffffff" stroke="${ink}" stroke-width="2" />\n`;
-    s += `  <line x1="${xOff + 1}" y1="-1.6" x2="${xOff + shoeW - 1}" y2="-1.6" stroke="${ink}" stroke-width="1" opacity="0.3" />\n`;
-    // 2. Sneaker body
-    s += `  <path d="M ${xOff + 1} -8 Q ${xOff + 8} -9 ${xOff + 16} -8 Q ${xOff + shoeW} -7 ${xOff + shoeW} -3.5 L ${xOff} -3.5 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2.4" />\n`;
-    // 3. White rubber toe bumper
-    const toeBumperX = isFront && !isLeftFoot ? xOff : xOff + shoeW - 6;
-    s += `  <path d="M ${xOff + shoeW - 6} -3.5 Q ${xOff + shoeW - 4} -6 ${xOff + shoeW} -4 Q ${xOff + shoeW} -3.5 ${xOff + shoeW} -3.5 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.8" />\n`;
-    // 4. Collar opening where ankle enters
-    s += `  <ellipse cx="${xOff + 8}" cy="-8" rx="6" ry="2" fill="#334155" stroke="${ink}" stroke-width="1.8" />\n`;
-    // 5. White sneaker laces
-    s += `  <line x1="${xOff + 10}" y1="-7" x2="${xOff + 15}" y2="-5.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />\n`;
-    s += `  <line x1="${xOff + 11}" y1="-5.2" x2="${xOff + 16}" y2="-3.8" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />\n`;
+  if (isFront) {
+    const scaleX = isLeftFoot ? 1 : -1;
+    s += `<g id="${isLeftFoot ? 'left' : 'right'}-shoe-front" transform="translate(${x} ${y}) scale(${scaleX} 1) rotate(${rot})">\n`;
+    if (shoeType === 'boots') {
+      s += `  <path d="M -6 -3.5 L 9.5 -3.5 Q 10.5 -3.5 10.5 -1.5 L 10.5 0 L -6.5 0 L -6.5 -1.5 Q -6.5 -3.5 -6 -3.5 Z" fill="#0f172a" stroke="${ink}" stroke-width="2" />\n`;
+      s += `  <line x1="-1.5" y1="-2" x2="-1.5" y2="0" stroke="#334155" stroke-width="1.8" />\n`;
+      s += `  <line x1="4.5" y1="-2" x2="4.5" y2="0" stroke="#334155" stroke-width="1.8" />\n`;
+      s += `  <path d="M -5.5 -13.5 L 6.5 -13.5 Q 8.5 -8 9.5 -3.5 L -6 -3.5 Q -6.5 -8 -5.5 -13.5 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2.2" />\n`;
+      s += `  <rect x="-6.5" y="-15" width="14" height="3" rx="1.5" fill="#334155" stroke="${ink}" stroke-width="1.8" />\n`;
+      s += `  <path d="M 3.5 -3.5 Q 4 -6.5 8.5 -3.5" fill="none" stroke="${ink}" stroke-width="1.6" />\n`;
+    } else if (shoeType === 'casual') {
+      s += `  <path d="M -5 -2 L 8.5 -2 Q 9.5 -2 9.5 -0.8 L 9.5 0 L -5.5 0 L -5.5 -0.8 Q -5.5 -2 -5 -2 Z" fill="#0f172a" stroke="${ink}" stroke-width="1.6" />\n`;
+      s += `  <path d="M -5 -2 Q -5.5 -6 -3 -9 L 4 -9 Q 8.5 -6 8.5 -2 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2" />\n`;
+      s += `  <path d="M -2.5 -9 Q 0.5 -7 3.5 -9" fill="#1e293b" stroke="${ink}" stroke-width="1.6" />\n`;
+      s += `  <path d="M 3.5 -2 Q 4.5 -4.5 7.5 -2" fill="none" stroke="${ink}" stroke-width="1.4" opacity="0.6" />\n`;
+    } else {
+      s += `  <path d="M -5.5 -2.8 L 9 -2.8 Q 10 -2.8 10 -1.2 L 10 0 L -6 0 L -6 -1.2 Q -6 -2.8 -5.5 -2.8 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.8" />\n`;
+      s += `  <path d="M -5 -2.8 Q -5.8 -6.5 -3.5 -9.5 L 4 -9.5 Q 8.5 -6 9 -2.8 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2.2" />\n`;
+      s += `  <ellipse cx="0.5" cy="-9.5" rx="4.8" ry="1.6" fill="#334155" stroke="${ink}" stroke-width="1.6" />\n`;
+      s += `  <path d="M 4 -2.8 Q 4 -5.5 6.8 -5.5 Q 9 -4.8 9 -2.8 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.6" />\n`;
+      s += `  <line x1="-0.8" y1="-7.8" x2="3.2" y2="-7.0" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />\n`;
+      s += `  <line x1="0.2" y1="-5.6" x2="4.2" y2="-4.8" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />\n`;
+    }
+    s += `</g>\n`;
+    return s;
   }
 
+  if (isSide) {
+    s += `<g id="shoe-side" transform="translate(${x} ${y}) rotate(${rot})">\n`;
+    if (shoeType === 'boots') {
+      s += `  <path d="M -8 -3.8 L 11 -3.8 Q 13 -3.8 13 -1.5 Q 13 0 10.5 0 L -8 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="2" />\n`;
+      s += `  <line x1="-3" y1="-2" x2="-3" y2="0" stroke="#334155" stroke-width="1.8" />\n`;
+      s += `  <line x1="3" y1="-2" x2="3" y2="0" stroke="#334155" stroke-width="1.8" />\n`;
+      s += `  <line x1="8" y1="-2" x2="8" y2="0" stroke="#334155" stroke-width="1.8" />\n`;
+      s += `  <path d="M -8 -3.8 Q -8.5 -8 -4.5 -14 L 3 -14 Q 7 -8.5 12.5 -4.5 L 12.5 -3.8 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2.2" />\n`;
+      s += `  <rect x="-5.5" y="-15.5" width="10" height="3" rx="1.5" fill="#334155" stroke="${ink}" stroke-width="1.8" />\n`;
+      s += `  <path d="M 6.5 -3.8 Q 7.5 -7 12.5 -4.5" fill="none" stroke="${ink}" stroke-width="1.8" />\n`;
+    } else if (shoeType === 'casual') {
+      s += `  <path d="M -7 -2.2 L 10 -2.2 Q 11.5 -2.2 11.5 -0.8 Q 11.5 0 9.5 0 L -7 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="1.6" />\n`;
+      s += `  <path d="M -7 -2.2 Q -7.5 -6 -3.5 -8.5 Q 0 -6 3.5 -8.5 Q 7.5 -6.5 11 -3.2 L 11 -2.2 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2" />\n`;
+      s += `  <path d="M -3.5 -8.5 Q 0 -5.5 3.5 -8.5" fill="none" stroke="${ink}" stroke-width="1.6" />\n`;
+    } else {
+      s += `  <path d="M -7.5 -2.8 L 10.5 -2.8 Q 12.5 -2.8 12.5 -1.2 Q 12.5 0 9.5 0 L -7.5 0 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.8" />\n`;
+      s += `  <path d="M -7.5 -2.8 Q -8.2 -7 -4 -9.5 L 2.5 -9.5 Q 7 -7.5 12 -4 Q 12.5 -3 12 -2.8 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2.2" />\n`;
+      s += `  <ellipse cx="-0.8" cy="-9.5" rx="4.5" ry="1.6" fill="#334155" stroke="${ink}" stroke-width="1.6" />\n`;
+      s += `  <path d="M 6.5 -2.8 Q 7.5 -5.2 11.5 -4 Q 12 -3.2 11.8 -2.8 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.6" />\n`;
+      s += `  <line x1="0.5" y1="-8.0" x2="4.5" y2="-6.6" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />\n`;
+      s += `  <line x1="2.2" y1="-5.8" x2="6.2" y2="-4.4" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />\n`;
+    }
+    s += `</g>\n`;
+    return s;
+  }
+
+  const sc = isNear ? 1.0 : 0.92;
+  s += `<g id="${isNear ? 'near' : 'far'}-shoe-3q" transform="translate(${x} ${y}) scale(${sc}) rotate(${rot})">\n`;
+  if (shoeType === 'boots') {
+    s += `  <path d="M -7 -3.5 L 10.5 -3.5 Q 12 -3.5 12 -1.5 Q 12 0 10 0 L -7 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="2" />\n`;
+    s += `  <line x1="-2" y1="-2" x2="-2" y2="0" stroke="#334155" stroke-width="1.8" />\n`;
+    s += `  <line x1="4" y1="-2" x2="4" y2="0" stroke="#334155" stroke-width="1.8" />\n`;
+    s += `  <path d="M -7 -3.5 Q -7.5 -7.5 -4 -13.5 L 3.5 -13.5 Q 7.5 -8 11.5 -4 L 11.5 -3.5 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2.2" />\n`;
+    s += `  <rect x="-5" y="-15" width="10.5" height="3" rx="1.5" fill="#334155" stroke="${ink}" stroke-width="1.8" />\n`;
+    s += `  <path d="M 5.5 -3.5 Q 6.5 -6.5 11.5 -4" fill="none" stroke="${ink}" stroke-width="1.8" />\n`;
+  } else if (shoeType === 'casual') {
+    s += `  <path d="M -6.5 -2.2 L 9.5 -2.2 Q 11 -2.2 11 -0.8 Q 11 0 9 0 L -6.5 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="1.6" />\n`;
+    s += `  <path d="M -6.5 -2.2 Q -7 -5.5 -3 -8.5 Q 0.5 -6 4 -8.5 Q 7.5 -6 10.5 -3.2 L 10.5 -2.2 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2" />\n`;
+    s += `  <path d="M -3 -8.5 Q 0.5 -5.8 4 -8.5" fill="none" stroke="${ink}" stroke-width="1.6" />\n`;
+  } else {
+    s += `  <path d="M -7 -2.8 L 10 -2.8 Q 11.8 -2.8 11.8 -1.2 Q 11.8 0 9.2 0 L -7 0 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.8" />\n`;
+    s += `  <path d="M -7 -2.8 Q -7.5 -6.5 -3.5 -9.5 L 3 -9.5 Q 7 -7 11.2 -3.8 L 11.2 -2.8 Z" fill="${shoeCol}" stroke="${ink}" stroke-width="2.2" />\n`;
+    s += `  <ellipse cx="-0.2" cy="-9.5" rx="4.6" ry="1.6" fill="#334155" stroke="${ink}" stroke-width="1.6" />\n`;
+    s += `  <path d="M 5.8 -2.8 Q 6.8 -5 10.8 -3.8 Q 11.2 -3.2 11 -2.8 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.6" />\n`;
+    s += `  <line x1="0.2" y1="-7.8" x2="4.2" y2="-6.4" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />\n`;
+    s += `  <line x1="1.8" y1="-5.6" x2="5.8" y2="-4.2" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />\n`;
+  }
   s += `</g>\n`;
   return s;
 }
@@ -97,24 +123,20 @@ export function renderChibiLowerBody({
   flipX = 1
 }) {
   let s = '';
+  const legAnkleFarY = fFar[1] - 8;
+  const legAnkleNearY = fNear[1] - 8;
 
-  const isBareLeg = bottomType === 'skirt' || bottomType === 'dress' || bottomType === 'shorts';
-
-  // 1. Far Leg (Bone: hipFar -> kFar -> fFar)
+  // 1. Far Leg (Bone: hipFar -> kFar -> fFar, enters collar at y = fFar[1] - 8)
   s += `  <!-- Far Leg -->\n`;
   if (bottomType === 'pants') {
-    // Tapered pants leg
     s += `  <line x1="${hipFar[0]}" y1="${hipFar[1]}" x2="${kFar[0]}" y2="${kFar[1]}" stroke="${pantsCol}" stroke-width="14" stroke-linecap="round" />\n`;
-    s += `  <line x1="${kFar[0]}" y1="${kFar[1]}" x2="${fFar[0]}" y2="${fFar[1] - 3}" stroke="${pantsCol}" stroke-width="12" stroke-linecap="round" />\n`;
+    s += `  <line x1="${kFar[0]}" y1="${kFar[1]}" x2="${fFar[0]}" y2="${legAnkleFarY}" stroke="${pantsCol}" stroke-width="12" stroke-linecap="round" />\n`;
     s += `  <circle cx="${kFar[0]}" cy="${kFar[1]}" r="6.5" fill="${pantsCol}" />\n`;
-    // Pants cuff hem
-    s += `  <line x1="${fFar[0] - 6}" y1="${fFar[1] - 5}" x2="${fFar[0] + 6}" y2="${fFar[1] - 5}" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" />\n`;
+    s += `  <line x1="${fFar[0] - 5.5}" y1="${legAnkleFarY - 1}" x2="${fFar[0] + 5.5}" y2="${legAnkleFarY - 1}" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" />\n`;
   } else {
-    // Bare skin leg (under skirt or shorts)
     s += `  <line x1="${hipFar[0]}" y1="${hipFar[1]}" x2="${kFar[0]}" y2="${kFar[1]}" stroke="${skin}" stroke-width="12" stroke-linecap="round" />\n`;
-    s += `  <line x1="${kFar[0]}" y1="${kFar[1]}" x2="${fFar[0]}" y2="${fFar[1] - 3}" stroke="${skin}" stroke-width="10.5" stroke-linecap="round" />\n`;
+    s += `  <line x1="${kFar[0]}" y1="${kFar[1]}" x2="${fFar[0]}" y2="${legAnkleFarY}" stroke="${skin}" stroke-width="10.5" stroke-linecap="round" />\n`;
     s += `  <circle cx="${kFar[0]}" cy="${kFar[1]}" r="5.5" fill="${skin}" />\n`;
-    // Cute subtle knee blush / crease
     s += `  <ellipse cx="${kFar[0]}" cy="${kFar[1]}" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />\n`;
   }
 
@@ -128,22 +150,22 @@ export function renderChibiLowerBody({
     ink,
     isFront,
     isLeftFoot: false,
+    isNear: false,
     facing: isFront ? 'front' : isSide ? 'side' : '3q',
     footAngle: fFar[1] < 0 ? -12 : 0,
     isGrounded: fFar[1] === 0
   });
 
-  // 3. Near Leg (Bone: hipNear -> kNear -> fNear)
+  // 3. Near Leg (Bone: hipNear -> kNear -> fNear, enters collar at y = fNear[1] - 8)
   s += `  <!-- Near Leg -->\n`;
   if (bottomType === 'pants') {
     s += `  <line x1="${hipNear[0]}" y1="${hipNear[1]}" x2="${kNear[0]}" y2="${kNear[1]}" stroke="${pantsCol}" stroke-width="14" stroke-linecap="round" />\n`;
-    s += `  <line x1="${kNear[0]}" y1="${kNear[1]}" x2="${fNear[0]}" y2="${fNear[1] - 3}" stroke="${pantsCol}" stroke-width="12" stroke-linecap="round" />\n`;
+    s += `  <line x1="${kNear[0]}" y1="${kNear[1]}" x2="${fNear[0]}" y2="${legAnkleNearY}" stroke="${pantsCol}" stroke-width="12" stroke-linecap="round" />\n`;
     s += `  <circle cx="${kNear[0]}" cy="${kNear[1]}" r="6.5" fill="${pantsCol}" />\n`;
-    // Pants cuff hem
-    s += `  <line x1="${fNear[0] - 6}" y1="${fNear[1] - 5}" x2="${fNear[0] + 6}" y2="${fNear[1] - 5}" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" />\n`;
+    s += `  <line x1="${fNear[0] - 5.5}" y1="${legAnkleNearY - 1}" x2="${fNear[0] + 5.5}" y2="${legAnkleNearY - 1}" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" />\n`;
   } else {
     s += `  <line x1="${hipNear[0]}" y1="${hipNear[1]}" x2="${kNear[0]}" y2="${kNear[1]}" stroke="${skin}" stroke-width="12" stroke-linecap="round" />\n`;
-    s += `  <line x1="${kNear[0]}" y1="${kNear[1]}" x2="${fNear[0]}" y2="${fNear[1] - 3}" stroke="${skin}" stroke-width="10.5" stroke-linecap="round" />\n`;
+    s += `  <line x1="${kNear[0]}" y1="${kNear[1]}" x2="${fNear[0]}" y2="${legAnkleNearY}" stroke="${skin}" stroke-width="10.5" stroke-linecap="round" />\n`;
     s += `  <circle cx="${kNear[0]}" cy="${kNear[1]}" r="5.5" fill="${skin}" />\n`;
     s += `  <ellipse cx="${kNear[0]}" cy="${kNear[1]}" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />\n`;
   }
@@ -158,6 +180,7 @@ export function renderChibiLowerBody({
     ink,
     isFront,
     isLeftFoot: true,
+    isNear: true,
     facing: isFront ? 'front' : isSide ? 'side' : '3q',
     footAngle: fNear[1] < 0 ? -12 : 0,
     isGrounded: fNear[1] === 0

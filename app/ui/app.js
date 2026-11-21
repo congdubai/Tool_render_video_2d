@@ -2134,39 +2134,89 @@ function onHairPresetChanged(val) {
 // TRỰC QUAN HÓA LIVE SVG (RIG, POSES, EXPRESSIONS & FACING)
 // =========================================================================
 
-function renderShoeSvg({ x, y, shoeType, shoeColor, ink, isFront, isLeftFoot, footAngle = 0, isGrounded = true }) {
+function renderShoeSvg({ x, y, shoeType, shoeColor, ink, isFront, isSide, isLeftFoot, isNear = true, footAngle = 0, isGrounded = true }) {
   const rot = isGrounded ? 0 : footAngle;
-  let s = `<g transform="translate(${x} ${y}) rotate(${rot})">`;
+  let s = "";
 
-  if (shoeType === "boots") {
-    const bootW = isFront ? 22 : 24;
-    const xOff = isFront ? (isLeftFoot ? -9 : -12) : -11;
-    s += `<path d="M ${xOff} -4 L ${xOff + bootW} -4 L ${xOff + bootW} 0 L ${xOff} 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="2" />`;
-    s += `<line x1="${xOff + 5}" y1="-2" x2="${xOff + 5}" y2="0" stroke="#334155" stroke-width="1.8" />`;
-    s += `<line x1="${xOff + 11}" y1="-2" x2="${xOff + 11}" y2="0" stroke="#334155" stroke-width="1.8" />`;
-    s += `<line x1="${xOff + 17}" y1="-2" x2="${xOff + 17}" y2="0" stroke="#334155" stroke-width="1.8" />`;
-    s += `<path d="M ${xOff + 2} -14 L ${xOff + 18} -14 L ${xOff + 19} -7 Q ${xOff + bootW} -6 ${xOff + bootW} -4 L ${xOff} -4 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.5" />`;
-    s += `<rect x="${xOff + 1}" y="-16" width="18" height="3" rx="1" fill="#334155" stroke="${ink}" stroke-width="1.8" />`;
-  } else if (shoeType === "casual") {
-    const shoeW = isFront ? 21 : 23;
-    const xOff = isFront ? (isLeftFoot ? -9 : -12) : -10;
-    s += `<path d="M ${xOff} -2.2 L ${xOff + shoeW} -2.2 L ${xOff + shoeW} 0 L ${xOff} 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="1.8" />`;
-    s += `<path d="M ${xOff + 1} -7 Q ${xOff + 8} -8 ${xOff + 15} -7 Q ${xOff + shoeW} -6 ${xOff + shoeW} -2.2 L ${xOff} -2.2 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.2" />`;
-    s += `<path d="M ${xOff + 4} -7 Q ${xOff + 9} -5 ${xOff + 14} -7" stroke="${ink}" stroke-width="1.8" fill="none" />`;
-    s += `<path d="M ${xOff + 13} -5.5 Q ${xOff + 17} -4.5 ${xOff + 18} -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />`;
-  } else {
-    // Default: Sneakers
-    const shoeW = isFront ? 23 : 25;
-    const xOff = isFront ? (isLeftFoot ? -9 : -13) : -11;
-    s += `<path d="M ${xOff} -3.5 L ${xOff + shoeW} -3.5 L ${xOff + shoeW} 0 L ${xOff} 0 Z" fill="#ffffff" stroke="${ink}" stroke-width="2" />`;
-    s += `<line x1="${xOff + 1}" y1="-1.6" x2="${xOff + shoeW - 1}" y2="-1.6" stroke="${ink}" stroke-width="1" opacity="0.3" />`;
-    s += `<path d="M ${xOff + 1} -8 Q ${xOff + 8} -9 ${xOff + 16} -8 Q ${xOff + shoeW} -7 ${xOff + shoeW} -3.5 L ${xOff} -3.5 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.4" />`;
-    s += `<path d="M ${xOff + shoeW - 6} -3.5 Q ${xOff + shoeW - 4} -6 ${xOff + shoeW} -4 Q ${xOff + shoeW} -3.5 ${xOff + shoeW} -3.5 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.8" />`;
-    s += `<ellipse cx="${xOff + 8}" cy="-8" rx="6" ry="2" fill="#334155" stroke="${ink}" stroke-width="1.8" />`;
-    s += `<line x1="${xOff + 10}" y1="-7" x2="${xOff + 15}" y2="-5.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" />`;
-    s += `<line x1="${xOff + 11}" y1="-5.2" x2="${xOff + 16}" y2="-3.8" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`;
+  if (isFront) {
+    const scaleX = isLeftFoot ? 1 : -1;
+    s += `<g id="${isLeftFoot ? 'left' : 'right'}-shoe-front" transform="translate(${x} ${y}) scale(${scaleX} 1) rotate(${rot})">`;
+
+    if (shoeType === "boots") {
+      s += `<path d="M -6 -3.5 L 9.5 -3.5 Q 10.5 -3.5 10.5 -1.5 L 10.5 0 L -6.5 0 L -6.5 -1.5 Q -6.5 -3.5 -6 -3.5 Z" fill="#0f172a" stroke="${ink}" stroke-width="2" />`;
+      s += `<line x1="-1.5" y1="-2" x2="-1.5" y2="0" stroke="#334155" stroke-width="1.8" />`;
+      s += `<line x1="4.5" y1="-2" x2="4.5" y2="0" stroke="#334155" stroke-width="1.8" />`;
+      s += `<path d="M -5.5 -13.5 L 6.5 -13.5 Q 8.5 -8 9.5 -3.5 L -6 -3.5 Q -6.5 -8 -5.5 -13.5 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.2" />`;
+      s += `<rect x="-6.5" y="-15" width="14" height="3" rx="1.5" fill="#334155" stroke="${ink}" stroke-width="1.8" />`;
+      s += `<path d="M 3.5 -3.5 Q 4 -6.5 8.5 -3.5" fill="none" stroke="${ink}" stroke-width="1.6" />`;
+    } else if (shoeType === "casual") {
+      s += `<path d="M -5 -2 L 8.5 -2 Q 9.5 -2 9.5 -0.8 L 9.5 0 L -5.5 0 L -5.5 -0.8 Q -5.5 -2 -5 -2 Z" fill="#0f172a" stroke="${ink}" stroke-width="1.6" />`;
+      s += `<path d="M -5 -2 Q -5.5 -6 -3 -9 L 4 -9 Q 8.5 -6 8.5 -2 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2" />`;
+      s += `<path d="M -2.5 -9 Q 0.5 -7 3.5 -9" fill="#1e293b" stroke="${ink}" stroke-width="1.6" />`;
+      s += `<path d="M 3.5 -2 Q 4.5 -4.5 7.5 -2" fill="none" stroke="${ink}" stroke-width="1.4" opacity="0.6" />`;
+    } else {
+      // Sneakers
+      s += `<path d="M -5.5 -2.8 L 9 -2.8 Q 10 -2.8 10 -1.2 L 10 0 L -6 0 L -6 -1.2 Q -6 -2.8 -5.5 -2.8 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.8" />`;
+      s += `<path d="M -5 -2.8 Q -5.8 -6.5 -3.5 -9.5 L 4 -9.5 Q 8.5 -6 9 -2.8 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.2" />`;
+      s += `<ellipse cx="0.5" cy="-9.5" rx="4.8" ry="1.6" fill="#334155" stroke="${ink}" stroke-width="1.6" />`;
+      s += `<path d="M 4 -2.8 Q 4 -5.5 6.8 -5.5 Q 9 -4.8 9 -2.8 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.6" />`;
+      s += `<line x1="-0.8" y1="-7.8" x2="3.2" y2="-7.0" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />`;
+      s += `<line x1="0.2" y1="-5.6" x2="4.2" y2="-4.8" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />`;
+    }
+    s += `</g>`;
+    return s;
   }
 
+  if (isSide) {
+    s += `<g id="shoe-side" transform="translate(${x} ${y}) rotate(${rot})">`;
+    if (shoeType === "boots") {
+      s += `<path d="M -8 -3.8 L 11 -3.8 Q 13 -3.8 13 -1.5 Q 13 0 10.5 0 L -8 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="2" />`;
+      s += `<line x1="-3" y1="-2" x2="-3" y2="0" stroke="#334155" stroke-width="1.8" />`;
+      s += `<line x1="3" y1="-2" x2="3" y2="0" stroke="#334155" stroke-width="1.8" />`;
+      s += `<line x1="8" y1="-2" x2="8" y2="0" stroke="#334155" stroke-width="1.8" />`;
+      s += `<path d="M -8 -3.8 Q -8.5 -8 -4.5 -14 L 3 -14 Q 7 -8.5 12.5 -4.5 L 12.5 -3.8 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.2" />`;
+      s += `<rect x="-5.5" y="-15.5" width="10" height="3" rx="1.5" fill="#334155" stroke="${ink}" stroke-width="1.8" />`;
+      s += `<path d="M 6.5 -3.8 Q 7.5 -7 12.5 -4.5" fill="none" stroke="${ink}" stroke-width="1.8" />`;
+    } else if (shoeType === "casual") {
+      s += `<path d="M -7 -2.2 L 10 -2.2 Q 11.5 -2.2 11.5 -0.8 Q 11.5 0 9.5 0 L -7 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="1.6" />`;
+      s += `<path d="M -7 -2.2 Q -7.5 -6 -3.5 -8.5 Q 0 -6 3.5 -8.5 Q 7.5 -6.5 11 -3.2 L 11 -2.2 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2" />`;
+      s += `<path d="M -3.5 -8.5 Q 0 -5.5 3.5 -8.5" fill="none" stroke="${ink}" stroke-width="1.6" />`;
+    } else {
+      // Sneakers
+      s += `<path d="M -7.5 -2.8 L 10.5 -2.8 Q 12.5 -2.8 12.5 -1.2 Q 12.5 0 9.5 0 L -7.5 0 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.8" />`;
+      s += `<path d="M -7.5 -2.8 Q -8.2 -7 -4 -9.5 L 2.5 -9.5 Q 7 -7.5 12 -4 Q 12.5 -3 12 -2.8 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.2" />`;
+      s += `<ellipse cx="-0.8" cy="-9.5" rx="4.5" ry="1.6" fill="#334155" stroke="${ink}" stroke-width="1.6" />`;
+      s += `<path d="M 6.5 -2.8 Q 7.5 -5.2 11.5 -4 Q 12 -3.2 11.8 -2.8 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.6" />`;
+      s += `<line x1="0.5" y1="-8.0" x2="4.5" y2="-6.6" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />`;
+      s += `<line x1="2.2" y1="-5.8" x2="6.2" y2="-4.4" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />`;
+    }
+    s += `</g>`;
+    return s;
+  }
+
+  // Three-quarter view
+  const sc = isNear ? 1.0 : 0.92;
+  s += `<g id="${isNear ? 'near' : 'far'}-shoe-3q" transform="translate(${x} ${y}) scale(${sc}) rotate(${rot})">`;
+  if (shoeType === "boots") {
+    s += `<path d="M -7 -3.5 L 10.5 -3.5 Q 12 -3.5 12 -1.5 Q 12 0 10 0 L -7 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="2" />`;
+    s += `<line x1="-2" y1="-2" x2="-2" y2="0" stroke="#334155" stroke-width="1.8" />`;
+    s += `<line x1="4" y1="-2" x2="4" y2="0" stroke="#334155" stroke-width="1.8" />`;
+    s += `<path d="M -7 -3.5 Q -7.5 -7.5 -4 -13.5 L 3.5 -13.5 Q 7.5 -8 11.5 -4 L 11.5 -3.5 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.2" />`;
+    s += `<rect x="-5" y="-15" width="10.5" height="3" rx="1.5" fill="#334155" stroke="${ink}" stroke-width="1.8" />`;
+    s += `<path d="M 5.5 -3.5 Q 6.5 -6.5 11.5 -4" fill="none" stroke="${ink}" stroke-width="1.8" />`;
+  } else if (shoeType === "casual") {
+    s += `<path d="M -6.5 -2.2 L 9.5 -2.2 Q 11 -2.2 11 -0.8 Q 11 0 9 0 L -6.5 0 Z" fill="#0f172a" stroke="${ink}" stroke-width="1.6" />`;
+    s += `<path d="M -6.5 -2.2 Q -7 -5.5 -3 -8.5 Q 0.5 -6 4 -8.5 Q 7.5 -6 10.5 -3.2 L 10.5 -2.2 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2" />`;
+    s += `<path d="M -3 -8.5 Q 0.5 -5.8 4 -8.5" fill="none" stroke="${ink}" stroke-width="1.6" />`;
+  } else {
+    // Sneakers
+    s += `<path d="M -7 -2.8 L 10 -2.8 Q 11.8 -2.8 11.8 -1.2 Q 11.8 0 9.2 0 L -7 0 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.8" />`;
+    s += `<path d="M -7 -2.8 Q -7.5 -6.5 -3.5 -9.5 L 3 -9.5 Q 7 -7 11.2 -3.8 L 11.2 -2.8 Z" fill="${shoeColor}" stroke="${ink}" stroke-width="2.2" />`;
+    s += `<ellipse cx="-0.2" cy="-9.5" rx="4.6" ry="1.6" fill="#334155" stroke="${ink}" stroke-width="1.6" />`;
+    s += `<path d="M 5.8 -2.8 Q 6.8 -5 10.8 -3.8 Q 11.2 -3.2 11 -2.8 Z" fill="#ffffff" stroke="${ink}" stroke-width="1.6" />`;
+    s += `<line x1="0.2" y1="-7.8" x2="4.2" y2="-6.4" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />`;
+    s += `<line x1="1.8" y1="-5.6" x2="5.8" y2="-4.2" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" />`;
+  }
   s += `</g>`;
   return s;
 }
@@ -2302,21 +2352,24 @@ function updateLivePreview() {
   html += `<circle cx="${hFar[0]}" cy="${hFar[1]}" r="6" fill="${skin}" stroke="${ink}" stroke-width="2.5" />`;
 
   // 3. Lower Body (Far leg, Far shoe, Near leg, Near shoe, Pelvis/Garment)
-  // 3a. Far Leg
+  const legAnkleFarY = fFar[1] - 8;
+  const legAnkleNearY = fNear[1] - 8;
+
+  // 3a. Far Leg (Bone: hipFar -> kFar -> fFar, enters shoe collar at y = fFar[1] - 8)
   if (bottomType === "pants") {
     html += `<line x1="${hipFar[0]}" y1="${hipFar[1]}" x2="${kFar[0]}" y2="${kFar[1]}" stroke="${pantsColor}" stroke-width="14" stroke-linecap="round" />`;
-    html += `<line x1="${kFar[0]}" y1="${kFar[1]}" x2="${fFar[0]}" y2="${fFar[1] - 3}" stroke="${pantsColor}" stroke-width="12" stroke-linecap="round" />`;
+    html += `<line x1="${kFar[0]}" y1="${kFar[1]}" x2="${fFar[0]}" y2="${legAnkleFarY}" stroke="${pantsColor}" stroke-width="12" stroke-linecap="round" />`;
     html += `<circle cx="${kFar[0]}" cy="${kFar[1]}" r="6.5" fill="${pantsColor}" />`;
-    html += `<line x1="${fFar[0] - 6}" y1="${fFar[1] - 5}" x2="${fFar[0] + 6}" y2="${fFar[1] - 5}" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" />`;
+    html += `<line x1="${fFar[0] - 5.5}" y1="${legAnkleFarY - 1}" x2="${fFar[0] + 5.5}" y2="${legAnkleFarY - 1}" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" />`;
   } else {
     html += `<line x1="${hipFar[0]}" y1="${hipFar[1]}" x2="${kFar[0]}" y2="${kFar[1]}" stroke="${skin}" stroke-width="12" stroke-linecap="round" />`;
-    html += `<line x1="${kFar[0]}" y1="${kFar[1]}" x2="${fFar[0]}" y2="${fFar[1] - 3}" stroke="${skin}" stroke-width="10.5" stroke-linecap="round" />`;
+    html += `<line x1="${kFar[0]}" y1="${kFar[1]}" x2="${fFar[0]}" y2="${legAnkleFarY}" stroke="${skin}" stroke-width="10.5" stroke-linecap="round" />`;
     html += `<circle cx="${kFar[0]}" cy="${kFar[1]}" r="5.5" fill="${skin}" />`;
     html += `<ellipse cx="${kFar[0]}" cy="${kFar[1]}" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />`;
   }
 
   // 3b. Far Shoe
-  const farFootAngle = fFar[1] < 0 ? -12 : (isFront ? -6 : 0);
+  const farFootAngle = fFar[1] < 0 ? -12 : 0;
   html += renderShoeSvg({
     x: fFar[0],
     y: fFar[1],
@@ -2324,26 +2377,28 @@ function updateLivePreview() {
     shoeColor,
     ink,
     isFront,
+    isSide,
     isLeftFoot: false,
+    isNear: false,
     footAngle: farFootAngle,
     isGrounded: fFar[1] === 0
   });
 
-  // 3c. Near Leg
+  // 3c. Near Leg (Bone: hipNear -> kNear -> fNear, enters shoe collar at y = fNear[1] - 8)
   if (bottomType === "pants") {
     html += `<line x1="${hipNear[0]}" y1="${hipNear[1]}" x2="${kNear[0]}" y2="${kNear[1]}" stroke="${pantsColor}" stroke-width="14" stroke-linecap="round" />`;
-    html += `<line x1="${kNear[0]}" y1="${kNear[1]}" x2="${fNear[0]}" y2="${fNear[1] - 3}" stroke="${pantsColor}" stroke-width="12" stroke-linecap="round" />`;
+    html += `<line x1="${kNear[0]}" y1="${kNear[1]}" x2="${fNear[0]}" y2="${legAnkleNearY}" stroke="${pantsColor}" stroke-width="12" stroke-linecap="round" />`;
     html += `<circle cx="${kNear[0]}" cy="${kNear[1]}" r="6.5" fill="${pantsColor}" />`;
-    html += `<line x1="${fNear[0] - 6}" y1="${fNear[1] - 5}" x2="${fNear[0] + 6}" y2="${fNear[1] - 5}" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" />`;
+    html += `<line x1="${fNear[0] - 5.5}" y1="${legAnkleNearY - 1}" x2="${fNear[0] + 5.5}" y2="${legAnkleNearY - 1}" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" />`;
   } else {
     html += `<line x1="${hipNear[0]}" y1="${hipNear[1]}" x2="${kNear[0]}" y2="${kNear[1]}" stroke="${skin}" stroke-width="12" stroke-linecap="round" />`;
-    html += `<line x1="${kNear[0]}" y1="${kNear[1]}" x2="${fNear[0]}" y2="${fNear[1] - 3}" stroke="${skin}" stroke-width="10.5" stroke-linecap="round" />`;
+    html += `<line x1="${kNear[0]}" y1="${kNear[1]}" x2="${fNear[0]}" y2="${legAnkleNearY}" stroke="${skin}" stroke-width="10.5" stroke-linecap="round" />`;
     html += `<circle cx="${kNear[0]}" cy="${kNear[1]}" r="5.5" fill="${skin}" />`;
     html += `<ellipse cx="${kNear[0]}" cy="${kNear[1]}" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />`;
   }
 
   // 3d. Near Shoe
-  const nearFootAngle = fNear[1] < 0 ? -12 : (isFront ? 6 : 0);
+  const nearFootAngle = fNear[1] < 0 ? -12 : 0;
   html += renderShoeSvg({
     x: fNear[0],
     y: fNear[1],
@@ -2351,7 +2406,9 @@ function updateLivePreview() {
     shoeColor,
     ink,
     isFront,
+    isSide,
     isLeftFoot: true,
+    isNear: true,
     footAngle: nearFootAngle,
     isGrounded: fNear[1] === 0
   });

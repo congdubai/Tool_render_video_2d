@@ -11,27 +11,25 @@
   <circle cx="-8" cy="-42" r="6" fill="#ffe8d6" stroke="#191918" stroke-width="2.5" />
   <!-- Far Leg -->
   <line x1="-4" y1="-40" x2="-4" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
-  <line x1="-4" y1="-20" x2="-2" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <line x1="-4" y1="-20" x2="-2" y2="-8" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
   <circle cx="-4" cy="-20" r="5.5" fill="#ffe8d6" />
   <ellipse cx="-4" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
   <!-- Far Shoe -->
-<g transform="translate(-2 0) rotate(0)">
-  <path d="M -10 -2.2 L 13 -2.2 L 13 0 L -10 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
-  <path d="M -9 -7 Q -2 -8 5 -7 Q 13 -6 13 -2.2 L -10 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
-  <path d="M -6 -7 Q -1 -5 4 -7" stroke="#191918" stroke-width="1.8" fill="none" />
-  <path d="M 3 -5.5 Q 7 -4.5 8 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+<g id="shoe-side" transform="translate(-2 0) rotate(0)">
+  <path d="M -7 -2.2 L 10 -2.2 Q 11.5 -2.2 11.5 -0.8 Q 11.5 0 9.5 0 L -7 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.6" />
+  <path d="M -7 -2.2 Q -7.5 -6 -3.5 -8.5 Q 0 -6 3.5 -8.5 Q 7.5 -6.5 11 -3.2 L 11 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2" />
+  <path d="M -3.5 -8.5 Q 0 -5.5 3.5 -8.5" fill="none" stroke="#191918" stroke-width="1.6" />
 </g>
   <!-- Near Leg -->
   <line x1="4" y1="-40" x2="6" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
-  <line x1="6" y1="-20" x2="8" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <line x1="6" y1="-20" x2="8" y2="-8" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
   <circle cx="6" cy="-20" r="5.5" fill="#ffe8d6" />
   <ellipse cx="6" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
   <!-- Near Shoe -->
-<g transform="translate(8 0) rotate(0)">
-  <path d="M -10 -2.2 L 13 -2.2 L 13 0 L -10 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
-  <path d="M -9 -7 Q -2 -8 5 -7 Q 13 -6 13 -2.2 L -10 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
-  <path d="M -6 -7 Q -1 -5 4 -7" stroke="#191918" stroke-width="1.8" fill="none" />
-  <path d="M 3 -5.5 Q 7 -4.5 8 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+<g id="shoe-side" transform="translate(8 0) rotate(0)">
+  <path d="M -7 -2.2 L 10 -2.2 Q 11.5 -2.2 11.5 -0.8 Q 11.5 0 9.5 0 L -7 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.6" />
+  <path d="M -7 -2.2 Q -7.5 -6 -3.5 -8.5 Q 0 -6 3.5 -8.5 Q 7.5 -6.5 11 -3.2 L 11 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2" />
+  <path d="M -3.5 -8.5 Q 0 -5.5 3.5 -8.5" fill="none" stroke="#191918" stroke-width="1.6" />
 </g>
   <!-- Pelvis & Garment Layer -->
   <path d="M -13 -42 L 13 -42 L 17 -22 Q 0 -18 -15 -22 Z" fill="#fbcfe8" stroke="#191918" stroke-width="3.5" />
@@ -74,27 +72,25 @@
   <circle cx="-19" cy="-42" r="6" fill="#ffe8d6" stroke="#191918" stroke-width="2.5" />
   <!-- Far Leg -->
   <line x1="-10" y1="-40" x2="-10" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
-  <line x1="-10" y1="-20" x2="-10" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <line x1="-10" y1="-20" x2="-10" y2="-8" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
   <circle cx="-10" cy="-20" r="5.5" fill="#ffe8d6" />
   <ellipse cx="-10" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
   <!-- Far Shoe -->
-<g transform="translate(-10 0) rotate(0)">
-  <path d="M -10 -2.2 L 13 -2.2 L 13 0 L -10 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
-  <path d="M -9 -7 Q -2 -8 5 -7 Q 13 -6 13 -2.2 L -10 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
-  <path d="M -6 -7 Q -1 -5 4 -7" stroke="#191918" stroke-width="1.8" fill="none" />
-  <path d="M 3 -5.5 Q 7 -4.5 8 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+<g id="far-shoe-3q" transform="translate(-10 0) scale(0.92) rotate(0)">
+  <path d="M -6.5 -2.2 L 9.5 -2.2 Q 11 -2.2 11 -0.8 Q 11 0 9 0 L -6.5 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.6" />
+  <path d="M -6.5 -2.2 Q -7 -5.5 -3 -8.5 Q 0.5 -6 4 -8.5 Q 7.5 -6 10.5 -3.2 L 10.5 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2" />
+  <path d="M -3 -8.5 Q 0.5 -5.8 4 -8.5" fill="none" stroke="#191918" stroke-width="1.6" />
 </g>
   <!-- Near Leg -->
   <line x1="10" y1="-40" x2="12" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
-  <line x1="12" y1="-20" x2="12" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <line x1="12" y1="-20" x2="12" y2="-8" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
   <circle cx="12" cy="-20" r="5.5" fill="#ffe8d6" />
   <ellipse cx="12" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
   <!-- Near Shoe -->
-<g transform="translate(12 0) rotate(0)">
-  <path d="M -10 -2.2 L 13 -2.2 L 13 0 L -10 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
-  <path d="M -9 -7 Q -2 -8 5 -7 Q 13 -6 13 -2.2 L -10 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
-  <path d="M -6 -7 Q -1 -5 4 -7" stroke="#191918" stroke-width="1.8" fill="none" />
-  <path d="M 3 -5.5 Q 7 -4.5 8 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+<g id="near-shoe-3q" transform="translate(12 0) scale(1) rotate(0)">
+  <path d="M -6.5 -2.2 L 9.5 -2.2 Q 11 -2.2 11 -0.8 Q 11 0 9 0 L -6.5 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.6" />
+  <path d="M -6.5 -2.2 Q -7 -5.5 -3 -8.5 Q 0.5 -6 4 -8.5 Q 7.5 -6 10.5 -3.2 L 10.5 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2" />
+  <path d="M -3 -8.5 Q 0.5 -5.8 4 -8.5" fill="none" stroke="#191918" stroke-width="1.6" />
 </g>
   <!-- Pelvis & Garment Layer -->
   <path d="M -17 -42 L 18 -42 L 24 -22 Q 2 -18 -22 -22 Z" fill="#fbcfe8" stroke="#191918" stroke-width="3.5" />
@@ -142,27 +138,27 @@
   <circle cx="-25" cy="-40" r="6" fill="#ffe8d6" stroke="#191918" stroke-width="2.5" />
   <!-- Far Leg -->
   <line x1="-13" y1="-40" x2="-14" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
-  <line x1="-14" y1="-20" x2="-15" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <line x1="-14" y1="-20" x2="-15" y2="-8" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
   <circle cx="-14" cy="-20" r="5.5" fill="#ffe8d6" />
   <ellipse cx="-14" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
   <!-- Far Shoe -->
-<g transform="translate(-15 0) rotate(0)">
-  <path d="M -12 -2.2 L 9 -2.2 L 9 0 L -12 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
-  <path d="M -11 -7 Q -4 -8 3 -7 Q 9 -6 9 -2.2 L -12 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
-  <path d="M -8 -7 Q -3 -5 2 -7" stroke="#191918" stroke-width="1.8" fill="none" />
-  <path d="M 1 -5.5 Q 5 -4.5 6 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+<g id="right-shoe-front" transform="translate(-15 0) scale(-1 1) rotate(0)">
+  <path d="M -5 -2 L 8.5 -2 Q 9.5 -2 9.5 -0.8 L 9.5 0 L -5.5 0 L -5.5 -0.8 Q -5.5 -2 -5 -2 Z" fill="#0f172a" stroke="#191918" stroke-width="1.6" />
+  <path d="M -5 -2 Q -5.5 -6 -3 -9 L 4 -9 Q 8.5 -6 8.5 -2 Z" fill="#831843" stroke="#191918" stroke-width="2" />
+  <path d="M -2.5 -9 Q 0.5 -7 3.5 -9" fill="#1e293b" stroke="#191918" stroke-width="1.6" />
+  <path d="M 3.5 -2 Q 4.5 -4.5 7.5 -2" fill="none" stroke="#191918" stroke-width="1.4" opacity="0.6" />
 </g>
   <!-- Near Leg -->
   <line x1="13" y1="-40" x2="14" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
-  <line x1="14" y1="-20" x2="15" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <line x1="14" y1="-20" x2="15" y2="-8" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
   <circle cx="14" cy="-20" r="5.5" fill="#ffe8d6" />
   <ellipse cx="14" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
   <!-- Near Shoe -->
-<g transform="translate(15 0) rotate(0)">
-  <path d="M -9 -2.2 L 12 -2.2 L 12 0 L -9 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
-  <path d="M -8 -7 Q -1 -8 6 -7 Q 12 -6 12 -2.2 L -9 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
-  <path d="M -5 -7 Q 0 -5 5 -7" stroke="#191918" stroke-width="1.8" fill="none" />
-  <path d="M 4 -5.5 Q 8 -4.5 9 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+<g id="left-shoe-front" transform="translate(15 0) scale(1 1) rotate(0)">
+  <path d="M -5 -2 L 8.5 -2 Q 9.5 -2 9.5 -0.8 L 9.5 0 L -5.5 0 L -5.5 -0.8 Q -5.5 -2 -5 -2 Z" fill="#0f172a" stroke="#191918" stroke-width="1.6" />
+  <path d="M -5 -2 Q -5.5 -6 -3 -9 L 4 -9 Q 8.5 -6 8.5 -2 Z" fill="#831843" stroke="#191918" stroke-width="2" />
+  <path d="M -2.5 -9 Q 0.5 -7 3.5 -9" fill="#1e293b" stroke="#191918" stroke-width="1.6" />
+  <path d="M 3.5 -2 Q 4.5 -4.5 7.5 -2" fill="none" stroke="#191918" stroke-width="1.4" opacity="0.6" />
 </g>
   <!-- Pelvis & Garment Layer -->
   <path d="M -18 -42 L 18 -42 L 25 -22 Q 0 -18 -25 -22 Z" fill="#fbcfe8" stroke="#191918" stroke-width="3.5" />
@@ -212,27 +208,25 @@
   <circle cx="-19" cy="-42" r="6" fill="#ffe8d6" stroke="#191918" stroke-width="2.5" />
   <!-- Far Leg -->
   <line x1="-10" y1="-40" x2="-10" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
-  <line x1="-10" y1="-20" x2="-10" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <line x1="-10" y1="-20" x2="-10" y2="-8" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
   <circle cx="-10" cy="-20" r="5.5" fill="#ffe8d6" />
   <ellipse cx="-10" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
   <!-- Far Shoe -->
-<g transform="translate(-10 0) rotate(0)">
-  <path d="M -10 -2.2 L 13 -2.2 L 13 0 L -10 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
-  <path d="M -9 -7 Q -2 -8 5 -7 Q 13 -6 13 -2.2 L -10 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
-  <path d="M -6 -7 Q -1 -5 4 -7" stroke="#191918" stroke-width="1.8" fill="none" />
-  <path d="M 3 -5.5 Q 7 -4.5 8 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+<g id="far-shoe-3q" transform="translate(-10 0) scale(0.92) rotate(0)">
+  <path d="M -6.5 -2.2 L 9.5 -2.2 Q 11 -2.2 11 -0.8 Q 11 0 9 0 L -6.5 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.6" />
+  <path d="M -6.5 -2.2 Q -7 -5.5 -3 -8.5 Q 0.5 -6 4 -8.5 Q 7.5 -6 10.5 -3.2 L 10.5 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2" />
+  <path d="M -3 -8.5 Q 0.5 -5.8 4 -8.5" fill="none" stroke="#191918" stroke-width="1.6" />
 </g>
   <!-- Near Leg -->
   <line x1="10" y1="-40" x2="12" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
-  <line x1="12" y1="-20" x2="12" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <line x1="12" y1="-20" x2="12" y2="-8" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
   <circle cx="12" cy="-20" r="5.5" fill="#ffe8d6" />
   <ellipse cx="12" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
   <!-- Near Shoe -->
-<g transform="translate(12 0) rotate(0)">
-  <path d="M -10 -2.2 L 13 -2.2 L 13 0 L -10 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
-  <path d="M -9 -7 Q -2 -8 5 -7 Q 13 -6 13 -2.2 L -10 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
-  <path d="M -6 -7 Q -1 -5 4 -7" stroke="#191918" stroke-width="1.8" fill="none" />
-  <path d="M 3 -5.5 Q 7 -4.5 8 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+<g id="near-shoe-3q" transform="translate(12 0) scale(1) rotate(0)">
+  <path d="M -6.5 -2.2 L 9.5 -2.2 Q 11 -2.2 11 -0.8 Q 11 0 9 0 L -6.5 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.6" />
+  <path d="M -6.5 -2.2 Q -7 -5.5 -3 -8.5 Q 0.5 -6 4 -8.5 Q 7.5 -6 10.5 -3.2 L 10.5 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2" />
+  <path d="M -3 -8.5 Q 0.5 -5.8 4 -8.5" fill="none" stroke="#191918" stroke-width="1.6" />
 </g>
   <!-- Pelvis & Garment Layer -->
   <path d="M -17 -42 L 18 -42 L 24 -22 Q 2 -18 -22 -22 Z" fill="#fbcfe8" stroke="#191918" stroke-width="3.5" />
@@ -280,27 +274,25 @@
   <circle cx="-8" cy="-42" r="6" fill="#ffe8d6" stroke="#191918" stroke-width="2.5" />
   <!-- Far Leg -->
   <line x1="-4" y1="-40" x2="-4" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
-  <line x1="-4" y1="-20" x2="-2" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <line x1="-4" y1="-20" x2="-2" y2="-8" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
   <circle cx="-4" cy="-20" r="5.5" fill="#ffe8d6" />
   <ellipse cx="-4" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
   <!-- Far Shoe -->
-<g transform="translate(-2 0) rotate(0)">
-  <path d="M -10 -2.2 L 13 -2.2 L 13 0 L -10 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
-  <path d="M -9 -7 Q -2 -8 5 -7 Q 13 -6 13 -2.2 L -10 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
-  <path d="M -6 -7 Q -1 -5 4 -7" stroke="#191918" stroke-width="1.8" fill="none" />
-  <path d="M 3 -5.5 Q 7 -4.5 8 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+<g id="shoe-side" transform="translate(-2 0) rotate(0)">
+  <path d="M -7 -2.2 L 10 -2.2 Q 11.5 -2.2 11.5 -0.8 Q 11.5 0 9.5 0 L -7 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.6" />
+  <path d="M -7 -2.2 Q -7.5 -6 -3.5 -8.5 Q 0 -6 3.5 -8.5 Q 7.5 -6.5 11 -3.2 L 11 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2" />
+  <path d="M -3.5 -8.5 Q 0 -5.5 3.5 -8.5" fill="none" stroke="#191918" stroke-width="1.6" />
 </g>
   <!-- Near Leg -->
   <line x1="4" y1="-40" x2="6" y2="-20" stroke="#ffe8d6" stroke-width="12" stroke-linecap="round" />
-  <line x1="6" y1="-20" x2="8" y2="-3" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
+  <line x1="6" y1="-20" x2="8" y2="-8" stroke="#ffe8d6" stroke-width="10.5" stroke-linecap="round" />
   <circle cx="6" cy="-20" r="5.5" fill="#ffe8d6" />
   <ellipse cx="6" cy="-20" rx="3" ry="1.5" fill="#fca5a5" opacity="0.5" />
   <!-- Near Shoe -->
-<g transform="translate(8 0) rotate(0)">
-  <path d="M -10 -2.2 L 13 -2.2 L 13 0 L -10 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.8" />
-  <path d="M -9 -7 Q -2 -8 5 -7 Q 13 -6 13 -2.2 L -10 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2.2" />
-  <path d="M -6 -7 Q -1 -5 4 -7" stroke="#191918" stroke-width="1.8" fill="none" />
-  <path d="M 3 -5.5 Q 7 -4.5 8 -3.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.45" />
+<g id="shoe-side" transform="translate(8 0) rotate(0)">
+  <path d="M -7 -2.2 L 10 -2.2 Q 11.5 -2.2 11.5 -0.8 Q 11.5 0 9.5 0 L -7 0 Z" fill="#0f172a" stroke="#191918" stroke-width="1.6" />
+  <path d="M -7 -2.2 Q -7.5 -6 -3.5 -8.5 Q 0 -6 3.5 -8.5 Q 7.5 -6.5 11 -3.2 L 11 -2.2 Z" fill="#831843" stroke="#191918" stroke-width="2" />
+  <path d="M -3.5 -8.5 Q 0 -5.5 3.5 -8.5" fill="none" stroke="#191918" stroke-width="1.6" />
 </g>
   <!-- Pelvis & Garment Layer -->
   <path d="M -13 -42 L 13 -42 L 17 -22 Q 0 -18 -15 -22 Z" fill="#fbcfe8" stroke="#191918" stroke-width="3.5" />
