@@ -79,6 +79,8 @@ function switchTab(tabNum) {
   if (tabNum === 2) {
     loadAiProjectsList();
     loadVideosList();
+  } else if (tabNum === 3) {
+    loadCharacterLibrary();
   }
 }
 
@@ -1849,5 +1851,556 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+// =========================================================================
+// TAB 3: CHARACTER SYSTEM V2 (QUẢN LÝ & DIỄN HOẠT NHÂN VẬT CHIBI 2D)
+// =========================================================================
+
+const characterState = {
+  characters: [],
+  activeCharacter: null
+};
+
+// Nạp danh sách nhân vật từ máy chủ
+async function loadCharacterLibrary() {
+  const container = document.getElementById("characterCardsContainer");
+  if (!container) return;
+
+  try {
+    const res = await fetch("/api/characters");
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    characterState.characters = data.characters || [];
+    renderCharacterCards();
+
+    // Chọn nhân vật đầu tiên để hiển thị trên editor nếu chưa chọn
+    if (!characterState.activeCharacter && characterState.characters.length > 0) {
+      selectCharacterForEditing(characterState.characters[0].id);
+    }
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state" style="color: #ef4444;">❌ Lỗi nạp thư viện nhân vật: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// Hiển thị các thẻ nhân vật trong Grid
+function renderCharacterCards() {
+  const container = document.getElementById("characterCardsContainer");
+  if (!container) return;
+
+  if (characterState.characters.length === 0) {
+    container.innerHTML = '<div class="empty-state">Chưa có nhân vật nào trong thư viện. Bấm "+ Tạo Nhân Vật Mới" để bắt đầu!</div>';
+    return;
+  }
+
+  container.innerHTML = characterState.characters
+    .map((c) => {
+      const isSelected = characterState.activeCharacter && characterState.activeCharacter.id === c.id;
+      const borderCol = isSelected ? "#38bdf8" : "#334155";
+      const bgCol = isSelected ? "rgba(56, 189, 248, 0.08)" : "#1e293b";
+      const outfitName = c.outfit?.type ? c.outfit.type.toUpperCase() : "CASUAL";
+
+      return `
+        <div class="card" style="border: 2px solid ${borderCol}; background-color: ${bgCol}; padding: 14px; display: flex; flex-direction: column; gap: 10px; transition: all 0.2s;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <div style="font-size: 16px; font-weight: 700; color: #f8fafc;">${escapeHtml(c.name || c.id)}</div>
+              <div style="font-size: 11px; color: #94a3b8; font-family: monospace;">ID: ${escapeHtml(c.id)}</div>
+            </div>
+            <span class="badge" style="background-color: #0f172a; color: #38bdf8; font-size: 10px; padding: 3px 8px; border: 1px solid #0284c7;">
+              ${escapeHtml(outfitName)}
+            </span>
+          </div>
+
+          <!-- Color swatches preview -->
+          <div style="display: flex; gap: 6px; align-items: center; margin: 4px 0;">
+            <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.skinColor || '#ffdfc4'}; border: 1px solid #475569;" title="Màu da"></div>
+            <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.hair?.color || '#333'}; border: 1px solid #475569;" title="Màu tóc"></div>
+            <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.outfit?.topColor || '#d64a33'}; border: 1px solid #475569;" title="Màu áo"></div>
+            <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.outfit?.pantsColor || '#2e384d'}; border: 1px solid #475569;" title="Màu quần"></div>
+            <span style="font-size: 11px; color: #94a3b8; margin-left: auto;">${escapeHtml(c.hair?.style || 'short')} hair</span>
+          </div>
+
+          <!-- Action buttons -->
+          <div style="display: flex; gap: 6px; margin-top: auto; padding-top: 8px; border-top: 1px solid #334155;">
+            <button class="btn btn-sm btn-primary" style="flex: 1;" onclick="selectCharacterForEditing('${c.id}')">✏️ Sửa</button>
+            <button class="btn btn-sm btn-outline" onclick="duplicateCharacterById('${c.id}')" title="Nhân bản">📑</button>
+            <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #ef4444;" onclick="deleteCharacterById('${c.id}')" title="Xóa">🗑️</button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+// Chọn một nhân vật để hiển thị trên form editor
+function selectCharacterForEditing(id) {
+  const char = characterState.characters.find((c) => c.id === id);
+  if (!char) return;
+
+  characterState.activeCharacter = char;
+
+  const badge = document.getElementById("editingCharacterBadge");
+  if (badge) badge.textContent = `Đang chọn: ${char.name} (${char.id})`;
+
+  // Điền dữ liệu vào form editor
+  const elId = document.getElementById("charEditorId");
+  const elName = document.getElementById("charEditorName");
+  const elSkin = document.getElementById("charEditorSkin");
+  const elEye = document.getElementById("charEditorEyeStyle");
+  const elBlush = document.getElementById("charEditorBlush");
+  const elGlasses = document.getElementById("charEditorGlasses");
+  const elHairStyle = document.getElementById("charEditorHairStyle");
+  const elHairCol = document.getElementById("charEditorHairColor");
+  const elOutfit = document.getElementById("charEditorOutfitType");
+  const elTopCol = document.getElementById("charEditorTopColor");
+  const elPantsCol = document.getElementById("charEditorPantsColor");
+  const elShoeCol = document.getElementById("charEditorShoeColor");
+  const elHeadScale = document.getElementById("charEditorHeadScale");
+  const elTorsoLen = document.getElementById("charEditorTorsoLen");
+
+  if (elId) { elId.value = char.id; elId.disabled = true; }
+  if (elName) elName.value = char.name || "";
+  if (elSkin) elSkin.value = char.skinColor || "#ffdfc4";
+  if (elEye) elEye.value = char.face?.eyeStyle || "oval";
+  if (elBlush) elBlush.checked = char.face?.blush !== false;
+  if (elGlasses) elGlasses.checked = !!char.outfit?.accessories?.includes("glasses");
+  if (elHairStyle) elHairStyle.value = char.hair?.style || "short";
+  if (elHairCol) elHairCol.value = char.hair?.color || "#4a3728";
+  if (elOutfit) elOutfit.value = char.outfit?.type || "hoodie";
+  if (elTopCol) elTopCol.value = char.outfit?.topColor || "#d64a33";
+  if (elPantsCol) elPantsCol.value = char.outfit?.pantsColor || "#2e384d";
+  if (elShoeCol) elShoeCol.value = char.outfit?.shoeColor || "#1e1e24";
+  if (elHeadScale) {
+    elHeadScale.value = char.proportions?.headScale || 1.0;
+    const v = document.getElementById("valHeadScale");
+    if (v) v.textContent = elHeadScale.value;
+  }
+  if (elTorsoLen) {
+    elTorsoLen.value = char.proportions?.torsoLength || 36;
+    const v = document.getElementById("valTorsoLen");
+    if (v) v.textContent = elTorsoLen.value;
+  }
+
+  renderCharacterCards();
+  updateLivePreview();
+}
+
+// Bắt đầu tạo một nhân vật hoàn toàn mới
+function createNewCharacter() {
+  const newId = `chibi_hero_${Math.floor(1000 + Math.random() * 9000)}`;
+  const newChar = {
+    id: newId,
+    name: "Nhân Vật Mới",
+    skinColor: "#ffdfc4",
+    hair: { style: "short", color: "#343536", highlight: "#5a5b5c" },
+    face: { eyeStyle: "oval", eyeColor: "#111116", browStyle: "soft", mouthStyle: "smile", blush: true },
+    proportions: { headScale: 1.0, torsoLength: 36, armLength: 34, legLength: 46 },
+    outfit: { id: "outfit_casual", type: "hoodie", topColor: "#0284c7", pantsColor: "#1e293b", shoeColor: "#0f172a", accessories: [] },
+    defaultExpression: "neutral",
+    defaultFacing: "three_quarter_right"
+  };
+
+  characterState.characters.unshift(newChar);
+  characterState.activeCharacter = newChar;
+
+  const elId = document.getElementById("charEditorId");
+  if (elId) elId.disabled = false;
+
+  selectCharacterForEditing(newId);
+  showToast(`✨ Bắt đầu thiết lập nhân vật mới: ${newId}`);
+}
+
+// Lưu nhân vật đang chỉnh sửa lên máy chủ
+async function saveCurrentEditingCharacter() {
+  const elId = document.getElementById("charEditorId");
+  const elName = document.getElementById("charEditorName");
+  if (!elId || !elId.value.trim()) {
+    showToast("Vui lòng nhập ID nhân vật!");
+    return;
+  }
+
+  const charData = {
+    id: elId.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "_"),
+    name: elName?.value.trim() || elId.value.trim(),
+    skinColor: document.getElementById("charEditorSkin")?.value || "#ffdfc4",
+    hair: {
+      style: document.getElementById("charEditorHairStyle")?.value || "short",
+      color: document.getElementById("charEditorHairColor")?.value || "#4a3728",
+      highlight: "#7a5c43"
+    },
+    face: {
+      eyeStyle: document.getElementById("charEditorEyeStyle")?.value || "oval",
+      eyeColor: "#111116",
+      browStyle: "soft",
+      mouthStyle: "smile",
+      blush: !!document.getElementById("charEditorBlush")?.checked
+    },
+    proportions: {
+      headScale: parseFloat(document.getElementById("charEditorHeadScale")?.value) || 1.0,
+      torsoLength: parseInt(document.getElementById("charEditorTorsoLen")?.value, 10) || 36,
+      armLength: 34,
+      legLength: 46
+    },
+    outfit: {
+      type: document.getElementById("charEditorOutfitType")?.value || "hoodie",
+      topColor: document.getElementById("charEditorTopColor")?.value || "#d64a33",
+      pantsColor: document.getElementById("charEditorPantsColor")?.value || "#2e384d",
+      shoeColor: document.getElementById("charEditorShoeColor")?.value || "#1e1e24",
+      accessories: document.getElementById("charEditorGlasses")?.checked ? ["glasses"] : []
+    },
+    defaultExpression: document.getElementById("charPreviewExpr")?.value || "neutral",
+    defaultFacing: document.getElementById("charPreviewFacing")?.value || "three_quarter_right"
+  };
+
+  try {
+    const res = await fetch("/api/characters", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(charData)
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    showToast(`💾 ${data.message}`);
+    await loadCharacterLibrary();
+    selectCharacterForEditing(charData.id);
+  } catch (err) {
+    showToast("❌ Lỗi lưu nhân vật: " + err.message);
+  }
+}
+
+// Nhân bản nhân vật từ ID
+async function duplicateCharacterById(id) {
+  try {
+    const res = await fetch(`/api/characters/${encodeURIComponent(id)}/duplicate`, { method: "POST" });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    showToast(`📑 ${data.message}`);
+    await loadCharacterLibrary();
+    selectCharacterForEditing(data.character.id);
+  } catch (err) {
+    showToast("❌ Lỗi nhân bản: " + err.message);
+  }
+}
+
+function duplicateCurrentCharacter() {
+  if (characterState.activeCharacter) {
+    duplicateCharacterById(characterState.activeCharacter.id);
+  }
+}
+
+// Xóa nhân vật
+async function deleteCharacterById(id) {
+  if (!confirm(`Bạn có chắc chắn muốn xóa nhân vật "${id}" khỏi thư viện?`)) return;
+
+  try {
+    const res = await fetch(`/api/characters/${encodeURIComponent(id)}`, { method: "DELETE" });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    showToast(`🗑️ ${data.message}`);
+    characterState.activeCharacter = null;
+    await loadCharacterLibrary();
+  } catch (err) {
+    showToast("❌ Lỗi xóa nhân vật: " + err.message);
+  }
+}
+
+function deleteCurrentCharacter() {
+  if (characterState.activeCharacter) {
+    deleteCharacterById(characterState.activeCharacter.id);
+  }
+}
+
+function onSkinPresetChanged(val) {
+  const el = document.getElementById("charEditorSkin");
+  if (el) { el.value = val; updateLivePreview(); }
+}
+
+function onHairPresetChanged(val) {
+  const el = document.getElementById("charEditorHairColor");
+  if (el) { el.value = val; updateLivePreview(); }
+}
+
+// =========================================================================
+// TRỰC QUAN HÓA LIVE SVG (RIG, POSES, EXPRESSIONS & FACING)
+// =========================================================================
+
+function updateLivePreview() {
+  const svg = document.getElementById("liveCharacterSvg");
+  if (!svg) return;
+
+  const skin = document.getElementById("charEditorSkin")?.value || "#ffdfc4";
+  const hairStyle = document.getElementById("charEditorHairStyle")?.value || "short";
+  const hairColor = document.getElementById("charEditorHairColor")?.value || "#4a3728";
+  const eyeStyle = document.getElementById("charEditorEyeStyle")?.value || "oval";
+  const blush = !!document.getElementById("charEditorBlush")?.checked;
+  const glasses = !!document.getElementById("charEditorGlasses")?.checked;
+  const outfitType = document.getElementById("charEditorOutfitType")?.value || "hoodie";
+  const topColor = document.getElementById("charEditorTopColor")?.value || "#d64a33";
+  const pantsColor = document.getElementById("charEditorPantsColor")?.value || "#2e384d";
+  const shoeColor = document.getElementById("charEditorShoeColor")?.value || "#1e1e24";
+  const headScale = parseFloat(document.getElementById("charEditorHeadScale")?.value) || 1.0;
+
+  const pose = document.getElementById("charPreviewPose")?.value || "stand";
+  const expr = document.getElementById("charPreviewExpr")?.value || "neutral";
+  const facing = document.getElementById("charPreviewFacing")?.value || "three_quarter_right";
+  const talk = parseFloat(document.getElementById("charPreviewTalk")?.value) || 0;
+  const blink = !!document.getElementById("charPreviewBlink")?.checked;
+  const showShadow = !!document.getElementById("charPreviewShadow")?.checked;
+
+  const isLeft = facing === "three_quarter_left" || facing === "side_left";
+  const isFront = facing === "front";
+  const isSide = facing === "side_right" || facing === "side_left";
+  const flipX = isLeft ? -1 : 1;
+  const ink = "#191918";
+
+  // Joint definitions based on pose
+  let hipY = -46, shY = -82, headY = -116;
+  let farArm = [-8, -64, -9, -48], nearArm = [10, -64, 12, -48];
+  let farLeg = [-8, -22, -8, 0], nearLeg = [8, -22, 8, 0];
+
+  if (pose === "walk") {
+    farArm = [6, -67, 18, -56]; nearArm = [-2, -66, -10, -52];
+    farLeg = [-14, -26, -16, -4]; nearLeg = [16, -24, 18, 0];
+  } else if (pose === "run") {
+    farArm = [16, -72, 28, -66]; nearArm = [-4, -68, -18, -58];
+    farLeg = [-18, -32, -24, -12]; nearLeg = [24, -28, 26, 0];
+  } else if (pose === "sit") {
+    hipY = -32; shY = -68; headY = -102;
+    farArm = [4, -54, 12, -36]; nearArm = [16, -52, 22, -34];
+    farLeg = [24, -30, 26, 0]; nearLeg = [28, -32, 30, 0];
+  } else if (pose === "sit_chair") {
+    hipY = -36; shY = -72; headY = -106;
+    farArm = [8, -56, 12, -40]; nearArm = [14, -54, 18, -38];
+    farLeg = [20, -34, 20, 0]; nearLeg = [24, -36, 24, 0];
+  } else if (pose === "wave") {
+    nearArm = [18, -94, 22, -118];
+  } else if (pose === "point") {
+    nearArm = [24, -80, 40, -80];
+  } else if (pose === "talk") {
+    farArm = [8, -68, 18, -76]; nearArm = [16, -66, 26, -74];
+  } else if (pose === "phone") {
+    nearArm = [16, -72, 18, -96];
+  } else if (pose === "cup") {
+    nearArm = [14, -66, 20, -70];
+  }
+
+  const r = 36 * headScale;
+  const eyeX = isFront ? [-13, 13] : isSide ? [14] : [-5, 17];
+  const eyeY = -6;
+
+  // Render SVG string
+  let html = "";
+
+  // Ground line reference
+  html += '<line x1="-120" y1="0" x2="120" y2="0" stroke="#334155" stroke-width="2" stroke-dasharray="6 4" />';
+
+  // Chair reference when sit_chair
+  if (pose === "sit_chair") {
+    html += '<rect x="-16" y="-36" width="34" height="4" rx="2" fill="#78350f" />';
+    html += '<rect x="-14" y="-32" width="4" height="32" fill="#451a03" />';
+    html += '<rect x="12" y="-32" width="4" height="32" fill="#451a03" />';
+  }
+
+  // Character root with flipX
+  html += `<g transform="scale(${flipX} 1)" stroke-linecap="round" stroke-linejoin="round">`;
+
+  // 1. Shadow
+  if (showShadow) {
+    html += `<ellipse cx="0" cy="2" rx="28" ry="6" fill="rgba(0,0,0,0.3)" />`;
+  }
+
+  // 2. Far Leg
+  html += `<line x1="-8" y1="${hipY}" x2="${farLeg[0]}" y2="${farLeg[1]}" stroke="${pantsColor}" stroke-width="14" />`;
+  html += `<line x1="${farLeg[0]}" y1="${farLeg[1]}" x2="${farLeg[2]}" y2="${farLeg[3]}" stroke="${pantsColor}" stroke-width="13" />`;
+  html += `<ellipse cx="${farLeg[2] + 4}" cy="${farLeg[3]}" rx="9" ry="5.5" fill="${shoeColor}" stroke="${ink}" stroke-width="3" />`;
+
+  // 3. Far Arm
+  html += `<line x1="-6" y1="${shY + 2}" x2="${farArm[0]}" y2="${farArm[1]}" stroke="${topColor}" stroke-width="11" />`;
+  html += `<line x1="${farArm[0]}" y1="${farArm[1]}" x2="${farArm[2]}" y2="${farArm[3]}" stroke="${topColor}" stroke-width="10" />`;
+  html += `<circle cx="${farArm[2]}" cy="${farArm[3]}" r="5.5" fill="${skin}" stroke="${ink}" stroke-width="2.5" />`;
+
+  // 4. Torso & Pelvis
+  html += `<polygon points="-16,${hipY - 8} 16,${hipY - 8} 18,${hipY + 8} -18,${hipY + 8}" fill="${pantsColor}" stroke="${ink}" stroke-width="4" />`;
+  html += `<path d="M -15 ${shY} Q 0 ${shY - 6} 15 ${shY} L 17 ${hipY} L -17 ${hipY} Z" fill="${topColor}" stroke="${ink}" stroke-width="4.5" />`;
+
+  // Outfit specific details
+  if (outfitType === "hoodie") {
+    html += `<rect x="-10" y="${hipY - 14}" width="20" height="11" rx="3" fill="rgba(0,0,0,0.18)" stroke="${ink}" stroke-width="2.5" />`;
+    html += `<line x1="3" y1="${shY + 2}" x2="3" y2="${shY + 16}" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`;
+    html += `<line x1="9" y1="${shY + 2}" x2="9" y2="${shY + 14}" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" />`;
+  } else if (outfitType === "labcoat") {
+    html += `<line x1="2" y1="${shY}" x2="2" y2="${hipY + 6}" stroke="${ink}" stroke-width="2.5" />`;
+    html += `<rect x="-10" y="${shY + 8}" width="8" height="10" rx="1" fill="#f3f4f6" stroke="${ink}" stroke-width="2" />`;
+    html += `<line x1="-7" y1="${shY + 4}" x2="-7" y2="${shY + 9}" stroke="#2563eb" stroke-width="2" />`;
+  } else if (outfitType === "suit") {
+    html += `<polygon points="1,${shY} 5,${shY} 6,${hipY - 4} 3,${hipY} 0,${hipY - 4}" fill="#dc2626" stroke="${ink}" stroke-width="2" />`;
+  }
+
+  // 5. Near Leg
+  html += `<line x1="8" y1="${hipY}" x2="${nearLeg[0]}" y2="${nearLeg[1]}" stroke="${pantsColor}" stroke-width="14" />`;
+  html += `<line x1="${nearLeg[0]}" y1="${nearLeg[1]}" x2="${nearLeg[2]}" y2="${nearLeg[3]}" stroke="${pantsColor}" stroke-width="13" />`;
+  html += `<ellipse cx="${nearLeg[2] + 4}" cy="${nearLeg[3]}" rx="9" ry="5.5" fill="${shoeColor}" stroke="${ink}" stroke-width="3" />`;
+
+  // 6. Near Arm
+  html += `<line x1="6" y1="${shY + 2}" x2="${nearArm[0]}" y2="${nearArm[1]}" stroke="${topColor}" stroke-width="11" />`;
+  html += `<line x1="${nearArm[0]}" y1="${nearArm[1]}" x2="${nearArm[2]}" y2="${nearArm[3]}" stroke="${topColor}" stroke-width="10" />`;
+  html += `<circle cx="${nearArm[2]}" cy="${nearArm[3]}" r="5.5" fill="${skin}" stroke="${ink}" stroke-width="2.5" />`;
+
+  // Props
+  if (pose === "phone") {
+    html += `<g transform="translate(${nearArm[2]} ${nearArm[3]})">`;
+    html += `<rect x="-4" y="-18" width="10" height="18" rx="2.5" fill="#1e293b" stroke="${ink}" stroke-width="2.5" />`;
+    html += `<rect x="-2" y="-16" width="6" height="13" rx="1" fill="#38bdf8" />`;
+    html += `</g>`;
+  } else if (pose === "cup") {
+    html += `<g transform="translate(${nearArm[2]} ${nearArm[3]})">`;
+    html += `<polygon points="-4,-14 6,-14 4,2 -2,2" fill="#f8fafc" stroke="${ink}" stroke-width="2.5" />`;
+    html += `<path d="M 6 -10 Q 11 -7 6 -3" stroke="${ink}" stroke-width="2" fill="none" />`;
+    html += `</g>`;
+  }
+
+  // 7. Head Group
+  html += `<g transform="translate(2 ${headY})">`;
+
+  // Back Hair (bun/ponytail)
+  if (hairStyle === "bun") {
+    html += `<circle cx="${-r * 0.65}" cy="${-r * 0.7}" r="16" fill="${hairColor}" stroke="${ink}" stroke-width="4" />`;
+  } else if (hairStyle === "ponytail") {
+    html += `<path d="M ${-r * 0.5} ${-r * 0.3} Q ${-r * 1.5} ${-r * 0.2} ${-r * 1.2} ${r * 0.8}" stroke="${hairColor}" stroke-width="18" stroke-linecap="round" fill="none" />`;
+  }
+
+  // Head Skull
+  html += `<circle cx="0" cy="0" r="${r}" fill="${skin}" stroke="${ink}" stroke-width="4.5" />`;
+
+  // Ears
+  if (isFront) {
+    html += `<circle cx="${-r - 1}" cy="-2" r="7" fill="${skin}" stroke="${ink}" stroke-width="3" />`;
+    html += `<circle cx="${r + 1}" cy="-2" r="7" fill="${skin}" stroke="${ink}" stroke-width="3" />`;
+  } else {
+    html += `<circle cx="${-r * 0.7}" cy="-2" r="7.5" fill="${skin}" stroke="${ink}" stroke-width="3.5" />`;
+  }
+
+  // Blush
+  if (blush && !blink) {
+    eyeX.forEach((ex) => {
+      html += `<ellipse cx="${ex}" cy="${eyeY + 12}" rx="6.5" ry="3.5" fill="#fca5a5" opacity="0.75" />`;
+    });
+  }
+
+  // Eyes
+  if (blink || expr === "sad") {
+    eyeX.forEach((ex) => {
+      html += `<path d="M ${ex - 5} ${eyeY} Q ${ex} ${eyeY + 3} ${ex + 5} ${eyeY}" stroke="${ink}" stroke-width="4" stroke-linecap="round" fill="none" />`;
+    });
+  } else if (expr === "happy" || expr === "laughing") {
+    eyeX.forEach((ex) => {
+      html += `<path d="M ${ex - 6} ${eyeY + 2} Q ${ex} ${eyeY - 6} ${ex + 6} ${eyeY + 2}" stroke="${ink}" stroke-width="4.2" stroke-linecap="round" fill="none" />`;
+    });
+  } else {
+    eyeX.forEach((ex, i) => {
+      const rx = !isFront && i === 0 ? 4.5 : 5.2;
+      html += `<ellipse cx="${ex}" cy="${eyeY}" rx="${rx}" ry="7.8" fill="${ink}" />`;
+      html += `<circle cx="${ex + 1.8}" cy="${eyeY - 2.5}" r="2.4" fill="#ffffff" />`;
+      html += `<circle cx="${ex - 1.6}" cy="${eyeY + 3.0}" r="1.3" fill="#ffffff" />`;
+    });
+  }
+
+  // Eyebrows
+  eyeX.forEach((ex) => {
+    let dy = 0;
+    if (expr === "worried") dy = -2;
+    if (expr === "angry") dy = 3;
+    if (expr === "surprised" || expr === "confused") dy = -4;
+    html += `<line x1="${ex - 6}" y1="${eyeY - 11 + dy}" x2="${ex + 6}" y2="${eyeY - 11 - dy}" stroke="${ink}" stroke-width="3" stroke-linecap="round" />`;
+  });
+
+  // Nose
+  if (!isFront) {
+    html += `<path d="M 10 0 Q 13 2 11 4" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" fill="none" />`;
+  }
+
+  // Mouth
+  const mx = isFront ? 0 : 9;
+  const my = eyeY + 18;
+  if (talk > 0.1 || expr === "laughing") {
+    const openH = 3 + talk * 8 + (expr === "laughing" ? 4 : 0);
+    html += `<ellipse cx="${mx}" cy="${my}" rx="6.5" ry="${openH}" fill="${ink}" />`;
+  } else if (expr === "sad") {
+    html += `<path d="M ${mx - 6} ${my + 2} Q ${mx} ${my - 3} ${mx + 6} ${my + 2}" stroke="${ink}" stroke-width="3" stroke-linecap="round" fill="none" />`;
+  } else {
+    html += `<path d="M ${mx - 6} ${my - 1} Q ${mx} ${my + 5} ${mx + 6} ${my - 1}" stroke="${ink}" stroke-width="3.2" stroke-linecap="round" fill="none" />`;
+  }
+
+  // Front Hair
+  if (hairStyle === "spiky") {
+    html += `<path d="M ${-r * 0.95} ${-r * 0.2} Q ${-r * 0.9} ${-r * 1.1} 0 ${-r * 1.15} Q ${r * 0.9} ${-r * 1.1} ${r * 0.95} ${-r * 0.2} L ${r * 0.7} ${-r * 0.5} L ${r * 0.3} ${-r * 0.75} L 0 ${-r * 0.6} L ${-r * 0.4} ${-r * 0.75} Z" fill="${hairColor}" stroke="${ink}" stroke-width="4" />`;
+  } else {
+    html += `<path d="M ${-r * 0.96} ${-r * 0.15} Q ${-r * 0.9} ${-r * 1.12} 0 ${-r * 1.16} Q ${r * 0.9} ${-r * 1.12} ${r * 0.96} ${-r * 0.15} Q ${r * 0.5} ${-r * 0.65} 0 ${-r * 0.55} Q ${-r * 0.5} ${-r * 0.65} ${-r * 0.96} ${-r * 0.15} Z" fill="${hairColor}" stroke="${ink}" stroke-width="4" />`;
+    html += `<path d="M ${-r * 0.45} ${-r * 0.9} Q 0 ${-r * 1.02} ${r * 0.45} ${-r * 0.9}" stroke="rgba(255,255,255,0.4)" stroke-width="4" stroke-linecap="round" fill="none" />`;
+  }
+
+  // Glasses
+  if (glasses) {
+    eyeX.forEach((ex) => {
+      html += `<circle cx="${ex}" cy="${eyeY}" r="9.5" stroke="${ink}" stroke-width="3" fill="none" />`;
+    });
+    if (eyeX.length > 1) {
+      html += `<line x1="${eyeX[0] + 9.5}" y1="${eyeY}" x2="${eyeX[1] - 9.5}" y2="${eyeY}" stroke="${ink}" stroke-width="3" />`;
+    }
+  }
+
+  html += `</g>`; // End Head group
+  html += `</g>`; // End Character root
+
+  svg.innerHTML = html;
+}
+
+// Thẩm định Rig tự động
+async function validateActiveRig() {
+  const char = characterState.activeCharacter;
+  if (!char) {
+    showToast("Vui lòng chọn hoặc lưu một nhân vật trước.");
+    return;
+  }
+
+  const pose = document.getElementById("charPreviewPose")?.value || "stand";
+  const facing = document.getElementById("charPreviewFacing")?.value || "three_quarter_right";
+
+  try {
+    const res = await fetch("/api/characters/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        character: char,
+        context: { pose, facing, enforceGround: true }
+      })
+    });
+    const data = await res.json();
+    const badge = document.getElementById("rigValidationStatus");
+
+    if (data.valid) {
+      if (badge) {
+        badge.textContent = "✓ Rig Đạt Tiêu Chuẩn V2";
+        badge.style.backgroundColor = "#065f46";
+        badge.style.color = "#34d399";
+      }
+      showToast("✅ Rig nhân vật hoàn hảo: các khớp xương, trang phục và tiếp đất hợp lệ 100%!");
+    } else {
+      if (badge) {
+        badge.textContent = "⚠️ Phát hiện lỗi Rig";
+        badge.style.backgroundColor = "#7f1d1d";
+        badge.style.color = "#f87171";
+      }
+      showToast("❌ Phát hiện lỗi: " + data.errors.join("; "));
+    }
+  } catch (err) {
+    showToast("Lỗi kiểm tra rig: " + err.message);
+  }
+}
+
 
 

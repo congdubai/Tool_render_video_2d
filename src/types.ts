@@ -63,15 +63,19 @@ export interface CameraConfig {
   pan?: [number, number];  // [dịch X, dịch Y] theo tỉ lệ khung hình
 }
 
-// Cấu hình nhân vật xuất hiện trong cảnh
+// Cấu hình nhân vật xuất hiện trong cảnh (Hỗ trợ cả static image và Character System V2)
 export interface CharacterConfig {
-  image: string;       // Đường dẫn trong public/ (vd: characters/ngac-nhien.png)
-  enterAt?: number;    // Giây xuất hiện tính từ đầu cảnh (mặc định 0)
-  x?: number;          // Vị trí tâm ngang 0-1 (mặc định 0.5)
-  baseY?: number;      // Mép dưới theo chiều cao khung 0-1 (mặc định 0.8)
-  height?: number;     // Chiều cao theo tỉ lệ khung (mặc định 0.5)
-  bob?: boolean;       // Nhấp nhô nhẹ sau khi xuất hiện (mặc định true)
-  flip?: boolean;      // Lật ngang ảnh (mặc định false)
+  image?: string;       // Đường dẫn trong public/ (vd: characters/ngac-nhien.png)
+  characterId?: string; // ID nhân vật từ Character Library V2 (vd: "chibi_max", "chibi_jake")
+  pose?: string;        // Tên tư thế: stand, walk, run, sit, wave, point, talk...
+  expression?: string;  // Tên biểu cảm: neutral, happy, sad, angry, surprised, thinking...
+  facing?: string;      // Hướng nhìn: front, three_quarter_right, three_quarter_left, side_right...
+  enterAt?: number;     // Giây xuất hiện tính từ đầu cảnh (mặc định 0)
+  x?: number;           // Vị trí tâm ngang 0-1 (mặc định 0.5)
+  baseY?: number;       // Mép dưới theo chiều cao khung 0-1 (mặc định 0.8)
+  height?: number;      // Chiều cao theo tỉ lệ khung (mặc định 0.5)
+  bob?: boolean;        // Nhấp nhô nhẹ sau khi xuất hiện (mặc định true)
+  flip?: boolean;       // Lật ngang ảnh (mặc định false)
 }
 
 // Lớp tiền cảnh (foreground) vẽ đè lên nhân vật

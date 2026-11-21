@@ -1,0 +1,40 @@
+{
+  "id": "chibi_luna",
+  "name": "Luna",
+  "gender": "girl",
+  "skinColor": "#ffe8d6",
+  "hair": {
+    "style": "bun",
+    "color": "#5b3a29",
+    "highlight": "#8c583e"
+  },
+  "face": {
+    "eyeStyle": "sparkle",
+    "eyeColor": "#1a1a24",
+    "browStyle": "soft",
+    "mouthStyle": "smile",
+    "blush": true,
+    "freckles": true
+  },
+  "proportions": {
+    "headScale": 0.98,
+    "torsoLength": 34,
+    "armLength": 33,
+    "legLength": 45
+  },
+  "outfit": {
+    "id": "casual_dress",
+    "type": "dress",
+    "topColor": "#ec4899",
+    "topColor2": "#db2777",
+    "pantsColor": "#fbcfe8",
+    "shoeColor": "#831843",
+    "headwear": "headband",
+    "headwearColor": "#f472b6",
+    "accessories": []
+  },
+  "defaultExpression": "happy",
+  "defaultFacing": "three_quarter_right",
+  "createdAt": "2026-11-21T02:48:12.004Z",
+  "updatedAt": "2026-11-21T02:48:12.004Z"
+}

@@ -42,6 +42,14 @@ import {
   renderThanhHaiContactSheet,
   renderThanhHaiVideo
 } from "../lib/thanhhai-render-adapter.mjs";
+import {
+  listCharacters,
+  getCharacter,
+  saveCharacter,
+  duplicateCharacter,
+  deleteCharacter
+} from "../lib/character-library.mjs";
+import { validateCharacterRig } from "../lib/character-validator.mjs";
 
 const execAsync = promisify(exec);
 const app = express();
@@ -1070,6 +1078,89 @@ app.post("/api/ai-code/delete-project", (req, res) => {
     }
 
     res.json({ success: true, message: `Đã xóa thành công dự án ${safeId}` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * =========================================================================
+ * 18. CHARACTER LIBRARY SYSTEM V2 REST API
+ * =========================================================================
+ */
+
+// Lấy danh sách toàn bộ nhân vật đã lưu
+app.get("/api/characters", (req, res) => {
+  try {
+    const characters = listCharacters();
+    res.json({ success: true, characters });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Lấy chi tiết một nhân vật
+app.get("/api/characters/:id", (req, res) => {
+  try {
+    const char = getCharacter(req.params.id);
+    if (!char) {
+      return res.status(404).json({ success: false, error: "Không tìm thấy nhân vật." });
+    }
+    res.json({ success: true, character: char });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Tạo mới hoặc cập nhật nhân vật
+app.post("/api/characters", (req, res) => {
+  try {
+    const saved = saveCharacter(req.body);
+    res.json({ success: true, character: saved, message: `Đã lưu nhân vật "${saved.name}" thành công!` });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Cập nhật nhân vật theo ID
+app.put("/api/characters/:id", (req, res) => {
+  try {
+    const saved = saveCharacter({ ...req.body, id: req.params.id });
+    res.json({ success: true, character: saved, message: `Đã cập nhật nhân vật "${saved.name}" thành công!` });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Nhân bản nhân vật
+app.post("/api/characters/:id/duplicate", (req, res) => {
+  try {
+    const duplicated = duplicateCharacter(req.params.id);
+    res.json({ success: true, character: duplicated, message: `Đã nhân bản thành "${duplicated.name}"!` });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Xóa nhân vật
+app.delete("/api/characters/:id", (req, res) => {
+  try {
+    const success = deleteCharacter(req.params.id);
+    if (!success) {
+      return res.status(404).json({ success: false, error: "Không tìm thấy nhân vật để xóa." });
+    }
+    res.json({ success: true, message: `Đã xóa nhân vật ${req.params.id} thành công.` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Thẩm định tính toàn vẹn Character Rig V2
+app.post("/api/characters/validate", (req, res) => {
+  try {
+    const { character, context } = req.body;
+    const result = validateCharacterRig(character, context);
+    res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

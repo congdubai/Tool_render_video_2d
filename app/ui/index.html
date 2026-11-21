@@ -26,13 +26,16 @@
     </div>
   </header>
 
-  <!-- Thanh điều hướng 2 Tab -->
+  <!-- Thanh điều hướng 3 Tab -->
   <nav class="tab-nav">
     <button id="tabBtn1" class="tab-btn active" onclick="switchTab(1)">
       <span class="tab-num">1</span> Giọng đọc & Timeline
     </button>
     <button id="tabBtn2" class="tab-btn" onclick="switchTab(2)">
       <span class="tab-num">2</span> 🤖 Dựng Video AI (Multi-Engine)
+    </button>
+    <button id="tabBtn3" class="tab-btn" onclick="switchTab(3)">
+      <span class="tab-num">3</span> 🎭 Nhân Vật (Character System V2)
     </button>
   </nav>
 
@@ -448,6 +451,261 @@
         </div>
       </div>
     </section>
+  </main>
+
+  <!-- ================= TAB 3: QUẢN LÝ NHÂN VẬT (CHARACTER SYSTEM V2) ================= -->
+  <main id="tabContent3" class="tab-pane">
+    <!-- Header Thư viện nhân vật -->
+    <section class="card" style="margin-bottom: 20px;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>🎭 Thư Viện Nhân Vật (Character Library V2)</h2>
+          <span class="hint">Hệ thống Rig nhân vật Chibi 2D nhất quán, chống lệch khớp, hỗ trợ tái sử dụng cho mọi video</span>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-sm btn-primary" onclick="createNewCharacter()">➕ Tạo Nhân Vật Mới</button>
+          <button class="btn btn-sm btn-outline" onclick="loadCharacterLibrary()">🔄 Làm mới</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="characterCardsContainer" class="character-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
+          <div class="empty-state">Đang nạp danh sách nhân vật...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Không gian làm việc: Editor & Live Rig Preview -->
+    <div class="grid-2-cols" style="gap: 20px;">
+      <!-- Cột trái: Bộ hiệu chỉnh nhân vật & Trang phục -->
+      <section class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <h2>🛠️ Chỉnh Sửa Nhân Vật & Trang Phục</h2>
+          <span id="editingCharacterBadge" class="badge" style="background-color: #3b82f6; color: #fff;">Đang chọn: Max</span>
+        </div>
+        <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- 1. Thông tin cơ bản -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="setting-item">
+              <label for="charEditorId">Mã Nhân Vật (ID):</label>
+              <input type="text" id="charEditorId" class="text-input" placeholder="vd: chibi_hero" />
+            </div>
+            <div class="setting-item">
+              <label for="charEditorName">Tên Nhân Vật:</label>
+              <input type="text" id="charEditorName" class="text-input" placeholder="Tên hiển thị..." oninput="updateLivePreview()" />
+            </div>
+          </div>
+
+          <!-- 2. Khuôn mặt & Màu da -->
+          <div style="border-top: 1px solid #334155; padding-top: 12px;">
+            <h3 style="font-size: 14px; color: #38bdf8; margin-bottom: 10px;">👤 Khuôn Mặt & Da</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="setting-item">
+                <label for="charEditorSkin">Màu da:</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="color" id="charEditorSkin" value="#ffdfc4" style="width: 44px; height: 36px; padding: 0; border: none; cursor: pointer; border-radius: 4px;" onchange="updateLivePreview()" />
+                  <select id="charEditorSkinPreset" class="select-control" onchange="onSkinPresetChanged(this.value)">
+                    <option value="#ffdfc4" selected>Sáng hồng (Fair)</option>
+                    <option value="#fcdcc6">Sáng ấm (Warm)</option>
+                    <option value="#ffe5d4">Trắng ngà (Ivory)</option>
+                    <option value="#ffe8d6">Tự nhiên (Natural)</option>
+                    <option value="#eac096">Răm nắng (Tan)</option>
+                    <option value="#8d5524">Ngăm đậm (Deep)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-item">
+                <label for="charEditorEyeStyle">Kiểu mắt:</label>
+                <select id="charEditorEyeStyle" class="select-control" onchange="updateLivePreview()">
+                  <option value="oval" selected>Mắt Oval đen (Chibi V9 chuẩn)</option>
+                  <option value="sparkle">Mắt Lấp lánh (Sparkle Anime)</option>
+                  <option value="round">Mắt Tròn to (Big Round)</option>
+                  <option value="dot">Mắt Chấm (Minimal Dot)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 20px; margin-top: 10px;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #cbd5e1; cursor: pointer;">
+                <input type="checkbox" id="charEditorBlush" checked onchange="updateLivePreview()" />
+                Má hồng dễ thương (Blush)
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #cbd5e1; cursor: pointer;">
+                <input type="checkbox" id="charEditorGlasses" onchange="updateLivePreview()" />
+                Đeo kính mắt tròn
+              </label>
+            </div>
+          </div>
+
+          <!-- 3. Tóc & Mũ -->
+          <div style="border-top: 1px solid #334155; padding-top: 12px;">
+            <h3 style="font-size: 14px; color: #38bdf8; margin-bottom: 10px;">💇 Kiểu Tóc & Màu Tóc</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="setting-item">
+                <label for="charEditorHairStyle">Kiểu tóc:</label>
+                <select id="charEditorHairStyle" class="select-control" onchange="updateLivePreview()">
+                  <option value="short" selected>Tóc ngắn tự nhiên (Short)</option>
+                  <option value="spiky">Tóc nhọn cá tính (Spiky)</option>
+                  <option value="bun">Búi củ tỏi (Bun)</option>
+                  <option value="side_part">Rẽ ngôi lịch lãm (Side Part)</option>
+                  <option value="ponytail">Đuôi ngựa (Ponytail)</option>
+                </select>
+              </div>
+
+              <div class="setting-item">
+                <label for="charEditorHairColor">Màu tóc:</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="color" id="charEditorHairColor" value="#4a3728" style="width: 44px; height: 36px; padding: 0; border: none; cursor: pointer; border-radius: 4px;" onchange="updateLivePreview()" />
+                  <select id="charEditorHairPreset" class="select-control" onchange="onHairPresetChanged(this.value)">
+                    <option value="#4a3728" selected>Nâu hạt dẻ</option>
+                    <option value="#232029">Đen tuyền</option>
+                    <option value="#6b7280">Bạc / Xám</option>
+                    <option value="#d97706">Vàng kim (Blonde)</option>
+                    <option value="#dc2626">Đỏ hung (Auburn)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Trang phục (Outfits) -->
+          <div style="border-top: 1px solid #334155; padding-top: 12px;">
+            <h3 style="font-size: 14px; color: #38bdf8; margin-bottom: 10px;">👕 Trang Phục (Outfits)</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="setting-item">
+                <label for="charEditorOutfitType">Bộ trang phục:</label>
+                <select id="charEditorOutfitType" class="select-control" onchange="updateLivePreview()">
+                  <option value="hoodie" selected>Áo Hoodie (Max)</option>
+                  <option value="tshirt">Áo Thun tay ngắn + Mũ (Jake)</option>
+                  <option value="labcoat">Áo Blouse Bác sĩ / Nhà khoa học (Doc)</option>
+                  <option value="suit">Vest Lịch Lãm / Cà vạt (Suit)</option>
+                  <option value="dress">Váy Dễ Thương (Luna Dress)</option>
+                  <option value="casual">Thường phục giản dị</option>
+                </select>
+              </div>
+
+              <div class="setting-item">
+                <label for="charEditorTopColor">Màu áo chính:</label>
+                <input type="color" id="charEditorTopColor" value="#d64a33" style="width: 100%; height: 36px; padding: 0; border: none; cursor: pointer; border-radius: 4px;" onchange="updateLivePreview()" />
+              </div>
+
+              <div class="setting-item">
+                <label for="charEditorPantsColor">Màu quần / váy:</label>
+                <input type="color" id="charEditorPantsColor" value="#2e384d" style="width: 100%; height: 36px; padding: 0; border: none; cursor: pointer; border-radius: 4px;" onchange="updateLivePreview()" />
+              </div>
+
+              <div class="setting-item">
+                <label for="charEditorShoeColor">Màu giày:</label>
+                <input type="color" id="charEditorShoeColor" value="#1e1e24" style="width: 100%; height: 36px; padding: 0; border: none; cursor: pointer; border-radius: 4px;" onchange="updateLivePreview()" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. Tỉ lệ cơ thể & Kiểm soát rig -->
+          <div style="border-top: 1px solid #334155; padding-top: 12px;">
+            <h3 style="font-size: 14px; color: #38bdf8; margin-bottom: 10px;">📐 Tỉ Lệ Cơ Thể (Rig Constraints)</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="setting-item">
+                <label for="charEditorHeadScale">Tỉ lệ đầu (<span id="valHeadScale">1.0</span>x):</label>
+                <input type="range" id="charEditorHeadScale" min="0.8" max="1.3" step="0.05" value="1.0" oninput="document.getElementById('valHeadScale').textContent=this.value; updateLivePreview();" />
+              </div>
+              <div class="setting-item">
+                <label for="charEditorTorsoLen">Chiều dài thân (<span id="valTorsoLen">36</span>):</label>
+                <input type="range" id="charEditorTorsoLen" min="28" max="44" step="1" value="36" oninput="document.getElementById('valTorsoLen').textContent=this.value; updateLivePreview();" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Nút hành động Lưu -->
+          <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <button class="btn btn-primary" style="flex: 1;" onclick="saveCurrentEditingCharacter()">💾 Lưu Nhân Vật Này</button>
+            <button class="btn btn-outline" onclick="duplicateCurrentCharacter()">📑 Nhân Bản</button>
+            <button class="btn btn-outline" style="border-color: #ef4444; color: #ef4444;" onclick="deleteCurrentCharacter()">🗑️ Xóa</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Cột phải: Live Rig, Pose, Expression & Facing Preview -->
+      <section class="card" style="display: flex; flex-direction: column;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <h2>👁️ Trực Quan Hóa (Rig & Pose Preview)</h2>
+          <span id="rigValidationStatus" class="badge" style="background-color: #065f46; color: #34d399;">✓ Rig Chuẩn Hóa</span>
+        </div>
+        <div class="card-body" style="display: flex; flex-direction: column; gap: 14px; flex: 1;">
+          <!-- Khung hiển thị Live SVG -->
+          <div id="characterPreviewBox" style="width: 100%; height: 360px; background: radial-gradient(circle, #1e293b 0%, #0f172a 100%); border-radius: 8px; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
+            <svg id="liveCharacterSvg" viewBox="-120 -180 240 220" width="100%" height="100%" style="overflow: visible;">
+              <!-- Sẽ render động qua JS updateLivePreview() -->
+            </svg>
+          </div>
+
+          <!-- Bảng điều khiển Pose, Expression, Facing -->
+          <div style="background-color: #1e293b; border-radius: 6px; padding: 12px; border: 1px solid #334155; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="setting-item">
+                <label for="charPreviewPose">Tư thế (Pose):</label>
+                <select id="charPreviewPose" class="select-control" onchange="updateLivePreview()">
+                  <option value="stand" selected>Đứng yên chuẩn (Stand)</option>
+                  <option value="walk">Đi bộ (Walk)</option>
+                  <option value="run">Chạy (Run)</option>
+                  <option value="sit">Ngồi sàn (Sit Ground)</option>
+                  <option value="sit_chair">Ngồi ghế (Sit Chair - y=0 tiếp đất)</option>
+                  <option value="wave">Vẫy tay chào (Wave)</option>
+                  <option value="point">Chỉ tay (Point)</option>
+                  <option value="talk">Nói chuyện cử chỉ (Talk)</option>
+                  <option value="phone">Cầm điện thoại (Phone)</option>
+                  <option value="cup">Cầm cốc nước (Cup)</option>
+                </select>
+              </div>
+
+              <div class="setting-item">
+                <label for="charPreviewExpr">Biểu cảm (Expression):</label>
+                <select id="charPreviewExpr" class="select-control" onchange="updateLivePreview()">
+                  <option value="neutral" selected>Bình thường (Neutral)</option>
+                  <option value="happy">Vui vẻ (Happy)</option>
+                  <option value="laughing">Cười lớn (Laughing)</option>
+                  <option value="sad">Buồn bã (Sad)</option>
+                  <option value="angry">Giận dữ (Angry)</option>
+                  <option value="surprised">Ngạc nhiên (Surprised)</option>
+                  <option value="thinking">Suy nghĩ (Thinking)</option>
+                  <option value="worried">Lo lắng (Worried)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div class="setting-item">
+                <label for="charPreviewFacing">Hướng nhìn (5 hướng):</label>
+                <select id="charPreviewFacing" class="select-control" onchange="updateLivePreview()">
+                  <option value="three_quarter_right" selected>Góc nhìn 3/4 Phải (Chuẩn)</option>
+                  <option value="three_quarter_left">Góc nhìn 3/4 Trái</option>
+                  <option value="front">Chính diện (Front)</option>
+                  <option value="side_right">Nghiêng Phải 90° (Side Right)</option>
+                  <option value="side_left">Nghiêng Trái 90° (Side Left)</option>
+                </select>
+              </div>
+
+              <div class="setting-item">
+                <label for="charPreviewTalk">Khẩu hình nói (<span id="valTalk">0</span>):</label>
+                <input type="range" id="charPreviewTalk" min="0" max="1" step="0.1" value="0" oninput="document.getElementById('valTalk').textContent=this.value; updateLivePreview();" />
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 16px; align-items: center; margin-top: 4px;">
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #cbd5e1; cursor: pointer;">
+                <input type="checkbox" id="charPreviewBlink" onchange="updateLivePreview()" />
+                Chớp mắt (Blink)
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #cbd5e1; cursor: pointer;">
+                <input type="checkbox" id="charPreviewShadow" checked onchange="updateLivePreview()" />
+                Bóng đổ mặt đất
+              </label>
+              <button class="btn btn-sm btn-outline" style="margin-left: auto;" onclick="validateActiveRig()">✨ Kiểm tra lỗi Rig</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <!-- Toast thông báo -->

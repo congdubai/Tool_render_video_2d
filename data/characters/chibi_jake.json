@@ -1,0 +1,40 @@
+{
+  "id": "chibi_jake",
+  "name": "Jake",
+  "gender": "boy",
+  "skinColor": "#fcdcc6",
+  "hair": {
+    "style": "spiky",
+    "color": "#232029",
+    "highlight": "#423d4c"
+  },
+  "face": {
+    "eyeStyle": "oval",
+    "eyeColor": "#111116",
+    "browStyle": "sharp",
+    "mouthStyle": "grin",
+    "blush": false,
+    "freckles": false
+  },
+  "proportions": {
+    "headScale": 1,
+    "torsoLength": 36,
+    "armLength": 34,
+    "legLength": 46
+  },
+  "outfit": {
+    "id": "tshirt_cap",
+    "type": "tshirt",
+    "topColor": "#3b82f6",
+    "topColor2": "#1d4ed8",
+    "pantsColor": "#374151",
+    "shoeColor": "#111827",
+    "headwear": "cap",
+    "headwearColor": "#f2c21a",
+    "accessories": []
+  },
+  "defaultExpression": "smile",
+  "defaultFacing": "three_quarter_right",
+  "createdAt": "2026-11-21T02:48:12.004Z",
+  "updatedAt": "2026-11-21T02:48:12.004Z"
+}

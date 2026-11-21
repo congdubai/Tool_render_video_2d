@@ -1,6 +1,7 @@
 import React from "react";
 import { spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import type { CharacterConfig, ForegroundConfig } from "../types";
+import { ChibiCharacterV2 } from "../chibi/characters/ChibiCharacterV2";
 
 interface CharacterProps {
   character: CharacterConfig | null | undefined;
@@ -14,7 +15,7 @@ export const Character: React.FC<CharacterProps> = ({ character, foreground, sce
   const currentTime = frame / fps;
   const sceneTime = Math.max(0, currentTime - sceneStart);
 
-  if (!character || !character.image) {
+  if (!character || (!character.image && !character.characterId)) {
     return null;
   }
 
@@ -52,9 +53,11 @@ export const Character: React.FC<CharacterProps> = ({ character, foreground, sce
   const jumpY = (1 - enterProgress) * 80 + bobOffsetPx;
   const scale = Math.max(0, enterProgress);
 
-  const charSrc = character.image && (character.image.startsWith("data:") || character.image.startsWith("http"))
-    ? character.image
-    : staticFile(character.image);
+  const charSrc = character.image
+    ? (character.image.startsWith("data:") || character.image.startsWith("http")
+        ? character.image
+        : staticFile(character.image))
+    : "";
 
   return (
     <>
@@ -76,30 +79,55 @@ export const Character: React.FC<CharacterProps> = ({ character, foreground, sce
         }}
       />
 
-      {/* 5. Ảnh nhân vật */}
-      <div
-        style={{
-          position: "absolute",
-          left: `${posX * 100}%`,
-          top: `${baseY * 100}%`,
-          height: `${charHeightRatio * 100}%`,
-          transform: `translate(-50%, -100%) translateY(${jumpY}px) scale(${scale}) scaleX(${isFlipped ? -1 : 1})`,
-          transformOrigin: "bottom center",
-          zIndex: 20,
-          pointerEvents: "none"
-        }}
-      >
-        <img
-          src={charSrc}
-          alt="Character"
+      {/* 5. Hiển thị nhân vật: Chibi Character Rig V2 hoặc Legacy Image */}
+      {character.characterId ? (
+        <svg
           style={{
-            height: "100%",
-            width: "auto",
-            display: "block",
-            objectFit: "contain"
+            position: "absolute",
+            left: `${posX * 100}%`,
+            top: `${baseY * 100}%`,
+            height: `${charHeightRatio * 100}%`,
+            width: `${charHeightRatio * 80}%`,
+            transform: `translate(-50%, -100%) translateY(${jumpY}px) scale(${scale}) scaleX(${isFlipped ? -1 : 1})`,
+            transformOrigin: "bottom center",
+            zIndex: 20,
+            overflow: "visible",
+            pointerEvents: "none"
           }}
-        />
-      </div>
+          viewBox="-80 -180 160 200"
+        >
+          <ChibiCharacterV2
+            character={character.characterId}
+            pose={character.pose as any || "stand"}
+            expression={character.expression as any || "neutral"}
+            facing={character.facing as any || "three_quarter_right"}
+          />
+        </svg>
+      ) : (
+        <div
+          style={{
+            position: "absolute",
+            left: `${posX * 100}%`,
+            top: `${baseY * 100}%`,
+            height: `${charHeightRatio * 100}%`,
+            transform: `translate(-50%, -100%) translateY(${jumpY}px) scale(${scale}) scaleX(${isFlipped ? -1 : 1})`,
+            transformOrigin: "bottom center",
+            zIndex: 20,
+            pointerEvents: "none"
+          }}
+        >
+          <img
+            src={charSrc}
+            alt="Character"
+            style={{
+              height: "100%",
+              width: "auto",
+              display: "block",
+              objectFit: "contain"
+            }}
+          />
+        </div>
+      )}
 
       {/* 6. Lớp tiền cảnh (foreground) vẽ đè lên nhân vật */}
       {foreground && foreground.image && (
