@@ -27,7 +27,13 @@ import {
   previewEngine,
   renderEngineVideo
 } from "../lib/engine-manager.mjs";
-import { findPythonLongFormProject, detectPythonProjectConfig } from "../lib/engine-detector.mjs";
+import {
+  findPythonLongFormProject,
+  detectPythonProjectConfig,
+  normalizeEngineType,
+  loadProjectMetadata,
+  saveProjectMetadata
+} from "../lib/engine-detector.mjs";
 import {
   isThanhHaiProject,
   detectThanhHaiConfig,
@@ -484,8 +490,9 @@ app.get("/api/ai-code/projects", (req, res) => {
           const engine = detected.engineType;
           const engineName = detected.engineName;
           const config = detected.config || getEngineConfig(pDir, engine);
-          let engTag = "Remotion 2D";
-          if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) engTag = "Python 2D";
+          let engTag = "Chưa rõ Engine";
+          if (engine === ENGINE_TYPES.REMOTION) engTag = "Remotion 2D";
+          else if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) engTag = "Python 2D";
           else if (engine === ENGINE_TYPES.THANH_HAI) engTag = "Thanh Hai 2D";
 
           sampleProjects.push({
@@ -521,8 +528,9 @@ app.get("/api/ai-code/projects", (req, res) => {
           const timeStr = new Date(stats.mtime).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
           const dateStr = new Date(stats.mtime).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
 
-          let engTag = "Remotion";
-          if (engine === ENGINE_TYPES.THANH_HAI) engTag = "Thanh Hai 2D";
+          let engTag = "Chưa rõ Engine";
+          if (engine === ENGINE_TYPES.REMOTION) engTag = "Remotion";
+          else if (engine === ENGINE_TYPES.THANH_HAI) engTag = "Thanh Hai 2D";
           else if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) engTag = "Python 2D";
 
           importedProjects.push({
@@ -576,9 +584,22 @@ app.post("/api/ai-code/upload-zip", async (req, res) => {
     // Giải nén an toàn với cơ chế bảo mật cao chống Zip Slip
     const extractResult = unzipProjectSafe(zipBuffer, targetDir);
 
+    // Chuẩn hóa manualEngine nếu người dùng truyền lên
+    const normalizedManual = normalizeEngineType(manualEngine);
+
     // Tự động nhận diện loại dự án qua Multi-Engine Detector
-    const detected = detectEngine(targetDir, { manualEngine });
-    const validation = validateEngine(targetDir, manualEngine || detected.engineType);
+    const detected = detectEngine(targetDir, { manualEngine: normalizedManual });
+    const validation = validateEngine(targetDir, normalizedManual || detected.engineType);
+
+    // Lưu metadata định danh dự án để duy trì nhất quán khi reload
+    saveProjectMetadata(targetDir, {
+      projectId,
+      rawName: baseSlug,
+      engineType: detected.engineType,
+      engineName: detected.engineName,
+      effectiveRoot: detected.projectRoot,
+      entryPoint: detected.entryPoint
+    });
 
     let actualCompositions = validation.compositions || detected.config?.compositions || [];
     if (detected.engineType === ENGINE_TYPES.REMOTION) {
@@ -647,7 +668,16 @@ app.post("/api/ai-code/validate", async (req, res) => {
       return res.status(404).json({ success: false, error: `Không tìm thấy dự án tại: ${targetDir}` });
     }
 
-    const validation = validateEngine(targetDir, engineOverride);
+    const normalizedOverride = normalizeEngineType(engineOverride);
+    const validation = validateEngine(targetDir, normalizedOverride);
+
+    // Nếu người dùng chỉ định engine cụ thể, cập nhật metadata đã lưu
+    if (normalizedOverride && normalizedOverride !== "auto") {
+      saveProjectMetadata(targetDir, {
+        engineType: validation.engine,
+        engineName: validation.engineName
+      });
+    }
 
     let actualCompositions = validation.compositions || validation.config?.compositions || [];
     if (validation.engine === ENGINE_TYPES.REMOTION) {
@@ -840,10 +870,38 @@ app.post("/api/ai-code/render", async (req, res) => {
       return res.status(404).json({ success: false, error: "Dự án không tồn tại." });
     }
 
-    const detected = detectEngine(targetDir, { manualEngine: engineOverride });
+    const normalizedOverride = normalizeEngineType(engineOverride);
+    const detected = detectEngine(targetDir, { manualEngine: normalizedOverride });
     const engine = detected.engineType;
     const engineName = detected.engineName;
     const config = detected.config || {};
+
+    // 1. Kiểm tra engine có hợp lệ không
+    if (engine === ENGINE_TYPES.UNKNOWN) {
+      return res.status(400).json({
+        success: false,
+        error: "Dự án chưa xác định được Engine (Remotion, Python 2D Long Form hoặc Thanh Hai 2D). Vui lòng kiểm tra lại cấu trúc file dự án hoặc chọn Engine thủ công."
+      });
+    }
+
+    // 2. Thẩm định sơ bộ theo đúng Engine tương ứng trước khi đưa vào hàng đợi render
+    if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) {
+      const pyVal = validateEngine(targetDir, ENGINE_TYPES.PYTHON_LONG_FORM);
+      if (!pyVal.valid) {
+        return res.status(400).json({
+          success: false,
+          error: `Dự án Python 2D Long Form không hợp lệ để render:\n${pyVal.errors.map(e => `• ${e}`).join("\n")}`
+        });
+      }
+    } else if (engine === ENGINE_TYPES.REMOTION) {
+      const rmVal = validateEngine(targetDir, ENGINE_TYPES.REMOTION);
+      if (!rmVal.valid) {
+        return res.status(400).json({
+          success: false,
+          error: `Dự án Remotion không hợp lệ để render:\n${rmVal.errors.map(e => `• ${e}`).join("\n")}`
+        });
+      }
+    }
 
     if (customResolution) {
       if (customResolution === "1080p") { config.width = 1920; config.height = 1080; }

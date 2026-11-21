@@ -36,11 +36,66 @@ class Env:
         f = int(round(t * FPS)); return self.track[f] if 0 <= f < len(self.track) else 'closed'
 
 
+def normalize_story(story):
+    """Normalize story so cast and characters are always present while respecting standard storyboards."""
+    story = dict(story)
+    cast = dict(story.get("cast") or {})
+    if not cast:
+        cast["chibi"] = {
+            "style": "chibi_v9",
+            "outfit": "soldier",
+            "skin": "#F8EAC1",
+            "color": "#6E7A64",
+            "hair": "helmet",
+            "hair_col": "#343536",
+            "suit_col": "#6E7A64",
+            "skin_col": "#F8EAC1"
+        }
+    story["cast"] = cast
+    default_actor_id = list(cast.keys())[0]
+
+    shots = story.get("shots", [])
+    for i, sh in enumerate(shots):
+        has_scene = "scene" in sh
+        # Only infer What If sets for simplified AI storyboard schemas that use "scene"
+        if has_scene:
+            sc = str(sh.get("scene", "")).lower()
+            if not sh.get("set"):
+                if "bed" in sc or i == 0: sh["set"] = "whatif_bedroom"
+                elif "shoe" in sc or i == 1: sh["set"] = "whatif_shoe"
+                elif "foot" in sc or i == 2: sh["set"] = "whatif_foot"
+                elif "ant" in sc or i == 3: sh["set"] = "whatif_ant"
+                else: sh["set"] = "whatif_bedroom"
+
+            if not sh.get("chars") and not sh.get("who"):
+                act = sh.get("action") or ("think" if i == 0 else ("walk" if i == 1 else ("run" if i == 2 else "wave")))
+                char_d = {
+                    "id": default_actor_id,
+                    "x": 380 if i == 0 else (180 if i == 1 else (220 if i == 2 else 450)),
+                    "y": 820,
+                    "s": 0.88 if i == 0 else 0.82,
+                    "emotion": "shocked" if i in (0, 2) else ("worried" if i == 1 else "nervous"),
+                    "pose": act,
+                    "face": 0.8 if i in (0, 1, 3) else 1.0
+                }
+                if act in ("walk", "run"):
+                    char_d["walk"] = [char_d["x"], char_d["x"] + 440]
+                sh["chars"] = [char_d]
+
+        # Ensure walk is populated for walk/run poses if missing
+        for cd in sh.get("chars", []):
+            act = cd.get("action") or cd.get("pose")
+            if act in ("walk", "run") and not cd.get("walk") and not cd.get("enter") and not cd.get("exit"):
+                cx = cd.get("x", 400)
+                cd["walk"] = [cx, cx + 420]
+    return story
+
+
 def load_project(P):
     story_file = os.path.join(P, "story.json")
     if not os.path.exists(story_file):
         raise SystemExit(f"story.json not found in project folder: {P}")
-    story = json.load(open(story_file, encoding="utf-8"))
+    story = normalize_story(json.load(open(story_file, encoding="utf-8")))
 
     timing_file = os.path.join(P, "timing.json")
     if os.path.exists(timing_file):

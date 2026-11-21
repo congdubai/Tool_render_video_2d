@@ -4,7 +4,7 @@ import math, random
 import skia
 from .kit import *
 from .sets import SETS, block
-from .props import DOCS, draw_prop, sleeve, bills, arrow
+from .props import DOCS, draw_prop, sleeve, bills, arrow, doc_hand_grip
 from .fx import poplabel, stamp, tag, lower_third, typed, ring, bubble, number_badge
 
 PADX, PADY = 420, 260
@@ -24,14 +24,18 @@ class Actor:
                             + [dict(b, t=shot.cue(b.get("at"))) for b in d.get("beats", [])], key=lambda b: b["t"])
         self.talk = shot.tl.talk_spans(shot.sh, d.get("talk", shot.spec.get("talk") if shot.spec.get("who") == d["id"] else None))
         self.walk = d.get("walk"); self.enter = d.get("enter"); self.exit = d.get("exit")
-        self.head = (self.x, self.y - 420 * self.s)
+        is_chibi = self.look.get("style", "chibi_v9") not in ("classic", "tall", "legacy")
+        head_cy = -260 if is_chibi else -420
+        if getattr(shot, "kind", None) == "closeup" and y == 1390 and is_chibi:
+            self.y = int(round(485 - head_cy * self.s))
+        self.head = (self.x, self.y + head_cy * self.s)
 
     def state(self, t):
         st = dict(self.base); prev = dict(self.base); tb = self.sh.t0
         for b in self.beats:
             if t >= b["t"]:
                 prev = dict(st); tb = b["t"]
-                for k in ("pose", "emotion", "face"):
+                for k in ("pose", "emotion", "face", "walk"):
                     if k in b: st[k] = b[k]
         return st, prev, tb
 
@@ -47,16 +51,23 @@ class Actor:
         arms = tuple((pa[i], pb[i], k) if pa[i] != pb[i] and k < 1 else pb[i] for i in range(2))
         face = lerp(prev["face"], st["face"], back(k, 1.2)) if prev["face"] != st["face"] else st["face"]
         x = self.x; legs = None; walking = False; bob = 2 + 2 * math.sin(t * 3 + self.ph); tilt = 1.4 * math.sin(t * 2.2 + self.ph)
-        if self.walk:
-            u = K(t, t0 + .1, max(.5, (t1 - t0) - .4)); x = lerp(self.walk[0], self.walk[1], u); walking = 0 < u < 1
+        speed = 20 if st["pose"] in ("run", "dash") else 11
+        cur_walk = st.get("walk") or self.walk
+        walk_t0 = tb if st.get("walk") else t0
+        if cur_walk:
+            u = K(t, walk_t0 + .05, max(.5, (t1 - walk_t0) - .2)); x = lerp(cur_walk[0], cur_walk[1], u); walking = 0 <= u <= 1
+        elif not self.enter and not self.exit and st["pose"] in ("walk", "run"):
+            self.walk = [self.x, self.x + (420 if self.face >= 0 else -420)]
+            u = K(t, t0 + .05, max(.5, (t1 - t0) - .2)); x = lerp(self.walk[0], self.walk[1], u); walking = 0 <= u <= 1
         elif self.enter:
             u = K(t, t0, 1.1); x0 = -260 if self.enter == "left" else W + 260; x = lerp(x0, self.x, ease_out(u)); walking = u < .97
         if self.exit:
             u = K(t, t1 - 1.1, 1.0); x1 = -300 if self.exit == "left" else W + 300
             if u > 0: x = lerp(x, x1, u * u); walking = True
         if walking:
-            ph = (t - t0) * 11; legs = walk_legs(ph); bob = 7 * abs(math.sin(ph)); tilt = 3 * math.sin(ph)
-            face = .7 if (self.walk and self.walk[1] > self.walk[0]) or self.enter == "left" or (self.exit == "right" and K(t, t1 - 1.1, 1) > 0) else -.7
+            ph = (t - walk_t0) * speed; legs = walk_legs(ph); bob = (10 if speed > 15 else 7) * abs(math.sin(ph)); tilt = (6 if speed > 15 else 3) * math.sin(ph)
+            dir_face = .65 if (cur_walk and cur_walk[1] > cur_walk[0]) or self.enter == "left" or (self.exit == "right" and K(t, t1 - 1.1, 1) > 0) else -.65
+            face = st.get("face") if ("face" in st and st["face"] != self.base.get("face")) else dir_face
         m = self.mouth_at(t)
         if m: mouth = {'open': 'open', 'mid': 'mid', 'closed': mouth if mouth in ('smile', 'smirk', 'flat') else 'flat'}[m]; bob += 3 if m == 'open' else 0
         if eyes != 'closed' and blink(t, 2.5, self.ph): eyes = 'closed'
@@ -68,8 +79,12 @@ class Actor:
             c.drawOval(skia.Rect(x - 110 * self.s, self.y - 22 * self.s, x + 110 * self.s, self.y + 22 * self.s), fp((0, 0, 0), 110, blur=8))
         draw_char(c, x, self.y, self.s, self.look, face=face, eyes=eyes, mouth=mouth, brow=brow, brow_tilt=btilt, arms=arms,
                   tilt=tilt + (-4 if st["emotion"] in ("smug", "sad", "tired") else 0), bob=bob, squash=sq, sweat=sweat,
-                  light=1 if face < 0 else -1, rim='#FFE6B0' if self.sh.night else None, legs=legs, pupil=ex.get('pupil', 0), sparkle=sparkle)
+                  light=1 if face < 0 else -1, rim='#FFE6B0' if self.sh.night else None, legs=legs, pupil=ex.get('pupil', 0), sparkle=sparkle, t=t)
         self.head = (x, self.y + HEAD_CY * self.s)
+        if os.environ.get("RM_DEBUG", "0") in ("1", "true", "True"):
+            f = int(round(t * FPS))
+            if f % 30 == 0:
+                print(f"[DEBUG RENDER] t={t:.1f}s (f={f}): char={self.d.get('id', 'chibi')}, kind={self.sh.kind}, pos=({x:.1f}, {self.y:.1f}), s={self.s:.2f}, alpha=1.0, pose={st['pose']}, fn=draw_chibi_v9", flush=True)
 
 
 class Shot:
@@ -274,12 +289,15 @@ class Table(Shot):
             if t < it["t"]: continue
             x, y, rot = slots[i % len(slots)]; k = back(K(t, it["t"], .5), 1.3); fromx = -900 if x < 960 else W + 900; px = lerp(fromx, x, k)
             c.save(); c.translate(px, y); c.rotate(rot); sc = it.get("scale", .82 if n > 1 else 1.0); c.scale(sc, sc)
+            sv = 'left' if fromx < 0 else 'right'
+            show_hand = (i == 0 and t - it["t"] < 2.5)
+            if show_hand:
+                doc_hand_grip(c, it.get("type", "newspaper"), side=sv, suit_col=self.hand['suit'], skin_col=self.hand['skin'], layer='rear')
             DOCS[it.get("type", "newspaper")](c, it, t, K(t, it.get("rt", 1e9), .45))
+            if show_hand:
+                doc_hand_grip(c, it.get("type", "newspaper"), side=sv, suit_col=self.hand['suit'], skin_col=self.hand['skin'], layer='front')
             if it.get("stamp"): stamp(c, it["stamp"]["text"], it["stamp"].get("x", -60), it["stamp"].get("y", 220), (t - it["st"]) / .9, -14, it["stamp"].get("size", 96), colr(it["stamp"].get("color"), RED))
             c.restore()
-            if i == 0 and t - it["t"] < 2.2:
-                hx_ = px - (480 if fromx < 0 else -480); sv = 1 if fromx < 0 else -1
-                sleeve(c, hx_ - 560 * sv, 700, hx_, 640, 170, self.hand['suit'], skin=self.hand['skin'])
 
     def label_x(self): return 1440 if len(self.items) < 2 else 960
 

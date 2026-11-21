@@ -24,12 +24,142 @@ def bills(c, x, y, rot=0, n=3):
     c.restore()
 
 
+DOC_GRIP_POINTS = {
+    'newspaper': (-400, 60, 400, 60),
+    'phone': (-190, 60, 190, 60),
+    'letter': (-320, 60, 320, 60),
+    'contract': (-320, 60, 320, 60),
+    'receipt': (-190, 60, 190, 60),
+    'photo': (-270, 60, 270, 60),
+    'cash': (-200, 40, 200, 40)
+}
+
+
+def draw_hand_grip(c, gx, gy, angle=-12.0, arm_len=680, width=155, suit_col='#5B5B66',
+                   cuff_col='#F4EFE2', skin_col='#E6BE8E', side='left', layer='both'):
+    """Realistic hand grip for paper, books, newspapers, phones and props.
+    - layer='rear': 4 curled fingers wrapping behind the paper edge + forearm/sleeve coming from offscreen.
+    - layer='front': Defined thumb pressing firmly onto the front paper surface with knuckle, pad & nail/crease.
+    - layer='both': Renders complete grip."""
+    sgn = 1 if side == 'left' else -1
+    c.save()
+    c.translate(gx, gy)
+    if sgn < 0:
+        c.scale(-1, 1)
+    c.rotate(angle)
+
+    lw = LW
+
+    # 1. REAR LAYER: Forearm, sleeve, cuff, and 4 fingers curled behind the paper edge (x=0)
+    if layer in ('rear', 'both'):
+        # Forearm / sleeve coming from off-screen
+        p_sleeve = skia.Path()
+        p_sleeve.moveTo(-arm_len, -width * 0.5)
+        p_sleeve.lineTo(-45, -width * 0.48)
+        p_sleeve.lineTo(-45, width * 0.48)
+        p_sleeve.lineTo(-arm_len, width * 0.5)
+        p_sleeve.close()
+        shape(c, p_sleeve, suit_col, lw)
+
+        # Sleeve cuff
+        p_cuff = skia.Path()
+        p_cuff.moveTo(-50, -width * 0.52)
+        p_cuff.lineTo(-18, -width * 0.50)
+        p_cuff.lineTo(-18, width * 0.50)
+        p_cuff.lineTo(-50, width * 0.52)
+        p_cuff.close()
+        shape(c, p_cuff, cuff_col, lw)
+
+        # Palm / wrist base
+        p_wrist = skia.Path()
+        p_wrist.moveTo(-20, -width * 0.44)
+        p_wrist.lineTo(0, -width * 0.38)
+        p_wrist.lineTo(0, width * 0.38)
+        p_wrist.lineTo(-20, width * 0.44)
+        p_wrist.close()
+        shape(c, p_wrist, skin_col, lw * 0.8)
+
+        # 4 distinct fingers curled behind the paper (edge is at x=0, fingers extend x>0 behind paper)
+        finger_y = [(-52, -26), (-24, 0), (2, 26), (28, 48)]
+        for idx, (fy0, fy1) in enumerate(finger_y):
+            ext = 46 if idx in (1, 2) else 38
+            p_f = skia.Path()
+            p_f.moveTo(-2, fy0)
+            p_f.lineTo(ext - 8, fy0)
+            p_f.quadTo(ext + 4, (fy0 + fy1) * 0.5, ext - 8, fy1)
+            p_f.lineTo(-2, fy1)
+            p_f.close()
+            shape(c, p_f, skin_col, lw * 0.85)
+
+    # 2. FRONT LAYER: Thumb pressing on front of the paper (x>0 on paper surface)
+    if layer in ('front', 'both'):
+        # Base of thumb and web of hand
+        p_thumb = skia.Path()
+        p_thumb.moveTo(-22, 12)
+        p_thumb.quadTo(-10, 10, 0, 4)
+        # Thumb arch extending inward over the front of the paper
+        p_thumb.quadTo(28, -6, 52, -18)
+        # Thumb tip and rounded pad
+        p_thumb.quadTo(60, -28, 46, -34)
+        # Inner thumb contour returning to hand
+        p_thumb.quadTo(20, -28, 0, -18)
+        p_thumb.lineTo(-22, -14)
+        p_thumb.close()
+        shape(c, p_thumb, skin_col, lw * 0.95)
+
+        # Thumb knuckle crease & nail detail
+        c.drawArc(skia.Rect(28, -27, 44, -17), -60, 120, False, ink(lw * 0.65))
+
+        # Cuff overlap on front to tie wrist and thumb seamlessly
+        p_cuff_front = skia.Path()
+        p_cuff_front.moveTo(-45, -width * 0.48)
+        p_cuff_front.lineTo(-18, -width * 0.46)
+        p_cuff_front.lineTo(-18, width * 0.46)
+        p_cuff_front.lineTo(-45, width * 0.48)
+        c.drawPath(p_cuff_front, ink(lw * 0.8))
+
+    c.restore()
+
+
+def doc_hand_grip(c, doc_type, side='left', suit_col='#5B5B66', skin_col='#E6BE8E', layer='both'):
+    """Convenience helper to grip any standard document by its actual edge bounds."""
+    pts = DOC_GRIP_POINTS.get(doc_type, (-320, 60, 320, 60))
+    gx = pts[0] if side == 'left' else pts[2]
+    gy = pts[1] if side == 'left' else pts[3]
+    draw_hand_grip(c, gx, gy, angle=-10.0 if side == 'left' else 10.0,
+                   suit_col=suit_col, skin_col=skin_col, side=side, layer=layer)
+
+
 def sleeve(c, x0, y0, x1, y1, width, v, cuff='#F4EFE2', skin='#E6BE8E', fingers=True):
-    ang = math.degrees(math.atan2(y1 - y0, x1 - x0)); L = math.hypot(x1 - x0, y1 - y0); hr = width * .5
-    c.save(); c.translate(x0, y0); c.rotate(ang); circ(c, L + hr * .55, 0, hr, skin, LW)
+    """General sleeve & hand function with sculpted fingers, thumb, and natural wrist."""
+    ang = math.degrees(math.atan2(y1 - y0, x1 - x0)); L = math.hypot(x1 - x0, y1 - y0); hr = width * .48
+    c.save(); c.translate(x0, y0); c.rotate(ang)
+    # Sleeve arm
+    rect(c, -200, -width / 2, L, width / 2, v, LW)
+    # Cuff
+    rect(c, L - 32, -width / 2 - 5, L + 6, width / 2 + 5, cuff, LW)
+    # Palm and wrist
+    p_hand = skia.Path()
+    p_hand.moveTo(L + 4, -hr * 0.75)
+    p_hand.lineTo(L + hr * 0.8, -hr * 0.85)
+    p_hand.lineTo(L + hr * 1.35, -hr * 0.25)
+    p_hand.lineTo(L + hr * 1.35, hr * 0.25)
+    p_hand.lineTo(L + hr * 0.8, hr * 0.85)
+    p_hand.lineTo(L + 4, hr * 0.75)
+    p_hand.close()
+    shape(c, p_hand, skin, LW)
+    # Thumb
+    p_th = skia.Path()
+    p_th.moveTo(L + hr * 0.4, -hr * 0.6)
+    p_th.quadTo(L + hr * 0.9, -hr * 1.3, L + hr * 1.25, -hr * 0.95)
+    p_th.lineTo(L + hr * 0.8, -hr * 0.45)
+    p_th.close()
+    shape(c, p_th, skin, LW * 0.85)
+    # 3 Finger creases
     if fingers:
-        for k in (-.42, 0, .42): c.drawLine(L + hr * 1.2, k * hr, L + hr * 1.52, k * hr * 1.1, ink(LW * .8))
-    rect(c, -200, -width / 2, L, width / 2, v, LW); rect(c, L - 34, -width / 2 - 5, L + 6, width / 2 + 5, cuff, LW); c.restore()
+        for k in (-.25, 0.0, .25):
+            c.drawLine(L + hr * 0.8, k * hr, L + hr * 1.3, k * hr * 1.1, ink(LW * .75))
+    c.restore()
 
 
 # ---------------------------------------------------------------- documents (table items, ~800x600)

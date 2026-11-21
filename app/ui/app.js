@@ -675,8 +675,8 @@ function updateAiCompositionDropdown(compositions = [], selectedId = null) {
   if (!compSelect) return;
 
   const project = aiState.projects.find((p) => p.id === aiState.selectedProjectId);
-  const engine = project?.engine || "remotion";
-  const isRemotion = engine === "remotion" || !engine || engine === "auto";
+  const engine = (project?.engine || "").toLowerCase();
+  const isRemotion = engine === "remotion" || engine === "remotion-2d";
 
   if (!isRemotion) {
     if (compSettingItem) compSettingItem.classList.add("hidden");
@@ -956,19 +956,27 @@ function handleAiProjectChanged() {
 
   overviewBox.classList.remove("hidden");
 
-  const engine = project.engine || "remotion";
-  const isPython = engine === "python-2d-long-form";
-  const isTH = engine === "thanhhai-2d-studio" || engine === "thanhhai_2d";
+  const rawEngine = (project.engine || "").toLowerCase();
+  const isPython = rawEngine === "python-2d-long-form" || rawEngine === "python-longform" || rawEngine === "python_longform" || rawEngine === "python";
+  const isTH = rawEngine === "thanhhai-2d-studio" || rawEngine === "thanhhai_2d" || rawEngine === "thanhhai";
+  const isRemotion = rawEngine === "remotion" || rawEngine === "remotion-2d";
+  const isUnknown = !isPython && !isTH && !isRemotion;
 
   // Cập nhật dropdown engine
   const engineSelect = document.getElementById("aiEngineSelect");
   if (engineSelect && (!aiState.manualEngineOverride || aiState.manualEngineOverride === "auto")) {
-    engineSelect.value = isPython ? "python-2d-long-form" : isTH ? "thanhhai-2d-studio" : "remotion";
+    engineSelect.value = isPython ? "python-2d-long-form" : isTH ? "thanhhai-2d-studio" : isRemotion ? "remotion" : "auto";
   }
 
   const engineBadge = document.getElementById("aiBadgeEngine");
   const engineTag = document.getElementById("aiEngineTag");
   const btnContactSheet = document.getElementById("btnAiContactSheet");
+  const compSettingItem = document.getElementById("aiCompositionSettingItem");
+
+  if (compSettingItem) {
+    if (isRemotion) compSettingItem.classList.remove("hidden");
+    else compSettingItem.classList.add("hidden");
+  }
 
   if (engineBadge) {
     if (isPython) {
@@ -979,10 +987,14 @@ function handleAiProjectChanged() {
       engineBadge.textContent = "Engine: Thanh Hai 2D Studio";
       engineBadge.style.color = "#c084fc";
       engineBadge.style.borderColor = "#a855f7";
-    } else {
+    } else if (isRemotion) {
       engineBadge.textContent = "Engine: Remotion 2D";
       engineBadge.style.color = "#38bdf8";
       engineBadge.style.borderColor = "#0284c7";
+    } else {
+      engineBadge.textContent = "Engine: Chưa xác định";
+      engineBadge.style.color = "#f87171";
+      engineBadge.style.borderColor = "#ef4444";
     }
   }
 
@@ -993,9 +1005,12 @@ function handleAiProjectChanged() {
     } else if (isTH) {
       engineTag.textContent = "CANVAS / THREE.JS";
       engineTag.style.backgroundColor = "#7c3aed";
-    } else {
+    } else if (isRemotion) {
       engineTag.textContent = "REMOTION TSX";
       engineTag.style.backgroundColor = "#0284c7";
+    } else {
+      engineTag.textContent = "CHƯA RÕ ENGINE";
+      engineTag.style.backgroundColor = "#dc2626";
     }
   }
 
@@ -1118,12 +1133,16 @@ async function validateCurrentAiProject() {
 
     const val = data.validation;
     aiState.currentValidation = val;
-    const engine = data.engine || val.engine || "remotion";
-    const isPython = engine === "python-2d-long-form";
-    const isTH = engine === "thanhhai-2d-studio" || engine === "thanhhai_2d";
+    const rawEngine = (data.engine || val.engine || "").toLowerCase();
+    const isPython = rawEngine === "python-2d-long-form" || rawEngine === "python-longform" || rawEngine === "python_longform" || rawEngine === "python";
+    const isTH = rawEngine === "thanhhai-2d-studio" || rawEngine === "thanhhai_2d" || rawEngine === "thanhhai";
+    const isRemotion = rawEngine === "remotion" || rawEngine === "remotion-2d";
+    const isUnknown = !isPython && !isTH && !isRemotion;
 
     // Cập nhật compositions thực tế nếu là Remotion
-    if (!isPython && !isTH) {
+    const compSettingItem = document.getElementById("aiCompositionSettingItem");
+    if (isRemotion) {
+      if (compSettingItem) compSettingItem.classList.remove("hidden");
       const realComps = data.compositions || val.compositions || [];
       if (realComps.length > 0) {
         aiState.availableCompositions = realComps;
@@ -1133,6 +1152,8 @@ async function validateCurrentAiProject() {
         }
         updateAiCompositionDropdown(aiState.availableCompositions, aiState.selectedCompositionId);
       }
+    } else {
+      if (compSettingItem) compSettingItem.classList.add("hidden");
     }
 
     // Cập nhật nhãn Badge Engine
@@ -1149,10 +1170,14 @@ async function validateCurrentAiProject() {
         engineBadge.textContent = "Engine: Thanh Hai 2D Studio";
         engineBadge.style.color = "#c084fc";
         engineBadge.style.borderColor = "#a855f7";
-      } else {
+      } else if (isRemotion) {
         engineBadge.textContent = "Engine: Remotion 2D";
         engineBadge.style.color = "#38bdf8";
         engineBadge.style.borderColor = "#0284c7";
+      } else {
+        engineBadge.textContent = "Engine: Chưa xác định";
+        engineBadge.style.color = "#f87171";
+        engineBadge.style.borderColor = "#ef4444";
       }
     }
     if (engineTag) {
@@ -1162,9 +1187,12 @@ async function validateCurrentAiProject() {
       } else if (isTH) {
         engineTag.textContent = "CANVAS / THREE.JS";
         engineTag.style.backgroundColor = "#7c3aed";
-      } else {
+      } else if (isRemotion) {
         engineTag.textContent = "REMOTION TSX";
         engineTag.style.backgroundColor = "#0284c7";
+      } else {
+        engineTag.textContent = "CHƯA RÕ ENGINE";
+        engineTag.style.backgroundColor = "#dc2626";
       }
     }
     if (btnContactSheet) {
@@ -1255,7 +1283,7 @@ async function validateCurrentAiProject() {
           </div>
         </div>
       `;
-    } else {
+    } else if (isRemotion) {
       // Giao diện thẩm định chuẩn cho Remotion
       reportHtml += `
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px;">
@@ -1273,6 +1301,16 @@ async function validateCurrentAiProject() {
           <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
             <span style="color: #94a3b8; font-size: 11px;">DEPENDENCIES:</span><br/>
             <strong style="color: #10b981;">${val.dependencies?.allowed?.join(', ') || 'react, remotion'}</strong>
+          </div>
+        </div>
+      `;
+    } else {
+      // Giao diện khi Chưa xác định Engine
+      reportHtml += `
+        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px; color: #fca5a5;">
+          <strong>⚠️ Dự án chưa được nhận diện là Remotion, Python 2D Long Form hoặc Thanh Hai 2D Studio.</strong>
+          <div style="font-size: 12px; margin-top: 4px; color: #cbd5e1;">
+            Vui lòng kiểm tra lại cấu trúc file dự án, hoặc chọn thủ công loại Engine phù hợp ở danh sách bên dưới rồi bấm <strong>Thẩm định lại</strong>.
           </div>
         </div>
       `;

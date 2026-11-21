@@ -8,7 +8,7 @@
     "chibi": {
       "style": "chibi_v9",
       "outfit": "chibi_v9",
-      "skin": "fair",
+      "skin": "#F8EAC1",
       "color": "#6E7A64",
       "hair": "helmet",
       "hair_col": "#343536",
@@ -24,9 +24,9 @@
       "chars": [
         {
           "id": "chibi",
-          "x": 680,
+          "x": 380,
           "y": 820,
-          "s": 0.85,
+          "s": 0.88,
           "emotion": "shocked",
           "pose": "think",
           "face": 0.8
@@ -49,9 +49,10 @@
       "chars": [
         {
           "id": "chibi",
-          "x": 420,
+          "x": 180,
           "y": 820,
-          "s": 0.72,
+          "s": 0.82,
+          "walk": [180, 640],
           "emotion": "worried",
           "pose": "walk",
           "face": 1.0
@@ -74,9 +75,10 @@
       "chars": [
         {
           "id": "chibi",
-          "x": 480,
+          "x": 220,
           "y": 820,
-          "s": 0.68,
+          "s": 0.80,
+          "walk": [220, 680],
           "emotion": "shocked",
           "pose": "run",
           "face": 1.0
@@ -99,9 +101,9 @@
       "chars": [
         {
           "id": "chibi",
-          "x": 460,
+          "x": 450,
           "y": 820,
-          "s": 0.75,
+          "s": 0.85,
           "emotion": "nervous",
           "pose": "wave",
           "face": 1.0
@@ -119,4 +121,3 @@
     }
   ]
 }
-

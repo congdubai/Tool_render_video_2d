@@ -4,6 +4,11 @@ bloom, vignette. Everything is drawn with skia-python."""
 import math, os, random, unicodedata
 import numpy as np, skia
 
+try:
+    from .chibi_rig import draw_chibi_character, resolve_chibi_look, HEAD_CY as CHIBI_HEAD_CY
+except ImportError:
+    from engine.chibi_rig import draw_chibi_character, resolve_chibi_look, HEAD_CY as CHIBI_HEAD_CY
+
 W, H, FPS = 1920, 1080, 30  # design space: everything is drawn in 1920x1080 coordinates
 RES = int(os.environ.get("RM_RES", "1080"))  # output height: 1080 (final) or 720 (2.25x faster)
 OW, OH = (1280, 720) if RES == 720 else (1920, 1080)
@@ -253,43 +258,18 @@ DEBUG_MARKER = False  # Temporary debug verification marker; set to False after 
 
 
 def make_look(d):
-    """Fill a cast look with defaults. Keys: skin (preset or hex), outfit suit|hoodie|tshirt|dress|sweater,
+    """Fill a cast look with defaults. Keys: skin (preset or hex), outfit suit|hoodie|tshirt|dress|sweater|explorer|soldier,
     color, shirt, tie, bowtie, hair slick|short|bun|long|curly|bald|none, hair_col, glasses, moustache,
     beard, hat fedora|cap|none, hat_col, build slim|medium|athletic."""
+    if isinstance(d, str):
+        d = {'character': d, 'color': '#2563EB'}
     d = dict(d or {})
 
-    # Chibi V9 Character Spec
-    if d.get('style') in ('chibi_v9', 'chibi') or d.get('outfit') == 'chibi_v9' or d.get('chibi'):
-        d['style'] = 'chibi_v9'
-        sk = d.get('skin', '#F8EAC1')
-        if sk in SKINS:
-            d['skin'] = SKINS[sk][0]
-            d.setdefault('skin_d', SKINS[sk][1])
-        else:
-            d['skin'] = sk
-            d.setdefault('skin_d', shade(sk, .84) if sk.startswith('#') else '#D6AE84')
-        d.setdefault('hair_col', '#343536')
-        d.setdefault('color', '#6E7A64')
-        d.setdefault('jacket_seam', '#414A3D')
-        d.setdefault('pocket', '#8C8B68')
-        d.setdefault('sleeve_near', '#778370')
-        d.setdefault('sleeve_far', '#596751')
-        d.setdefault('pants_near', '#74816B')
-        d.setdefault('pants_far', '#596450')
-        d.setdefault('boots', '#222222')
-        d.setdefault('boots_far', '#252525')
-        d.setdefault('backpack', '#56624B')
-        d.setdefault('backpack_stripe', '#9CA17D')
-        d.setdefault('backpack_strap', '#465341')
-        d.setdefault('ink', '#191918')
-        d.setdefault('show_backpack', True)
-        d.setdefault('shoulder_w', 46)
-        d.setdefault('chest_w', 44)
-        d.setdefault('waist_w', 40)
-        d.setdefault('hip_w', 44)
-        d.setdefault('belly_curve', 0.0)
-        d.setdefault('skirt_flare', 0.0)
-        d.setdefault('arm_thick', 16.0)
+    # Unless explicitly requested to use legacy/tall puppet, default to Chibi V9 Character Rig
+    if d.get('style') not in ('classic', 'tall', 'legacy'):
+        d = resolve_chibi_look(d)
+        d['suit'] = d['color']
+        d['suit_d'] = shade(d['color'], 0.74)
         return d
     sk = d.get('skin', 'tan')
     if sk in SKINS:
@@ -578,10 +558,15 @@ def _draw_hair_bald(c, R, colr, lw):
 
 def draw_chibi_v9(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.0, brow_tilt=0.0,
                   arms=('down', 'down'), tilt=0.0, bob=0.0, squash=0.0, sweat=-1.0, light=-1,
-                  rim=None, hat=None, legs=None, pupil=0.0, sparkle=0.0, debug_marker=None):
-    """Draw Chibi V9 puppet: 3/4 round head, black oval eyes, dark ink outlines,
-    short block limbs, rear backpack, opposite arm swing, stable layer ordering.
-    Far arm is strictly mounted behind backpack and torso."""
+                  rim=None, hat=None, legs=None, pupil=0.0, sparkle=0.0, debug_marker=None, t=0.0):
+    return draw_chibi_character(c, x, y, s, spec, face=face, eyes=eyes, mouth=mouth, brow=brow, brow_tilt=brow_tilt,
+                                arms=arms, tilt=tilt, bob=bob, squash=squash, sweat=sweat, light=light, rim=rim,
+                                hat=hat, legs=legs, pupil=pupil, sparkle=sparkle, t=t)
+
+
+def _old_draw_chibi_v9(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.0, brow_tilt=0.0,
+                  arms=('down', 'down'), tilt=0.0, bob=0.0, squash=0.0, sweat=-1.0, light=-1,
+                  rim=None, hat=None, legs=None, pupil=0.0, sparkle=0.0, debug_marker=None, t=0.0):
     spec = make_look(spec)
     lw = max(5.2, 4.0 / s)
     ink_col = spec.get('ink', '#191918')
@@ -589,6 +574,12 @@ def draw_chibi_v9(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.
     c.save()
     c.translate(x, y)
     c.scale(s, s)
+
+    # Debug Bounding Box & Label
+    if os.environ.get("RM_DEBUG", "1") in ("1", "true", "True"):
+        c.drawRect(skia.Rect(-95, -365, 95, 25), ink(3.5 / s, '#00FFAA'))
+        c.drawRect(skia.Rect(-95, -408, 120, -365), fp('#0F172A', 220))
+        c.drawString("CHIBI V9 RIG", -85, -380, skia.Font(None, 24), fp('#00FFAA'))
 
     # Flip horizontally if facing left (keeping 3/4 perspective consistent)
     if face < -0.1:
@@ -712,7 +703,7 @@ def draw_chibi_v9(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.
         a1 = arms[1] if isinstance(arms, (tuple, list)) else 'down'
         if isinstance(a1, tuple): a1 = a1[0]
         if a1 in ('wave', 'salute', 'hi'):
-            near_arm_ang = -105.0 + math.sin(x * 0.1) * 14.0
+            near_arm_ang = -105.0 + math.sin(t * 14.0) * 22.0
         elif a1 in ('point', 'reach'):
             near_arm_ang = -72.0
         elif a1 in ('chin', 'think'):
@@ -786,13 +777,13 @@ def draw_chibi_v9(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.
 
 def draw_char(c, x, y, s, spec, face=0.0, eyes='dot', mouth='smile', brow=0.0, brow_tilt=0.0, arms=('down', 'down'),
               tilt=0.0, bob=0.0, squash=0.0, sweat=-1.0, light=-1, rim=None, hat=None, legs=None, pupil=0.0, sparkle=0.0,
-              debug_marker=None):
+              debug_marker=None, t=0.0):
     """x,y = feet. s=1 -> head radius 100 px. Balanced body silhouette, seamless shoulders, sculpted hair."""
     spec = make_look(spec)
-    if spec.get('style') in ('chibi_v9', 'chibi') or spec.get('outfit') == 'chibi_v9' or spec.get('chibi'):
+    if spec.get('style') not in ('classic', 'tall', 'legacy'):
         return draw_chibi_v9(c, x, y, s, spec, face=face, eyes=eyes, mouth=mouth, brow=brow, brow_tilt=brow_tilt,
                              arms=arms, tilt=tilt, bob=bob, squash=squash, sweat=sweat, light=light, rim=rim,
-                             hat=hat, legs=legs, pupil=pupil, sparkle=sparkle, debug_marker=debug_marker)
+                             hat=hat, legs=legs, pupil=pupil, sparkle=sparkle, debug_marker=debug_marker, t=t)
     lw = max(5.2, 4.0 / s); R = HEAD_R; outfit = spec.get('outfit', 'suit')
     hat = spec.get('hat') if hat is None else hat
 
