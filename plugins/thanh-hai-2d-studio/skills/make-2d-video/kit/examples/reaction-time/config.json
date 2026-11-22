@@ -4,6 +4,7 @@
  "resolution": "720p",
  "fps": 24,
  "style": "dusk",
+ "character": "chibi",
  "voiceover": "input/voiceover.mp3",
  "script": "input/script.txt",
  "duration": 46.002,

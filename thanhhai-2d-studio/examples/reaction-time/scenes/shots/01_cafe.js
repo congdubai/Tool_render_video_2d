@@ -26,8 +26,8 @@ function tableScene(g, t, o) {
     chairAt(g, max, GY, s, 1, '#24181e'); chairAt(g, jake, GY, s, -1, '#24181e');
     const tb = cafeTable(g, E.W / 2, GY);
     if (o.cupOnTable !== false) cup(g, E.W / 2 + 60, tb.top, 1.2);
-    drawFigure(g, { x: max, y: GY, s, facing: 1, outfit: MAX, pose: breathe(o.maxPose || POSES.sit, t), expr: o.maxExpr || 'neutral', look: o.maxLook, rim, shadow: false });
-    drawFigure(g, { x: jake, y: GY, s, facing: -1, outfit: JAKE, pose: breathe(o.jakePose || POSES.sit, t, 1, 2), expr: o.jakeExpr || 'neutral', prop: o.jakeProp, rim, shadow: false, blink: (t % 3.3) > 3.2 });
+    drawFigure(g, { x: max, y: GY, s, facing: 1, outfit: MAX, pose: breathe(o.maxPose || POSES.sit, t), expr: o.maxExpr || 'neutral', look: o.maxLook, rim, shadow: false, sit: true });
+    drawFigure(g, { x: jake, y: GY, s, facing: -1, outfit: JAKE, pose: breathe(o.jakePose || POSES.sit, t, 1, 2), expr: o.jakeExpr || 'neutral', prop: o.jakeProp, rim, shadow: false, blink: (t % 3.3) > 3.2, sit: true });
     o.extra?.(g, GY);
   });
   FX.dust(g, t, { count: 40, color: '#ffe2bd', a: 0.35 });
@@ -39,7 +39,7 @@ registerShot('s001', { draw(g, t) {
   const f = flyPos(t * 1.05 + 0.2); const { max } = seats();
   const hp = [max + 3 * S(), cafeGround() - 180 * S()];
   const look = [clamp((f[0] - hp[0]) / 300, -1, 1), clamp((f[1] - hp[1]) / 300, -1, 1)];
-  tableScene(g, t, { z: 1 + 0.08 * ease.inOut(t / 3.4), x: -40 * ease.inOut(t / 3.4), maxLook: look, maxExpr: t > 1.6 ? 'surprised' : 'neutral', jakePose: POSES.phone, jakeProp: 'phone',
+  tableScene(g, t, { z: 1 + 0.08 * ease.inOut(t / 3.4), x: -40 * ease.inOut(t / 3.4), maxLook: look, maxExpr: t > 1.6 ? 'surprised' : 'neutral', jakePose: { ...POSES.sit, eF: [20, -118], hF: [26, -150] }, jakeProp: 'phone',
     extra: (g) => fly(g, f[0], f[1], t, 1.4) });
 } });
 

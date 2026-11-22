@@ -1,0 +1,80 @@
+{
+  "title": "Scared Roommates - White Cartoon 2D",
+  "duration": 18.0,
+  "shots": [
+    {
+      "id": "s001_cozy",
+      "start": 0.0,
+      "end": 4.0,
+      "line": "A quiet stormy night in the living room.",
+      "scene": "Alex and Ben cozy on sofa watching movie under blanket",
+      "bars": null,
+      "in": { "type": "fade", "dur": 0.5 },
+      "sfx": [],
+      "amb": { "name": "roomtone", "gain": -20 }
+    },
+    {
+      "id": "s002_creak",
+      "start": 4.0,
+      "end": 7.0,
+      "line": "Did you hear that creak?",
+      "scene": "Mysterious floorboard creak, Alex glances nervously",
+      "bars": null,
+      "in": { "type": "cut" },
+      "sfx": [
+        { "at": 0.2, "name": "swish", "gain": -8 },
+        { "at": 0.4, "name": "tick", "gain": -6 }
+      ],
+      "amb": { "name": "roomtone", "gain": -22 }
+    },
+    {
+      "id": "s003_ghost",
+      "start": 7.0,
+      "end": 10.0,
+      "line": "What if there is a ghost in the hallway?",
+      "scene": "Both roommates tremble with fear, spooky ghost thought bubble appears",
+      "bars": null,
+      "in": { "type": "cut" },
+      "sfx": [
+        { "at": 0.2, "name": "freeze", "gain": -6 },
+        { "at": 1.2, "name": "heartbeat", "gain": -8 }
+      ],
+      "amb": { "name": "wind", "gain": -24 }
+    },
+    {
+      "id": "s004_panic",
+      "start": 10.0,
+      "end": 14.0,
+      "line": "IT'S COMING CLOSER!",
+      "scene": "Extreme close-up: Alex clutches head, Ben points shaking hand, sweat flying",
+      "bars": "scope",
+      "in": { "type": "zoom", "dur": 0.3 },
+      "sfx": [
+        { "at": 0.1, "name": "stinger", "gain": -6 },
+        { "at": 1.8, "name": "heartbeat", "gain": -7 }
+      ]
+    },
+    {
+      "id": "s005_cat",
+      "start": 14.0,
+      "end": 18.0,
+      "line": "Wait... it's just the cat!",
+      "scene": "Silly black cat trots by, both sigh in relief then comic jump",
+      "bars": null,
+      "in": { "type": "cut" },
+      "sfx": [
+        { "at": 0.5, "name": "pop", "gain": -8 },
+        { "at": 2.2, "name": "ding", "gain": -10 }
+      ],
+      "amb": { "name": "roomtone", "gain": -22 }
+    }
+  ],
+  "music": [
+    { "start": 0.0, "end": 4.0, "mood": "calm", "intensity": 0.35 },
+    { "start": 4.0, "end": 7.0, "mood": "mystery", "intensity": 0.55 },
+    { "start": 7.0, "end": 10.0, "mood": "tension", "intensity": 0.75 },
+    { "start": 10.0, "end": 14.0, "mood": "tension", "intensity": 0.9 },
+    { "start": 14.0, "end": 18.0, "mood": "playful", "intensity": 0.5 }
+  ]
+}
+

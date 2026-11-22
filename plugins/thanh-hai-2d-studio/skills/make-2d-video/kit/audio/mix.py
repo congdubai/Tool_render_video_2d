@@ -40,11 +40,17 @@ def main():
     a = ap.parse_args(); P = a.project
     cfg = json.load(open(os.path.join(P, "config.json"), encoding="utf-8")); story = json.load(open(os.path.join(P, "story", "shots.json"), encoding="utf-8"))
     total = story.get("duration") or story["shots"][-1]["end"]; n = secs(total)
-    voice = load_any(os.path.join(P, cfg["voiceover"]))
-    voice = np.concatenate([voice, np.zeros((max(0, n - len(voice)), 2), np.float32)])[:n]
-    v_rms = rms_db(voice[np.abs(voice).mean(1) > db(-40)]) if np.any(np.abs(voice).mean(1) > db(-40)) else -20
-    env = envelope(voice)
-    mix = voice.copy()
+    if cfg.get("voiceover") and os.path.exists(os.path.join(P, cfg["voiceover"])):
+        voice = load_any(os.path.join(P, cfg["voiceover"]))
+        voice = np.concatenate([voice, np.zeros((max(0, n - len(voice)), 2), np.float32)])[:n]
+        v_rms = rms_db(voice[np.abs(voice).mean(1) > db(-40)]) if np.any(np.abs(voice).mean(1) > db(-40)) else -20
+        env = envelope(voice)
+        mix = voice.copy()
+    else:
+        voice = np.zeros((n, 2), np.float32)
+        v_rms = -20
+        env = np.zeros(n, np.float32)
+        mix = voice.copy()
     # ---- music
     mcfg = cfg.get("music", {}) or {}
     if mcfg.get("enabled", True) and not a.no_music:

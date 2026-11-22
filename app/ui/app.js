@@ -950,7 +950,8 @@ function handleAiCharacterChanged() {
   const charSelect = document.getElementById("aiCharacterSelect");
   if (!charSelect) return;
   aiState.selectedCharacterRenderer = charSelect.value;
-  showToast(`🎭 Character Renderer: ${charSelect.value === 'chibi' ? 'Chibi V9 (Cut-out Animation)' : 'Nhân vật gốc Thanh Hai'}`);
+  const label = charSelect.value === 'chibi' ? 'Chibi V9 (Cut-out Animation)' : (charSelect.value === 'white_cartoon' ? 'Hoạt hình Trắng (White Cartoon 2D)' : 'Nhân vật gốc Thanh Hai');
+  showToast(`🎭 Character Renderer: ${label}`);
 }
 window.handleAiCharacterChanged = handleAiCharacterChanged;
 

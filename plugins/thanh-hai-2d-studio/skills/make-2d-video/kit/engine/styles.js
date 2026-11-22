@@ -48,5 +48,15 @@ export const STYLES = {
     grade: { contrast: 0.92, sat: 0.92, lift: [0.07, 0.055, 0.085], gamma: [1.12, 1.1, 1.06], gain: [1.06, 1.03, 0.98], vignette: 0.3, grain: 0.07, bloom: 0.45 },
     moods: { night: { sky: ['#2a2f5a', '#4a4f80', '#6a6aa0'], wall: '#3e4266' }, dusk: { sky: ['#6a5a90', '#c08aa8', '#f2b0a0', '#fbe0b8'] } },
   },
+  'white-cartoon-2d': {
+    name: 'White Cartoon 2D', desc: 'Clean bold-outlined white cartoon style: deep midnight room, warm lamp rim left, cool moon rim right, rich comic contrast.',
+    ink: '#111827', inkFar: '#1f2937', feature: '#ffffff', rimWidth: 4.5, ui: { ...UI, accent: '#ef4444', gold: '#fbbf24', cream: '#f8fafc' },
+    grade: { contrast: 1.12, sat: 1.22, lift: [0.01, 0.01, 0.04], gamma: [1.02, 0.98, 1.05], gain: [1.08, 1.02, 1.15], vignette: 0.5, grain: 0.035, bloom: 0.65 },
+    moods: {
+      night: { sky: ['#050816', '#0f172a', '#1e1b4b'], wall: '#1e293b', floor: '#0f172a', dark: '#020617', practical: '#fde047', key: '#93c5fd', rim: '#fde047' },
+      interiorWarm: { wall: '#1e2238', floor: '#111827', practical: '#fde047', key: '#fde047', rim: '#93c5fd' }
+    },
+  },
 };
+STYLES.white_cartoon = STYLES['white-cartoon-2d'];
 export const STYLE_IDS = Object.keys(STYLES);

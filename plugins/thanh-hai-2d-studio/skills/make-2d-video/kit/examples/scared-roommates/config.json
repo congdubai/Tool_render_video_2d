@@ -1,0 +1,22 @@
+{
+  "title": "Scared Roommates - White Cartoon 2D",
+  "aspect": "16:9",
+  "resolution": "1080p",
+  "fps": 24,
+  "style": "white-cartoon-2d",
+  "character": "white_cartoon",
+  "duration": 18.0,
+  "captions": false,
+  "bars": null,
+  "fadeIn": 0.4,
+  "fadeOut": 0.6,
+  "music": {
+    "enabled": true,
+    "gainDb": -16
+  },
+  "sfx": {
+    "enabled": true,
+    "gainDb": -6
+  },
+  "loudness": -14
+}

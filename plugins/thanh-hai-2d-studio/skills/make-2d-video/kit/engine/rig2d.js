@@ -3,6 +3,10 @@
 // Points: head, sh (neck/shoulder), hip, eF/hF = near elbow/hand, eB/hB = far elbow/hand,
 //         kF/fF = near knee/foot, kB/fB = far knee/foot.
 import { E, S, clamp, lerp, mixVal, seg, circle, ring, alpha, shade, mix, rr, poly, ease } from './core.js';
+import { drawChibiFigure, drawChibiBigFace } from './chibi-rig2d.js';
+import { drawWhiteCartoonFigure, drawWhiteCartoonBigFace, drawSpookyGhostThoughtBubble } from './white-cartoon-rig2d.js';
+
+export { drawChibiFigure, drawChibiBigFace, drawWhiteCartoonFigure, drawWhiteCartoonBigFace, drawSpookyGhostThoughtBubble };
 
 const P = (o) => o;
 export const POSES = {
@@ -191,6 +195,13 @@ function sleeveColor(o, far) { const c = o.top === 'labcoat' ? '#f3f0f6' : o.top
 // ---------- main draw ----------
 // drawFigure(g, { x, y, s, facing, pose, rot, outfit, expr, talk, blink, look, rim:{dir:[x,y], color, w}, dim, alpha, prop, shadow })
 export function drawFigure(g, o) {
+  const charEngine = o?.character || o?.outfit?.character || E.character || E.cfg?.character || 'original';
+  if (charEngine === 'white_cartoon' || charEngine === 'white-cartoon' || charEngine === 'white-cartoon-2d' || charEngine === 'white_cartoon_2d') {
+    return drawWhiteCartoonFigure(g, o);
+  }
+  if (charEngine === 'chibi' || charEngine === 'chibi_v9') {
+    return drawChibiFigure(g, o);
+  }
   const st = S(), ink = o.ink || st.ink, far = o.inkFar || st.inkFar;
   const p = o.pose || POSES.stand, s = (o.s ?? 1) * (o.outfit?.kid ? 0.72 : 1), f = o.facing ?? 1;
   const of = { ...(o.outfit || {}), _ink: ink };
@@ -264,6 +275,13 @@ export function headPos(o) { const p = o.pose || POSES.stand, s = (o.s ?? 1) * (
 // ---------- giant close-up head (fills the frame) ----------
 // bigFace(g, cx, cy, r, { outfit, expr, talk, blink, look, rimColor, rimSide:-1|1, tilt })
 export function bigFace(g, cx, cy, r, o = {}) {
+  const charEngine = o?.character || o?.outfit?.character || E.character || E.cfg?.character || 'original';
+  if (charEngine === 'white_cartoon' || charEngine === 'white-cartoon' || charEngine === 'white-cartoon-2d' || charEngine === 'white_cartoon_2d') {
+    return drawWhiteCartoonBigFace(g, cx, cy, r, o);
+  }
+  if (charEngine === 'chibi' || charEngine === 'chibi_v9') {
+    return drawChibiBigFace(g, cx, cy, r, o);
+  }
   const st = S(), ink = st.ink, of = o.outfit || {}, rc = o.rimColor || '#ffc68a', side = o.rimSide ?? -1;
   g.save(); g.translate(cx, cy); if (o.tilt) g.rotate(o.tilt);
   // shoulders / clothing at the bottom
