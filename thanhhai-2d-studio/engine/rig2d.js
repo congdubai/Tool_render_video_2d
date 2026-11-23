@@ -4,6 +4,7 @@
 //         kF/fF = near knee/foot, kB/fB = far knee/foot.
 import { E, S, clamp, lerp, mixVal, seg, circle, ring, alpha, shade, mix, rr, poly, ease } from './core.js';
 import { drawChibiFigure, drawChibiBigFace } from './chibi-rig2d.js';
+import { drawImportedFigure } from './imported-rig2d.js';
 import {
   drawWhiteCartoonFigure,
   drawWhiteCartoonBigFace,
@@ -21,6 +22,7 @@ import {
 export {
   drawChibiFigure,
   drawChibiBigFace,
+  drawImportedFigure,
   drawWhiteCartoonFigure,
   drawWhiteCartoonBigFace,
   drawSpookyGhostThoughtBubble,
@@ -221,7 +223,10 @@ function sleeveColor(o, far) { const c = o.top === 'labcoat' ? '#f3f0f6' : o.top
 // ---------- main draw ----------
 // drawFigure(g, { x, y, s, facing, pose, rot, outfit, expr, talk, blink, look, rim:{dir:[x,y], color, w}, dim, alpha, prop, shadow })
 export function drawFigure(g, o) {
-  const charEngine = o?.character || o?.outfit?.character || E.character || E.cfg?.character || 'white_cartoon';
+  const charEngine = o?.character || o?.outfit?.character || o?.outfit?.type || E.character || E.cfg?.character || 'white_cartoon';
+  if (charEngine === 'imported' || o?.outfit?.parts || o?.parts) {
+    return drawImportedFigure(g, o);
+  }
   if (charEngine === 'white_cartoon' || charEngine === 'white-cartoon' || charEngine === 'white-cartoon-2d' || charEngine === 'white_cartoon_2d') {
     return drawWhiteCartoonFigure(g, o);
   }

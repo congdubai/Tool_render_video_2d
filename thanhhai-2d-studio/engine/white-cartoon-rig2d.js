@@ -16,20 +16,30 @@ export const WHITE_CARTOON_PRESETS = {
   character_A: {
     id: 'character_A',
     name: 'Alex',
+    character: 'white_cartoon',
     skin: '#FFFDF8',
     outline: '#20202A',
-    rimWarm: '#fde047',
-    rimCool: '#93c5fd',
+    top: 'hoodie',
+    color: '#d64a33',
+    legs: '#2e384d',
+    shoes: '#111827',
+    shoeType: 'sneakers',
     hair: 'none',
     blush: false,
   },
   character_B: {
     id: 'character_B',
     name: 'Ben',
+    character: 'white_cartoon',
     skin: '#FFFDF8',
     outline: '#20202A',
-    rimWarm: '#fde047',
-    rimCool: '#93c5fd',
+    top: 'tshirt',
+    color: '#3a6ea5',
+    head: 'cap',
+    headColor: '#f2c21a',
+    legs: '#374151',
+    shoes: '#111827',
+    shoeType: 'sneakers',
     hair: 'none',
     blush: false,
   },
@@ -44,6 +54,51 @@ export const WHITE_CARTOON_PRESETS = {
     legs: '#1e293b',
     shoes: '#111827',
     shoeType: 'sneakers',
+    hair: 'none',
+    blush: false,
+  },
+  max: {
+    id: 'max',
+    name: 'Max',
+    character: 'white_cartoon',
+    skin: '#FFFDF8',
+    outline: '#20202A',
+    top: 'hoodie',
+    color: '#d64a33',
+    legs: '#2e384d',
+    shoes: '#111827',
+    shoeType: 'sneakers',
+    hair: 'none',
+    blush: false,
+  },
+  jake: {
+    id: 'jake',
+    name: 'Jake',
+    character: 'white_cartoon',
+    skin: '#FFFDF8',
+    outline: '#20202A',
+    top: 'tshirt',
+    color: '#3a6ea5',
+    head: 'cap',
+    headColor: '#f2c21a',
+    legs: '#374151',
+    shoes: '#111827',
+    shoeType: 'sneakers',
+    hair: 'none',
+    blush: false,
+  },
+  doc: {
+    id: 'doc',
+    name: 'Doc',
+    character: 'white_cartoon',
+    skin: '#FFFDF8',
+    outline: '#20202A',
+    top: 'labcoat',
+    color: '#f3f4f6',
+    face: 'glasses',
+    legs: '#1f2937',
+    shoes: '#0f172a',
+    shoeType: 'casual',
     hair: 'none',
     blush: false,
   }
@@ -320,21 +375,21 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
   g.fill();
   g.stroke();
 
-  // 3. Soft Rim Light (Được clip vào rìa trong của đầu, không bị tách rời ra ngoài)
+  // 3. Soft Rim Light (Được clip vào rìa trong của đầu, viền mỏng tự nhiên, không bị vệt dày như tai nghe)
   if (o.rimWarm && o.rimCool) {
     g.save();
     g.beginPath();
     g.arc(0, 0, HR - 2, 0, Math.PI * 2);
     g.clip();
     g.strokeStyle = o.rimWarm;
-    g.lineWidth = 5.0;
+    g.lineWidth = 2.4;
     g.beginPath();
-    g.arc(0, 0, HR, Math.PI * 0.7, Math.PI * 1.3);
+    g.arc(0, 0, HR - 1, Math.PI * 0.75, Math.PI * 1.25);
     g.stroke();
     g.strokeStyle = o.rimCool;
-    g.lineWidth = 5.0;
+    g.lineWidth = 2.4;
     g.beginPath();
-    g.arc(0, 0, HR, -Math.PI * 0.3, Math.PI * 0.3);
+    g.arc(0, 0, HR - 1, -Math.PI * 0.25, Math.PI * 0.25);
     g.stroke();
     g.restore();
   } else if (o.rim) {
@@ -653,19 +708,30 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
     g.quadraticCurveTo(mouthX + 6, mouthY + 4, mouthX + 8, mouthY - 1);
     g.stroke();
   } else if (talk > 0.08) {
-    // Talking open mouth
+    // Talking open mouth (Gọn gàng, sạch sẽ, có răng và lưỡi clip bên trong)
     const openH = 4 + talk * 8;
-    g.fillStyle = '#4c0519';
+    g.save();
+    g.fillStyle = '#581c24';
     g.strokeStyle = inkCol;
-    g.lineWidth = 3.0;
+    g.lineWidth = 2.8;
     g.beginPath();
-    g.ellipse(mouthX, mouthY, 7, openH, 0, 0, Math.PI * 2);
+    g.ellipse(mouthX, mouthY, 7.5, openH, 0, 0, Math.PI * 2);
     g.fill();
     g.stroke();
+    g.clip();
+
+    // Răng trên
+    g.fillStyle = '#ffffff';
+    g.beginPath();
+    g.ellipse(mouthX, mouthY - openH * 0.5, 5.5, openH * 0.4, 0, 0, Math.PI * 2);
+    g.fill();
+
+    // Lưỡi hồng
     g.fillStyle = '#fb7185';
     g.beginPath();
     g.arc(mouthX, mouthY + openH * 0.4, 5, 0, Math.PI);
     g.fill();
+    g.restore();
   } else if (expr === 'determined') {
     // Miệng mím tự tin kiên định
     g.strokeStyle = inkCol;
@@ -818,8 +884,9 @@ export function drawWhiteCartoonTorso(g, p, char, inkCol, dir, isSit = false) {
   const skin = char.skin || '#fbfbfe';
   const isFront = dir === 'front';
 
-  const hasClothes = char.top && char.top !== 'none';
-  const topCol = char.color || (char.top === 'labcoat' ? '#f3f4f6' : '#d64a33');
+  const hasClothes = char.top ? (char.top !== 'none' && !char.nude) : true;
+  const topType = (char.top && char.top !== 'none') ? char.top : 'hoodie';
+  const topCol = char.color || (topType === 'labcoat' ? '#f3f4f6' : '#d64a33');
   const pantsCol = char.legs || '#2e384d';
 
   g.save();
@@ -999,11 +1066,12 @@ export function drawWhiteCartoonTorso(g, p, char, inkCol, dir, isSit = false) {
  */
 export function drawWhiteCartoonArm(g, sh, elbow, hand, inkCol, char, prop, facing, poseMode = 'normal', t = 0, isFar = false) {
   const skin = char.skin || '#fbfbfe';
-  const hasClothes = char.top && char.top !== 'none';
-  const topCol = char.color || (char.top === 'labcoat' ? '#f3f4f6' : '#d64a33');
+  const hasClothes = char.top ? (char.top !== 'none' && !char.nude) : true;
+  const topType = (char.top && char.top !== 'none') ? char.top : 'hoodie';
+  const topCol = char.color || (topType === 'labcoat' ? '#f3f4f6' : '#d64a33');
   const sleeveCol = isFar ? shade(topCol, -0.22) : topCol;
 
-  const isLongSleeve = char.top === 'hoodie' || char.top === 'labcoat' || char.top === 'jacket' || !char.top || char.top === 'none' ? (char.top !== 'tshirt') : false;
+  const isLongSleeve = topType !== 'tshirt';
 
   g.save();
   g.lineCap = 'round';
@@ -1159,7 +1227,7 @@ export function drawWhiteCartoonArm(g, sh, elbow, hand, inkCol, char, prop, faci
  */
 export function drawWhiteCartoonLeg(g, hip, knee, foot, inkCol, char, isFar = false) {
   const skin = char.skin || '#fbfbfe';
-  const hasClothes = char.top && char.top !== 'none';
+  const hasClothes = char.top ? (char.top !== 'none' && !char.nude) : true;
   const pantsCol = hasClothes ? (char.legs ? (isFar ? shade(char.legs, -0.25) : char.legs) : '#2e384d') : skin;
 
   const ankleY = foot[1] - 8;
@@ -1405,31 +1473,31 @@ export function drawWhiteCartoonBigFace(g, cx, cy, r, o = {}) {
     g.arc(0, 0, r - 3, 0, Math.PI * 2);
     g.clip();
     g.strokeStyle = rimCol;
-    g.lineWidth = r * 0.08;
+    g.lineWidth = r * 0.04;
     g.beginPath();
     if (side < 0) {
-      g.arc(0, 0, r, Math.PI * 0.68, Math.PI * 1.32);
+      g.arc(0, 0, r, Math.PI * 0.7, Math.PI * 1.3);
     } else {
-      g.arc(0, 0, r, -Math.PI * 0.32, Math.PI * 0.32);
+      g.arc(0, 0, r, -Math.PI * 0.3, Math.PI * 0.3);
     }
     g.stroke();
     g.restore();
   } else if (o.rimWarm && o.rimCool) {
-    // Chế độ 2 màu rim cho ban đêm/phim kinh dị
+    // Chế độ 2 màu rim viền mỏng tinh tế, không dày cộm như tai nghe
     g.save();
     g.beginPath();
     g.arc(0, 0, r - 3, 0, Math.PI * 2);
     g.clip();
     g.strokeStyle = o.rimWarm;
-    g.lineWidth = r * 0.08;
+    g.lineWidth = r * 0.035;
     g.beginPath();
-    g.arc(0, 0, r, Math.PI * 0.65, Math.PI * 1.35);
+    g.arc(0, 0, r, Math.PI * 0.72, Math.PI * 1.28);
     g.stroke();
 
     g.strokeStyle = o.rimCool;
-    g.lineWidth = r * 0.08;
+    g.lineWidth = r * 0.035;
     g.beginPath();
-    g.arc(0, 0, r, -Math.PI * 0.35, Math.PI * 0.35);
+    g.arc(0, 0, r, -Math.PI * 0.28, Math.PI * 0.28);
     g.stroke();
     g.restore();
   }
@@ -1632,21 +1700,31 @@ export function drawWhiteCartoonBigFace(g, cx, cy, r, o = {}) {
   const talk = o.talk || 0;
 
   if (talk > 0.05) {
-    // Đang nói chuyện (Lip-sync)
-    const openH = r * (0.06 + 0.22 * talk);
-    g.fillStyle = '#4c0519';
+    // Đang nói chuyện (Lip-sync tự nhiên, răng và lưỡi bo tròn bên trong khoang miệng)
+    const openH = r * (0.08 + 0.18 * talk);
+    const mouthW = r * 0.22;
+    g.save();
+    g.fillStyle = '#581c24';
     g.strokeStyle = inkCol;
-    g.lineWidth = r * 0.06;
+    g.lineWidth = r * 0.055;
     g.beginPath();
-    g.ellipse(0, my, r * 0.2, openH, 0, 0, Math.PI * 2);
+    g.ellipse(0, my, mouthW, openH, 0, 0, Math.PI * 2);
     g.fill();
     g.stroke();
+    g.clip();
 
-    // Lưỡi hồng bên trong
+    // Răng trên bo tròn trắng bên trong
+    g.fillStyle = '#ffffff';
+    g.beginPath();
+    g.ellipse(0, my - openH * 0.5, mouthW * 0.75, openH * 0.4, 0, 0, Math.PI * 2);
+    g.fill();
+
+    // Lưỡi hồng mềm mại
     g.fillStyle = '#fb7185';
     g.beginPath();
-    g.arc(0, my + openH * 0.4, r * 0.12, 0, Math.PI);
+    g.arc(0, my + openH * 0.45, mouthW * 0.65, 0, Math.PI);
     g.fill();
+    g.restore();
   } else if (isTerrified) {
     // Miệng há to hét lên kinh hãi (Hình học bo tròn hữu cơ)
     const mouthW = r * 0.32;
@@ -1761,18 +1839,21 @@ export function drawWhiteCartoonBigFace(g, cx, cy, r, o = {}) {
     g.stroke();
   } else if (expr === 'shocked') {
     // Miệng ngạc nhiên chữ 'O' lớn hơn
-    g.fillStyle = '#4c0519';
+    g.save();
+    g.fillStyle = '#581c24';
     g.strokeStyle = inkCol;
     g.lineWidth = r * 0.06;
     g.beginPath();
     g.ellipse(0, my, r * 0.2, r * 0.26, 0, 0, Math.PI * 2);
     g.fill();
     g.stroke();
+    g.clip();
 
     g.fillStyle = '#fb7185';
     g.beginPath();
     g.arc(0, my + r * 0.12, r * 0.13, 0, Math.PI);
     g.fill();
+    g.restore();
   } else if (expr === 'smirk') {
     // Cười nhếch mép
     g.strokeStyle = inkCol;

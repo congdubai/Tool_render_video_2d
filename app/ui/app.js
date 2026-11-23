@@ -864,13 +864,13 @@ async function deleteAllImportedProjects() {
 }
 
 // Chọn nhanh Demo project Thanh Hai 2D Studio (Reaction Time - White Cartoon 2D)
-function selectThanhHaiDemoProject(demoKey = "so-ma-30s") {
+function selectThanhHaiDemoProject(demoKey = "reaction-time") {
   const select = document.getElementById("aiProjectSelect");
   let target = aiState.projects.find((p) => p.id.includes(demoKey)) || aiState.projects.find((p) => p.id.includes("reaction-time")) || aiState.projects[0];
   if (target && select) {
     select.value = target.id;
     handleAiProjectChanged();
-    showToast(`👻 Đã chọn dự án: "${target.name}"`);
+    showToast(`🎨 Đã chọn dự án: "${target.name}"`);
   } else {
     showToast("Đang tải lại danh sách dự án...");
     loadAiProjectsList();
@@ -1706,8 +1706,160 @@ window.addEventListener("DOMContentLoaded", () => {
 
 const characterState = {
   characters: [],
-  activeCharacter: null
+  activeCharacter: null,
+  filter: "all", // "all" | "builtin" | "imported"
+  selectedPartName: null,
+  history: [],
+  historyIndex: -1,
+  // Animation state for Mode B
+  anim: {
+    action: "idle",
+    speed: 1.0,
+    loop: true,
+    isPlaying: false,
+    animFrameId: null,
+    time: 0,
+    lastTick: 0
+  },
+  // Viewport for Mode B canvas
+  view: {
+    zoom: 1.0,
+    panX: 0,
+    panY: 0,
+    isDragging: false,
+    dragStart: { x: 0, y: 0 }
+  },
+  // Image cache
+  imageCache: {},
+  // Import wizard state
+  wizard: {
+    tab: 1,
+    singlePngData: null,
+    singlePngImg: null,
+    slices: {},
+    layeredParts: {},
+    spriteSheetImg: null,
+    packageFile: null,
+    packageData: null
+  }
 };
+
+// Bộ góc chuẩn của các Action Animation Mode B
+const MODE_B_POSE_ANGLES = {
+  stand: {
+    torso: 0, head: 0,
+    upperArm_L: 0, forearm_L: 0, hand_L: 0,
+    upperArm_R: 0, forearm_R: 0, hand_R: 0,
+    thigh_L: 0, shin_L: 0, foot_L: 0,
+    thigh_R: 0, shin_R: 0, foot_R: 0
+  },
+  idle: (t = 0) => {
+    const breathe = Math.sin(t * 3.2) * 1.8;
+    return {
+      torso: breathe * 0.4,
+      head: -breathe * 0.5,
+      upperArm_L: breathe * 0.6, forearm_L: 0, hand_L: 0,
+      upperArm_R: -breathe * 0.6, forearm_R: 0, hand_R: 0,
+      thigh_L: 0, shin_L: 0, foot_L: 0,
+      thigh_R: 0, shin_R: 0, foot_R: 0
+    };
+  },
+  walk: (t = 0, speed = 1.0) => {
+    const cycle = t * 6.0 * speed;
+    const legL = Math.sin(cycle) * 28;
+    const legR = Math.sin(cycle + Math.PI) * 28;
+    const armL = Math.sin(cycle + Math.PI) * 24;
+    const armR = Math.sin(cycle) * 24;
+    const bob = Math.abs(Math.sin(cycle)) * 4;
+    return {
+      torso: Math.sin(cycle) * 2,
+      head: -Math.sin(cycle) * 1.5,
+      upperArm_L: armL, forearm_L: Math.max(0, -armL * 0.4), hand_L: 0,
+      upperArm_R: armR, forearm_R: Math.max(0, -armR * 0.4), hand_R: 0,
+      thigh_L: legL, shin_L: Math.max(0, -legL * 0.7), foot_L: legL * 0.2,
+      thigh_R: legR, shin_R: Math.max(0, -legR * 0.7), foot_R: legR * 0.2,
+      _bob: bob
+    };
+  },
+  run: (t = 0, speed = 1.0) => {
+    const cycle = t * 9.5 * speed;
+    const legL = Math.sin(cycle) * 48;
+    const legR = Math.sin(cycle + Math.PI) * 48;
+    const armL = Math.sin(cycle + Math.PI) * 44;
+    const armR = Math.sin(cycle) * 44;
+    return {
+      torso: 10 + Math.sin(cycle) * 3,
+      head: -8 - Math.sin(cycle) * 2,
+      upperArm_L: armL, forearm_L: -35 + armL * 0.3, hand_L: 0,
+      upperArm_R: armR, forearm_R: -35 + armR * 0.3, hand_R: 0,
+      thigh_L: legL, shin_L: Math.max(0, -legL * 0.9), foot_L: 10,
+      thigh_R: legR, shin_R: Math.max(0, -legR * 0.9), foot_R: 10
+    };
+  },
+  wave: (t = 0) => {
+    const waveHand = Math.sin(t * 12) * 22;
+    return {
+      torso: 2, head: -3,
+      upperArm_L: -125, forearm_L: -40 + waveHand, hand_L: waveHand * 0.5,
+      upperArm_R: 5, forearm_R: 5, hand_R: 0,
+      thigh_L: 0, shin_L: 0, foot_L: 0,
+      thigh_R: 0, shin_R: 0, foot_R: 0
+    };
+  },
+  point: {
+    torso: 4, head: 4,
+    upperArm_L: 10, forearm_L: 5, hand_L: 0,
+    upperArm_R: -85, forearm_R: -5, hand_R: 0,
+    thigh_L: 0, shin_L: 0, foot_L: 0,
+    thigh_R: 0, shin_R: 0, foot_R: 0
+  },
+  sit: {
+    torso: -5, head: 5,
+    upperArm_L: 20, forearm_L: 60, hand_L: 0,
+    upperArm_R: 20, forearm_R: 60, hand_R: 0,
+    thigh_L: 80, shin_L: -80, foot_L: 0,
+    thigh_R: 80, shin_R: -80, foot_R: 0
+  },
+  jump: (t = 0) => {
+    return {
+      torso: -6, head: -4,
+      upperArm_L: -120, forearm_L: -30, hand_L: 0,
+      upperArm_R: -120, forearm_R: -30, hand_R: 0,
+      thigh_L: 45, shin_L: -65, foot_L: 20,
+      thigh_R: 45, shin_R: -65, foot_R: 20
+    };
+  },
+  surprised: (t = 0) => {
+    const shiver = Math.sin(t * 36) * 3;
+    return {
+      torso: -8, head: -12 + shiver,
+      upperArm_L: -110 + shiver, forearm_L: -40, hand_L: shiver,
+      upperArm_R: -110 - shiver, forearm_R: -40, hand_R: -shiver,
+      thigh_L: 15, shin_L: -20, foot_L: 5,
+      thigh_R: 15, shin_R: -20, foot_R: 5
+    };
+  },
+  talking: (t = 0) => {
+    const talkBob = Math.sin(t * 10) * 4;
+    return {
+      torso: talkBob * 0.3, head: talkBob,
+      upperArm_L: 15 + talkBob, forearm_L: 25 - talkBob, hand_L: 0,
+      upperArm_R: -20 + talkBob, forearm_R: -45 + talkBob, hand_R: 0,
+      thigh_L: 0, shin_L: 0, foot_L: 0,
+      thigh_R: 0, shin_R: 0, foot_R: 0
+    };
+  }
+};
+
+// Lọc danh sách nhân vật
+function setCharFilter(filter) {
+  characterState.filter = filter;
+  ["All", "Builtin", "Imported"].forEach(f => {
+    const btn = document.getElementById(`filterChar${f}`);
+    if (btn) btn.classList.toggle("active", filter.toLowerCase() === f.toLowerCase());
+  });
+  renderCharacterCards();
+}
 
 // Nạp danh sách nhân vật từ máy chủ
 async function loadCharacterLibrary() {
@@ -1722,7 +1874,7 @@ async function loadCharacterLibrary() {
     characterState.characters = data.characters || [];
     renderCharacterCards();
 
-    // Chọn nhân vật đầu tiên để hiển thị trên editor nếu chưa chọn
+    // Chọn nhân vật đầu tiên nếu chưa chọn
     if (!characterState.activeCharacter && characterState.characters.length > 0) {
       selectCharacterForEditing(characterState.characters[0].id);
     }
@@ -1731,22 +1883,44 @@ async function loadCharacterLibrary() {
   }
 }
 
-// Hiển thị các thẻ nhân vật trong Grid
+// Hiển thị các thẻ nhân vật trong Grid với phân loại Mode A / Mode B
 function renderCharacterCards() {
   const container = document.getElementById("characterCardsContainer");
   if (!container) return;
 
-  if (characterState.characters.length === 0) {
-    container.innerHTML = '<div class="empty-state">Chưa có nhân vật nào trong thư viện. Bấm "+ Tạo Nhân Vật Mới" để bắt đầu!</div>';
+  const all = characterState.characters;
+  const builtin = all.filter(c => c.type !== "imported");
+  const imported = all.filter(c => c.type === "imported");
+
+  // Cập nhật số lượng
+  const countAll = document.getElementById("countCharAll");
+  const countBuiltin = document.getElementById("countCharBuiltin");
+  const countImported = document.getElementById("countCharImported");
+  if (countAll) countAll.textContent = all.length;
+  if (countBuiltin) countBuiltin.textContent = builtin.length;
+  if (countImported) countImported.textContent = imported.length;
+
+  let displayList = all;
+  if (characterState.filter === "builtin") displayList = builtin;
+  else if (characterState.filter === "imported") displayList = imported;
+
+  if (displayList.length === 0) {
+    container.innerHTML = `<div class="empty-state">Không có nhân vật nào thuộc bộ lọc "${characterState.filter}". Bấm "+ Import Nhân Vật" hoặc "+ Tạo Nhân Vật Mới"!</div>`;
     return;
   }
 
-  container.innerHTML = characterState.characters
+  container.innerHTML = displayList
     .map((c) => {
       const isSelected = characterState.activeCharacter && characterState.activeCharacter.id === c.id;
-      const borderCol = isSelected ? "#38bdf8" : "#334155";
-      const bgCol = isSelected ? "rgba(56, 189, 248, 0.08)" : "#1e293b";
-      const outfitName = c.outfit?.type ? c.outfit.type.toUpperCase() : "CASUAL";
+      const isImported = c.type === "imported";
+      const borderCol = isSelected ? (isImported ? "#10b981" : "#38bdf8") : "#334155";
+      const bgCol = isSelected ? (isImported ? "rgba(16, 185, 129, 0.08)" : "rgba(56, 189, 248, 0.08)") : "#1e293b";
+      const modeTagBg = isImported ? "#065f46" : "#0f172a";
+      const modeTagText = isImported ? "#34d399" : "#38bdf8";
+      const modeTagLabel = isImported ? "MODE B: IMPORTED" : "MODE A: BUILT-IN";
+
+      const partCount = isImported && c.parts ? Object.keys(c.parts).length : null;
+      const partCountBadge = partCount ? `<span style="font-size: 11px; color: #a7f3d0; background: #064e3b; padding: 2px 6px; border-radius: 4px;">${partCount} bộ phận</span>` : "";
 
       return `
         <div class="card" style="border: 2px solid ${borderCol}; background-color: ${bgCol}; padding: 14px; display: flex; flex-direction: column; gap: 10px; transition: all 0.2s;">
@@ -1755,23 +1929,34 @@ function renderCharacterCards() {
               <div style="font-size: 16px; font-weight: 700; color: #f8fafc;">${escapeHtml(c.name || c.id)}</div>
               <div style="font-size: 11px; color: #94a3b8; font-family: monospace;">ID: ${escapeHtml(c.id)}</div>
             </div>
-            <span class="badge" style="background-color: #0f172a; color: #38bdf8; font-size: 10px; padding: 3px 8px; border: 1px solid #0284c7;">
-              ${escapeHtml(outfitName)}
+            <span class="badge" style="background-color: ${modeTagBg}; color: ${modeTagText}; font-size: 10px; padding: 3px 8px; border: 1px solid ${modeTagText};">
+              ${modeTagLabel}
             </span>
           </div>
 
-          <!-- Color swatches preview -->
-          <div style="display: flex; gap: 6px; align-items: center; margin: 4px 0;">
-            <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.skinColor || '#ffdfc4'}; border: 1px solid #475569;" title="Màu da"></div>
-            <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.hair?.color || '#333'}; border: 1px solid #475569;" title="Màu tóc"></div>
-            <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.outfit?.topColor || '#d64a33'}; border: 1px solid #475569;" title="Màu áo"></div>
-            <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.outfit?.pantsColor || '#2e384d'}; border: 1px solid #475569;" title="Màu quần"></div>
-            <span style="font-size: 11px; color: #94a3b8; margin-left: auto;">${escapeHtml(c.hair?.style || 'short')} hair</span>
-          </div>
+          <!-- Thumbnail hoặc Color swatches preview -->
+          ${
+            isImported
+              ? `
+            <div style="display: flex; gap: 8px; align-items: center; margin: 4px 0;">
+              ${c.thumbnail ? `<img src="${c.thumbnail}" style="width: 32px; height: 32px; object-fit: contain; border-radius: 4px; background: #0f172a;" />` : `<div style="font-size: 20px;">🧩</div>`}
+              ${partCountBadge}
+              <span style="font-size: 11px; color: #94a3b8; margin-left: auto;">${escapeHtml(c.assetType || "layered_png")}</span>
+            </div>`
+              : `
+            <div style="display: flex; gap: 6px; align-items: center; margin: 4px 0;">
+              <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.skinColor || '#FFFDF8'}; border: 1px solid #475569;" title="Màu da"></div>
+              <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.hair?.color || '#333'}; border: 1px solid #475569;" title="Màu tóc"></div>
+              <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.outfit?.topColor || '#d64a33'}; border: 1px solid #475569;" title="Màu áo"></div>
+              <div style="width: 18px; height: 18px; border-radius: 50%; background-color: ${c.outfit?.pantsColor || '#2e384d'}; border: 1px solid #475569;" title="Màu quần"></div>
+              <span style="font-size: 11px; color: #94a3b8; margin-left: auto;">${escapeHtml(c.outfit?.type || 'hoodie')}</span>
+            </div>`
+          }
 
-          <!-- Action buttons -->
+          <!-- Nút hành động -->
           <div style="display: flex; gap: 6px; margin-top: auto; padding-top: 8px; border-top: 1px solid #334155;">
             <button class="btn btn-sm btn-primary" style="flex: 1;" onclick="selectCharacterForEditing('${c.id}')">✏️ Sửa</button>
+            ${isImported ? `<button class="btn btn-sm btn-outline" onclick="exportCharacterById('${c.id}')" title="Xuất gói ZIP">📦</button>` : ""}
             <button class="btn btn-sm btn-outline" onclick="duplicateCharacterById('${c.id}')" title="Nhân bản">📑</button>
             <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #ef4444;" onclick="deleteCharacterById('${c.id}')" title="Xóa">🗑️</button>
           </div>
@@ -1781,19 +1966,77 @@ function renderCharacterCards() {
     .join("");
 }
 
-// Chọn một nhân vật để hiển thị trên form editor
+// Chọn một nhân vật để hiển thị trên form editor (Tự động chuyển chế độ Mode A / Mode B)
 function selectCharacterForEditing(id) {
   const char = characterState.characters.find((c) => c.id === id);
   if (!char) return;
 
   characterState.activeCharacter = char;
+  characterState.history = [JSON.stringify(char)];
+  characterState.historyIndex = 0;
 
+  const isImported = char.type === "imported";
+
+  // Cập nhật badges tiêu đề
   const badge = document.getElementById("editingCharacterBadge");
-  if (badge) badge.textContent = `Đang chọn: ${char.name} (${char.id})`;
+  const modeTag = document.getElementById("editingCharacterModeTag");
+  const subtitle = document.getElementById("charEditorModeSubtitle");
 
-  // Điền dữ liệu vào form editor
+  if (badge) badge.textContent = `Đang chọn: ${char.name} (${char.id})`;
+  if (modeTag) {
+    modeTag.textContent = isImported ? "Mode B: Imported" : "Mode A: Built-in";
+    modeTag.style.backgroundColor = isImported ? "#059669" : "#0284c7";
+  }
+  if (subtitle) {
+    subtitle.textContent = isImported
+      ? "Chế độ Mode B: Nhân vật nhập ngoài (Visual Canvas Rig Editor, Bones & Hierarchy)"
+      : "Chế độ Mode A: Nhân vật dựng sẵn (Chibi / White Cartoon Procedural Rig)";
+  }
+
+  // Điền ID & Tên
   const elId = document.getElementById("charEditorId");
   const elName = document.getElementById("charEditorName");
+  if (elId) { elId.value = char.id; elId.disabled = true; }
+  if (elName) elName.value = char.name || "";
+
+  // Ẩn / hiện container tương ứng
+  const modeAEditor = document.getElementById("modeAEditorContainer");
+  const modeBEditor = document.getElementById("modeBEditorContainer");
+  const modeAPreview = document.getElementById("modeAPreviewControls");
+  const modeBPreview = document.getElementById("modeBPreviewControls");
+  const liveSvg = document.getElementById("liveCharacterSvg");
+  const liveCanvas = document.getElementById("liveModeBCanvas");
+  const canvasOverlay = document.getElementById("modeBCanvasOverlay");
+
+  if (isImported) {
+    if (modeAEditor) modeAEditor.classList.add("hidden");
+    if (modeBEditor) modeBEditor.classList.remove("hidden");
+    if (modeAPreview) modeAPreview.classList.add("hidden");
+    if (modeBPreview) modeBPreview.classList.remove("hidden");
+    if (liveSvg) liveSvg.classList.add("hidden");
+    if (liveCanvas) liveCanvas.classList.remove("hidden");
+    if (canvasOverlay) canvasOverlay.classList.remove("hidden");
+
+    initModeBEditor(char);
+  } else {
+    if (modeAEditor) modeAEditor.classList.remove("hidden");
+    if (modeBEditor) modeBEditor.classList.add("hidden");
+    if (modeAPreview) modeAPreview.classList.remove("hidden");
+    if (modeBPreview) modeBPreview.classList.add("hidden");
+    if (liveSvg) liveSvg.classList.remove("hidden");
+    if (liveCanvas) liveCanvas.classList.add("hidden");
+    if (canvasOverlay) canvasOverlay.classList.add("hidden");
+
+    stopModeBAnimLoop();
+    initModeAEditor(char);
+    updateLivePreview();
+  }
+
+  renderCharacterCards();
+}
+
+// Khởi tạo Mode A editor
+function initModeAEditor(char) {
   const elSkin = document.getElementById("charEditorSkin");
   const elEye = document.getElementById("charEditorEyeStyle");
   const elBlush = document.getElementById("charEditorBlush");
@@ -1809,9 +2052,7 @@ function selectCharacterForEditing(id) {
   const elHeadScale = document.getElementById("charEditorHeadScale");
   const elTorsoLen = document.getElementById("charEditorTorsoLen");
 
-  if (elId) { elId.value = char.id; elId.disabled = true; }
-  if (elName) elName.value = char.name || "";
-  if (elSkin) elSkin.value = char.skinColor || "#ffdfc4";
+  if (elSkin) elSkin.value = char.skinColor || "#FFFDF8";
   if (elEye) elEye.value = char.face?.eyeStyle || "oval";
   if (elBlush) elBlush.checked = char.face?.blush !== false;
   if (elGlasses) elGlasses.checked = !!char.outfit?.accessories?.includes("glasses");
@@ -1833,22 +2074,1083 @@ function selectCharacterForEditing(id) {
     const v = document.getElementById("valTorsoLen");
     if (v) v.textContent = elTorsoLen.value;
   }
-
-  renderCharacterCards();
-  updateLivePreview();
 }
 
-// Bắt đầu tạo một nhân vật hoàn toàn mới
+// Khởi tạo Mode B editor (Khung xương, Bộ phận, Biểu cảm, Canvas Rig)
+function initModeBEditor(char) {
+  renderModeBPartsList(char);
+  renderModeBExpressionsGrid(char);
+
+  // Chọn bộ phận đầu tiên (ưu tiên torso hoặc head)
+  const partKeys = Object.keys(char.parts || {});
+  const defaultPart = partKeys.includes("torso") ? "torso" : partKeys[0] || null;
+  selectModeBPart(defaultPart);
+
+  // Thiết lập canvas sự kiện tương tác chuột
+  setupModeBCanvasEvents();
+
+  // Bắt đầu vòng lặp render canvas
+  startModeBAnimLoop();
+}
+
+// Hiển thị danh sách các bộ phận Mode B
+function renderModeBPartsList(char) {
+  const container = document.getElementById("modeBPartsList");
+  if (!container) return;
+
+  const parts = char.parts || {};
+  const partKeys = Object.keys(parts);
+
+  if (partKeys.length === 0) {
+    container.innerHTML = '<div style="color: #94a3b8; font-size: 12px; padding: 6px;">Chưa có bộ phận nào.</div>';
+    return;
+  }
+
+  container.innerHTML = partKeys
+    .map(key => {
+      const p = parts[key];
+      const isSelected = characterState.selectedPartName === key;
+      const activeClass = isSelected ? "mode-b-part-item active" : "mode-b-part-item";
+      const parentName = p.parent || "root";
+      const z = p.zIndex ?? 0;
+
+      return `
+        <div class="${activeClass}" onclick="selectModeBPart('${key}')">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="color: #38bdf8;">🦴</span>
+            <span style="color: #f8fafc; font-size: 12px;">${key}</span>
+            <span style="font-size: 10px; color: #94a3b8;">(cha: ${parentName})</span>
+          </div>
+          <span style="font-size: 10px; color: #a7f3d0; background: #064e3b; padding: 1px 5px; border-radius: 3px;">z: ${z}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+// Chọn một bộ phận trong Mode B để điều chỉnh thông số
+function selectModeBPart(partName) {
+  characterState.selectedPartName = partName;
+  const char = characterState.activeCharacter;
+  if (!char || !char.parts || !partName || !char.parts[partName]) return;
+
+  const part = char.parts[partName];
+
+  // Cập nhật tên
+  const nameEl = document.getElementById("modeBSelectedPartName");
+  if (nameEl) nameEl.textContent = `Bộ phận: ${partName}`;
+
+  // Cập nhật dropdown parent
+  const parentSelect = document.getElementById("modeBPartParentSelect");
+  if (parentSelect) {
+    const allParts = Object.keys(char.parts);
+    parentSelect.innerHTML = `<option value="root">root (gốc sàn)</option>` +
+      allParts.filter(p => p !== partName).map(p => `<option value="${p}">${p}</option>`).join("");
+    parentSelect.value = part.parent || "root";
+  }
+
+  // Cập nhật góc quay slider
+  const angleSlider = document.getElementById("modeBPartAngleSlider");
+  const valAngle = document.getElementById("valModeBAngle");
+  const angle = part.rotation ?? 0;
+  if (angleSlider) angleSlider.value = angle;
+  if (valAngle) valAngle.textContent = `${angle}°`;
+
+  // Cập nhật Pivot & Pos
+  const pivotX = document.getElementById("modeBPivotX");
+  const pivotY = document.getElementById("modeBPivotY");
+  const posX = document.getElementById("modeBPosX");
+  const posY = document.getElementById("modeBPosY");
+
+  if (pivotX) pivotX.value = part.pivot ? part.pivot[0] : 0;
+  if (pivotY) pivotY.value = part.pivot ? part.pivot[1] : 0;
+  if (posX) posX.value = part.position ? part.position[0] : 0;
+  if (posY) posY.value = part.position ? part.position[1] : 0;
+
+  renderModeBPartsList(char);
+  drawModeBRigCanvas();
+}
+
+// Đổi góc xoay bộ phận Mode B
+function onModeBPartAngleInput(val) {
+  const char = characterState.activeCharacter;
+  const partName = characterState.selectedPartName;
+  if (!char || !char.parts || !partName || !char.parts[partName]) return;
+
+  const angle = parseInt(val, 10) || 0;
+  char.parts[partName].rotation = angle;
+  const valAngle = document.getElementById("valModeBAngle");
+  if (valAngle) valAngle.textContent = `${angle}°`;
+
+  pushModeBHistory();
+  drawModeBRigCanvas();
+}
+
+// Đổi cha của bộ phận
+function onModeBPartParentChanged(newParent) {
+  const char = characterState.activeCharacter;
+  const partName = characterState.selectedPartName;
+  if (!char || !char.parts || !partName || !char.parts[partName]) return;
+
+  char.parts[partName].parent = newParent;
+  pushModeBHistory();
+  renderModeBPartsList(char);
+  drawModeBRigCanvas();
+}
+
+// Đổi Pivot
+function onModeBPivotChanged() {
+  const char = characterState.activeCharacter;
+  const partName = characterState.selectedPartName;
+  if (!char || !char.parts || !partName || !char.parts[partName]) return;
+
+  const px = parseFloat(document.getElementById("modeBPivotX")?.value) || 0;
+  const py = parseFloat(document.getElementById("modeBPivotY")?.value) || 0;
+  char.parts[partName].pivot = [px, py];
+
+  pushModeBHistory();
+  drawModeBRigCanvas();
+}
+
+// Đổi Vị trí (Position)
+function onModeBPosChanged() {
+  const char = characterState.activeCharacter;
+  const partName = characterState.selectedPartName;
+  if (!char || !char.parts || !partName || !char.parts[partName]) return;
+
+  const x = parseFloat(document.getElementById("modeBPosX")?.value) || 0;
+  const y = parseFloat(document.getElementById("modeBPosY")?.value) || 0;
+  char.parts[partName].position = [x, y];
+
+  pushModeBHistory();
+  drawModeBRigCanvas();
+}
+
+// Thay đổi thứ tự lớp Z-Order của bộ phận
+function changePartZOrder(delta) {
+  const char = characterState.activeCharacter;
+  const partName = characterState.selectedPartName;
+  if (!char || !char.parts || !partName || !char.parts[partName]) return;
+
+  char.parts[partName].zIndex = (char.parts[partName].zIndex ?? 0) + delta;
+  pushModeBHistory();
+  renderModeBPartsList(char);
+  drawModeBRigCanvas();
+}
+
+// Đặt lại T-Pose chuẩn
+function resetModeBTPose() {
+  const char = characterState.activeCharacter;
+  if (!char || !char.parts) return;
+
+  Object.values(char.parts).forEach(p => {
+    p.rotation = 0;
+  });
+
+  const angleSlider = document.getElementById("modeBPartAngleSlider");
+  const valAngle = document.getElementById("valModeBAngle");
+  if (angleSlider) angleSlider.value = 0;
+  if (valAngle) valAngle.textContent = "0°";
+
+  pushModeBHistory();
+  showToast("↺ Đã đặt lại tư thế chuẩn T-Pose.");
+  drawModeBRigCanvas();
+}
+
+// Quản lý Undo / Redo cho Rig
+function pushModeBHistory() {
+  const char = characterState.activeCharacter;
+  if (!char) return;
+  const snap = JSON.stringify(char);
+  if (characterState.historyIndex < characterState.history.length - 1) {
+    characterState.history = characterState.history.slice(0, characterState.historyIndex + 1);
+  }
+  characterState.history.push(snap);
+  if (characterState.history.length > 30) characterState.history.shift();
+  characterState.historyIndex = characterState.history.length - 1;
+}
+
+function undoModeBRig() {
+  if (characterState.historyIndex > 0) {
+    characterState.historyIndex--;
+    const prev = JSON.parse(characterState.history[characterState.historyIndex]);
+    Object.assign(characterState.activeCharacter, prev);
+    selectModeBPart(characterState.selectedPartName);
+    showToast("↶ Đã hoàn tác.");
+  }
+}
+
+function redoModeBRig() {
+  if (characterState.historyIndex < characterState.history.length - 1) {
+    characterState.historyIndex++;
+    const next = JSON.parse(characterState.history[characterState.historyIndex]);
+    Object.assign(characterState.activeCharacter, next);
+    selectModeBPart(characterState.selectedPartName);
+    showToast("↷ Đã làm lại.");
+  }
+}
+
+// Thay ảnh của một bộ phận qua file picker
+async function onModeBReplaceImageSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const char = characterState.activeCharacter;
+  const partName = characterState.selectedPartName;
+  if (!char || !partName) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64Data = e.target.result;
+    try {
+      const res = await fetch("/api/characters/upload-part", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          characterId: char.id,
+          partName,
+          base64Data,
+          filename: file.name
+        })
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      char.parts[partName].assetUrl = data.assetUrl;
+      // Xóa cache ảnh cũ để nạp ảnh mới
+      delete characterState.imageCache[data.assetUrl];
+      pushModeBHistory();
+      showToast(`🖼️ Đã thay ảnh cho bộ phận "${partName}"!`);
+      drawModeBRigCanvas();
+    } catch (err) {
+      showToast("❌ Lỗi thay ảnh: " + err.message);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// Hiển thị 8 Expression Slots cho Mode B
+function renderModeBExpressionsGrid(char) {
+  const container = document.getElementById("modeBExpressionsGrid");
+  if (!container) return;
+
+  const expressions = char.expressions || {};
+  const standardExprs = ["neutral", "happy", "sad", "angry", "surprised", "scared", "thinking", "talking"];
+
+  container.innerHTML = standardExprs
+    .map(expr => {
+      const asset = expressions[expr] || char.parts?.head?.assetUrl || "";
+      const isActive = (char.defaultExpression || "neutral") === expr;
+      const activeClass = isActive ? "expr-slot-card active" : "expr-slot-card";
+
+      return `
+        <div class="${activeClass}" onclick="setModeBActiveExpression('${expr}')">
+          <span style="font-size: 11px; font-weight: 700; color: #f8fafc;">${expr}</span>
+          ${asset ? `<img src="${asset}" class="expr-slot-thumb" />` : `<div class="expr-slot-thumb" style="display: flex; align-items: center; justify-content: center; font-size: 14px;">😊</div>`}
+          <button class="btn btn-sm btn-outline" style="font-size: 9px; padding: 1px 4px; border-color: #475569;" onclick="event.stopPropagation(); triggerReplaceExpression('${expr}')">Thay</button>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function setModeBActiveExpression(expr) {
+  const char = characterState.activeCharacter;
+  if (!char) return;
+  char.defaultExpression = expr;
+  const select = document.getElementById("modeBExprSelect");
+  if (select) select.value = expr;
+  renderModeBExpressionsGrid(char);
+  drawModeBRigCanvas();
+}
+
+function onModeBExprChanged(val) {
+  setModeBActiveExpression(val);
+}
+
+function triggerReplaceExpression(expr) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/png,image/webp";
+  input.onchange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const char = characterState.activeCharacter;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const res = await fetch("/api/characters/upload-part", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            characterId: char.id,
+            partName: `expr_${expr}`,
+            base64Data: ev.target.result,
+            filename: file.name
+          })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        if (!char.expressions) char.expressions = {};
+        char.expressions[expr] = data.assetUrl;
+        delete characterState.imageCache[data.assetUrl];
+        pushModeBHistory();
+        renderModeBExpressionsGrid(char);
+        drawModeBRigCanvas();
+        showToast(`😊 Đã cập nhật ảnh biểu cảm "${expr}"!`);
+      } catch (err) {
+        showToast("❌ Lỗi cập nhật biểu cảm: " + err.message);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+// Điều khiển diễn hoạt (Action Animation) Mode B
+function onModeBActionChanged(action) {
+  characterState.anim.action = action;
+  drawModeBRigCanvas();
+}
+
+function onModeBSpeedChanged(speed) {
+  characterState.anim.speed = parseFloat(speed) || 1.0;
+}
+
+function togglePlayModeBAnim() {
+  characterState.anim.isPlaying = !characterState.anim.isPlaying;
+  const btn = document.getElementById("btnPlayModeBAnim");
+  if (btn) {
+    btn.textContent = characterState.anim.isPlaying ? "⏸ Tạm dừng" : "▶ Phát chuyển động";
+    btn.className = characterState.anim.isPlaying ? "btn btn-sm btn-secondary" : "btn btn-sm btn-primary";
+  }
+}
+
+function startModeBAnimLoop() {
+  stopModeBAnimLoop();
+  characterState.anim.lastTick = performance.now();
+
+  function loop(now) {
+    const dt = (now - characterState.anim.lastTick) / 1000;
+    characterState.anim.lastTick = now;
+
+    if (characterState.anim.isPlaying) {
+      characterState.anim.time += dt * characterState.anim.speed;
+      drawModeBRigCanvas();
+    }
+    characterState.anim.animFrameId = requestAnimationFrame(loop);
+  }
+  characterState.anim.animFrameId = requestAnimationFrame(loop);
+}
+
+function stopModeBAnimLoop() {
+  if (characterState.anim.animFrameId) {
+    cancelAnimationFrame(characterState.anim.animFrameId);
+    characterState.anim.animFrameId = null;
+  }
+}
+
+// =========================================================================
+// CANVAS RIG RENDERER CHO MODE B (FORWARD KINEMATICS & GIZMOS)
+// =========================================================================
+
+function setupModeBCanvasEvents() {
+  const canvas = document.getElementById("liveModeBCanvas");
+  if (!canvas || canvas._hasEvents) return;
+  canvas._hasEvents = true;
+
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    zoomModeBCanvas(factor);
+  });
+
+  canvas.addEventListener("mousedown", (e) => {
+    characterState.view.isDragging = true;
+    characterState.view.dragStart = { x: e.clientX, y: e.clientY };
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (!characterState.view.isDragging) return;
+    const dx = e.clientX - characterState.view.dragStart.x;
+    const dy = e.clientY - characterState.view.dragStart.y;
+    characterState.view.panX += dx;
+    characterState.view.panY += dy;
+    characterState.view.dragStart = { x: e.clientX, y: e.clientY };
+    drawModeBRigCanvas();
+  });
+
+  window.addEventListener("mouseup", () => {
+    characterState.view.isDragging = false;
+  });
+}
+
+function zoomModeBCanvas(factor) {
+  characterState.view.zoom = Math.max(0.3, Math.min(4.0, characterState.view.zoom * factor));
+  drawModeBRigCanvas();
+}
+
+function resetModeBCanvasView() {
+  characterState.view.zoom = 1.0;
+  characterState.view.panX = 0;
+  characterState.view.panY = 0;
+  drawModeBRigCanvas();
+}
+
+// Nạp ảnh cache
+function getModeBCachedImage(url) {
+  if (!url) return null;
+  if (characterState.imageCache[url]) return characterState.imageCache[url];
+
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.src = url;
+  img.onload = () => drawModeBRigCanvas();
+  characterState.imageCache[url] = img;
+  return img;
+}
+
+// Vẽ toàn bộ Rig và nhân vật Mode B lên Canvas
+function drawModeBRigCanvas() {
+  const canvas = document.getElementById("liveModeBCanvas");
+  if (!canvas || canvas.classList.contains("hidden")) return;
+
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width;
+  const H = canvas.height;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Lưới nền mờ (Checkerboard)
+  ctx.save();
+  const gridSize = 24;
+  for (let x = 0; x < W; x += gridSize) {
+    for (let y = 0; y < H; y += gridSize) {
+      if ((Math.floor(x / gridSize) + Math.floor(y / gridSize)) % 2 === 0) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.02)";
+        ctx.fillRect(x, y, gridSize, gridSize);
+      }
+    }
+  }
+
+  // Mặt sàn tham chiếu (Ground Line)
+  const groundY = H * 0.78 + characterState.view.panY;
+  ctx.strokeStyle = "#334155";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 6]);
+  ctx.beginPath();
+  ctx.moveTo(0, groundY);
+  ctx.lineTo(W, groundY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  const char = characterState.activeCharacter;
+  if (!char || !char.parts) return;
+
+  const parts = char.parts;
+  const partKeys = Object.keys(parts);
+  if (partKeys.length === 0) return;
+
+  const zoom = characterState.view.zoom;
+  const centerX = W / 2 + characterState.view.panX;
+  const centerY = groundY;
+
+  // Lấy góc quay từ Action animation hiện tại
+  const action = characterState.anim.action || "idle";
+  const t = characterState.anim.time;
+  let actionAngles = MODE_B_POSE_ANGLES.stand;
+
+  if (typeof MODE_B_POSE_ANGLES[action] === "function") {
+    actionAngles = MODE_B_POSE_ANGLES[action](t, characterState.anim.speed);
+  } else if (MODE_B_POSE_ANGLES[action]) {
+    actionAngles = MODE_B_POSE_ANGLES[action];
+  }
+
+  // 1. Giải hệ FK (Forward Kinematics) từ gốc sàn
+  const worldTransforms = {};
+  const computed = new Set();
+
+  function computePartTransform(pName) {
+    if (computed.has(pName)) return worldTransforms[pName];
+    const part = parts[pName];
+    if (!part) return null;
+
+    const parentName = part.parent || "root";
+    let parentM = { x: 0, y: 0, rotation: 0 };
+
+    if (parentName !== "root" && parts[parentName]) {
+      parentM = computePartTransform(parentName) || parentM;
+    }
+
+    const localX = part.position ? part.position[0] : 0;
+    const localY = part.position ? part.position[1] : 0;
+    const baseRot = (part.rotation ?? 0) * (Math.PI / 180);
+    const actionRot = ((actionAngles[pName] ?? 0) * Math.PI) / 180;
+    const localRot = baseRot + actionRot;
+
+    // Chiếu tọa độ local qua góc xoay của cha
+    const cosP = Math.cos(parentM.rotation);
+    const sinP = Math.sin(parentM.rotation);
+    const wx = parentM.x + (localX * cosP - localY * sinP);
+    const wy = parentM.y + (localX * sinP + localY * cosP);
+    const wRot = parentM.rotation + localRot;
+
+    worldTransforms[pName] = {
+      x: wx,
+      y: wy,
+      rotation: wRot,
+      parentPivot: [parentM.x, parentM.y],
+      pivot: part.pivot || [0, 0]
+    };
+    computed.add(pName);
+    return worldTransforms[pName];
+  }
+
+  partKeys.forEach(computePartTransform);
+
+  // 2. Sắp xếp bộ phận theo Z-Index
+  const sortedParts = [...partKeys].sort((a, b) => (parts[a].zIndex ?? 0) - (parts[b].zIndex ?? 0));
+
+  ctx.save();
+  ctx.translate(centerX, centerY);
+  ctx.scale(zoom, zoom);
+
+  // Vẽ bóng tiếp xúc
+  ctx.fillStyle = "rgba(0, 0, 0, 0.28)";
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 45, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 3. Render từng bộ phận
+  sortedParts.forEach(pName => {
+    const part = parts[pName];
+    const tf = worldTransforms[pName];
+    if (!part || !tf) return;
+
+    // Nếu là head và có biểu cảm thay thế
+    let assetUrl = part.assetUrl;
+    if (pName === "head" && char.expressions && char.defaultExpression) {
+      if (char.expressions[char.defaultExpression]) {
+        assetUrl = char.expressions[char.defaultExpression];
+      }
+    }
+
+    const img = getModeBCachedImage(assetUrl);
+
+    ctx.save();
+    ctx.translate(tf.x, tf.y);
+    ctx.rotate(tf.rotation);
+
+    const pvX = part.pivot ? part.pivot[0] : 0;
+    const pvY = part.pivot ? part.pivot[1] : 0;
+
+    if (img && img.complete && img.naturalWidth > 0) {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      ctx.drawImage(img, -pvX, -pvY, w, h);
+
+      // Nếu đang được chọn -> vẽ viền highlight
+      if (characterState.selectedPartName === pName) {
+        ctx.strokeStyle = "#f59e0b";
+        ctx.lineWidth = 2 / zoom;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(-pvX, -pvY, w, h);
+        ctx.setLineDash([]);
+      }
+    } else {
+      // Fallback khối chữ nhật tượng trưng
+      ctx.fillStyle = "rgba(56, 189, 248, 0.4)";
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 1.5;
+      ctx.fillRect(-pvX, -pvY, 40, 40);
+      ctx.strokeRect(-pvX, -pvY, 40, 40);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "10px sans-serif";
+      ctx.fillText(pName, -pvX + 4, -pvY + 16);
+    }
+
+    // Điểm Pivot đỏ
+    if (characterState.selectedPartName === pName) {
+      ctx.fillStyle = "#ef4444";
+      ctx.beginPath();
+      ctx.arc(0, 0, 4 / zoom, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1.5 / zoom;
+      ctx.beginPath();
+      ctx.moveTo(-7 / zoom, 0); ctx.lineTo(7 / zoom, 0);
+      ctx.moveTo(0, -7 / zoom); ctx.lineTo(0, 7 / zoom);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  });
+
+  // 4. Vẽ Khung xương & Khớp liên kết (Bones & Joint Lines) nếu được bật
+  const showBones = !!document.getElementById("modeBShowBonesToggle")?.checked;
+  if (showBones) {
+    ctx.save();
+    partKeys.forEach(pName => {
+      const tf = worldTransforms[pName];
+      const part = parts[pName];
+      if (!tf || !part || part.parent === "root") return;
+
+      const pTf = worldTransforms[part.parent];
+      if (!pTf) return;
+
+      // Đường xương nối từ cha sang con
+      ctx.strokeStyle = "rgba(6, 182, 212, 0.75)";
+      ctx.lineWidth = 2.5 / zoom;
+      ctx.beginPath();
+      ctx.moveTo(pTf.x, pTf.y);
+      ctx.lineTo(tf.x, tf.y);
+      ctx.stroke();
+
+      // Khớp tròn
+      ctx.fillStyle = "#38bdf8";
+      ctx.beginPath();
+      ctx.arc(tf.x, tf.y, 3 / zoom, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+// =========================================================================
+// CHARACTER IMPORT WIZARD (MODE B)
+// =========================================================================
+
+function openImportModal() {
+  const modal = document.getElementById("characterImportModal");
+  if (modal) modal.classList.remove("hidden");
+  switchImportWizardTab(1);
+  renderLayeredPartsSlots();
+}
+
+function closeImportModal() {
+  const modal = document.getElementById("characterImportModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+function switchImportWizardTab(tabIdx) {
+  characterState.wizard.tab = tabIdx;
+  for (let i = 1; i <= 4; i++) {
+    const btn = document.getElementById(`importTabBtn${i}`);
+    const pane = document.getElementById(`importWizardPane${i}`);
+    if (btn) btn.classList.toggle("active", i === tabIdx);
+    if (pane) pane.classList.toggle("hidden", i !== tabIdx);
+  }
+}
+
+// TAB 1: Xử lý PNG Nguyên Khối & Cắt Bounding Box
+function handleSinglePngSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    characterState.wizard.singlePngData = e.target.result;
+    const img = new Image();
+    img.src = e.target.result;
+    img.onload = () => {
+      characterState.wizard.singlePngImg = img;
+      renderSinglePngCanvas();
+    };
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderSinglePngCanvas() {
+  const canvas = document.getElementById("singlePngCanvas");
+  const img = characterState.wizard.singlePngImg;
+  if (!canvas || !img) return;
+
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+
+  // Vẽ các hộp cắt lát bộ phận (Head, Torso, Arms, Legs)
+  const W = canvas.width;
+  const H = canvas.height;
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 3;
+  ctx.setLineDash([6, 6]);
+
+  // Head: top 32%
+  ctx.strokeRect(W * 0.22, 0, W * 0.56, H * 0.32);
+  // Torso: 32% - 65%
+  ctx.strokeRect(W * 0.28, H * 0.32, W * 0.44, H * 0.33);
+  // Limbs: bottom 35%
+  ctx.strokeRect(W * 0.15, H * 0.65, W * 0.70, H * 0.35);
+  ctx.setLineDash([]);
+}
+
+function autoSliceSinglePng() {
+  const img = characterState.wizard.singlePngImg;
+  if (!img) {
+    showToast("Vui lòng tải lên ảnh PNG nhân vật trước.");
+    return;
+  }
+
+  // Tách 4 bộ phận cơ bản: head, torso, arm, leg từ ảnh gốc
+  const W = img.naturalWidth;
+  const H = img.naturalHeight;
+  const slices = {};
+
+  function extractSlice(x, y, w, h) {
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const g = c.getContext("2d");
+    g.drawImage(img, x, y, w, h, 0, 0, w, h);
+    return c.toDataURL("image/png");
+  }
+
+  slices.head = {
+    data: extractSlice(W * 0.22, 0, W * 0.56, H * 0.32),
+    pivot: [Math.round(W * 0.28), Math.round(H * 0.30)],
+    position: [0, -145],
+    parent: "torso"
+  };
+  slices.torso = {
+    data: extractSlice(W * 0.28, H * 0.32, W * 0.44, H * 0.33),
+    pivot: [Math.round(W * 0.22), Math.round(H * 0.30)],
+    position: [0, -60],
+    parent: "root"
+  };
+  slices.thigh_L = {
+    data: extractSlice(W * 0.22, H * 0.65, W * 0.26, H * 0.35),
+    pivot: [Math.round(W * 0.13), 0],
+    position: [-14, -60],
+    parent: "torso"
+  };
+  slices.thigh_R = {
+    data: extractSlice(W * 0.52, H * 0.65, W * 0.26, H * 0.35),
+    pivot: [Math.round(W * 0.13), 0],
+    position: [14, -60],
+    parent: "torso"
+  };
+
+  characterState.wizard.slices = slices;
+  showToast("✂️ Đã tự động nhận diện và cắt lát thành công 4 bộ phận chính!");
+}
+
+// TAB 2: Nhân Vật Tách Lớp (Multi-part Slots)
+const STANDARD_PART_SLOTS = [
+  { id: "head", label: "Đầu (Head)", parent: "torso", pivot: [28, 55], pos: [0, -140], z: 10 },
+  { id: "torso", label: "Thân (Torso)", parent: "root", pivot: [25, 45], pos: [0, -60], z: 5 },
+  { id: "upperArm_L", label: "Bắp tay T (Arm L)", parent: "torso", pivot: [8, 8], pos: [-22, -125], z: 1 },
+  { id: "forearm_L", label: "Cẳng tay T", parent: "upperArm_L", pivot: [6, 6], pos: [0, 42], z: 2 },
+  { id: "hand_L", label: "Bàn tay T", parent: "forearm_L", pivot: [6, 6], pos: [0, 36], z: 3 },
+  { id: "upperArm_R", label: "Bắp tay P (Arm R)", parent: "torso", pivot: [8, 8], pos: [22, -125], z: 15 },
+  { id: "forearm_R", label: "Cẳng tay P", parent: "upperArm_R", pivot: [6, 6], pos: [0, 42], z: 16 },
+  { id: "hand_R", label: "Bàn tay P", parent: "forearm_R", pivot: [6, 6], pos: [0, 36], z: 17 },
+  { id: "thigh_L", label: "Đùi Trái", parent: "torso", pivot: [10, 8], pos: [-14, -60], z: 2 },
+  { id: "shin_L", label: "Cẳng chân T", parent: "thigh_L", pivot: [8, 6], pos: [0, 44], z: 2 },
+  { id: "foot_L", label: "Bàn chân T", parent: "shin_L", pivot: [8, 6], pos: [0, 38], z: 2 },
+  { id: "thigh_R", label: "Đùi Phải", parent: "torso", pivot: [10, 8], pos: [14, -60], z: 6 },
+  { id: "shin_R", label: "Cẳng chân P", parent: "thigh_R", pivot: [8, 6], pos: [0, 44], z: 6 },
+  { id: "foot_R", label: "Bàn chân P", parent: "shin_R", pivot: [8, 6], pos: [0, 38], z: 6 }
+];
+
+function renderLayeredPartsSlots() {
+  const container = document.getElementById("layeredPartsSlotsGrid");
+  if (!container) return;
+
+  const parts = characterState.wizard.layeredParts || {};
+
+  container.innerHTML = STANDARD_PART_SLOTS
+    .map(slot => {
+      const data = parts[slot.id];
+      const filledClass = data ? "part-slot-card filled" : "part-slot-card";
+
+      return `
+        <div class="${filledClass}" onclick="triggerUploadSlotPart('${slot.id}')">
+          <span style="font-size: 11px; font-weight: 700; color: #f8fafc;">${slot.label}</span>
+          ${data ? `<img src="${data}" class="part-slot-thumb" />` : `<div class="part-slot-thumb" style="display: flex; align-items: center; justify-content: center; font-size: 18px; color: #64748b;">+</div>`}
+          <span style="font-size: 10px; color: ${data ? '#34d399' : '#94a3b8'};">${data ? '✓ Đã nạp' : 'Chưa nạp'}</span>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function triggerUploadSlotPart(partId) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/png,image/webp";
+  input.onchange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (!characterState.wizard.layeredParts) characterState.wizard.layeredParts = {};
+      characterState.wizard.layeredParts[partId] = ev.target.result;
+      renderLayeredPartsSlots();
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function loadDefaultTemplateParts() {
+  // Tạo ảnh mẫu SVG hình học sạch bo tròn cho các bộ phận
+  function createPartBlob(w, h, drawFn) {
+    const c = document.createElement("canvas");
+    c.width = w; c.height = h;
+    const g = c.getContext("2d");
+    drawFn(g, w, h);
+    return c.toDataURL("image/png");
+  }
+
+  const p = {};
+  // Head: đầu tròn trắng ngà viền đen
+  p.head = createPartBlob(70, 70, (g, w, h) => {
+    g.fillStyle = "#FFFDF8"; g.strokeStyle = "#20202A"; g.lineWidth = 4;
+    g.beginPath(); g.arc(35, 35, 30, 0, Math.PI * 2); g.fill(); g.stroke();
+    // Eyes
+    g.fillStyle = "#20202A";
+    g.beginPath(); g.arc(28, 34, 3.5, 0, Math.PI * 2); g.arc(44, 34, 3.5, 0, Math.PI * 2); g.fill();
+    // Smile
+    g.beginPath(); g.arc(36, 42, 6, 0.2, Math.PI - 0.2); g.stroke();
+  });
+
+  // Torso: thân áo hoodie đỏ cam
+  p.torso = createPartBlob(60, 70, (g, w, h) => {
+    g.fillStyle = "#d64a33"; g.strokeStyle = "#20202A"; g.lineWidth = 4;
+    g.beginPath(); g.roundRect(10, 8, 40, 54, 8); g.fill(); g.stroke();
+  });
+
+  // Limbs
+  const armBlob = createPartBlob(24, 50, (g, w, h) => {
+    g.fillStyle = "#FFFDF8"; g.strokeStyle = "#20202A"; g.lineWidth = 3.5;
+    g.beginPath(); g.roundRect(4, 4, 16, 42, 8); g.fill(); g.stroke();
+  });
+  p.upperArm_L = armBlob; p.upperArm_R = armBlob;
+  p.forearm_L = armBlob; p.forearm_R = armBlob;
+
+  const legBlob = createPartBlob(26, 55, (g, w, h) => {
+    g.fillStyle = "#2e384d"; g.strokeStyle = "#20202A"; g.lineWidth = 3.5;
+    g.beginPath(); g.roundRect(4, 4, 18, 46, 8); g.fill(); g.stroke();
+  });
+  p.thigh_L = legBlob; p.thigh_R = legBlob;
+  p.shin_L = legBlob; p.shin_R = legBlob;
+
+  const footBlob = createPartBlob(36, 22, (g, w, h) => {
+    g.fillStyle = "#111827"; g.strokeStyle = "#20202A"; g.lineWidth = 3;
+    g.beginPath(); g.roundRect(4, 4, 28, 14, 4); g.fill(); g.stroke();
+  });
+  p.foot_L = footBlob; p.foot_R = footBlob;
+
+  characterState.wizard.layeredParts = p;
+  renderLayeredPartsSlots();
+  showToast("⚡ Đã nạp thành công bộ phận mẫu White Cartoon!");
+}
+
+// TAB 3: Sprite Sheet
+function handleSpriteSheetSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.src = e.target.result;
+    img.onload = () => {
+      characterState.wizard.spriteSheetImg = img;
+      updateSpriteSheetPreview();
+    };
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateSpriteSheetPreview() {
+  const canvas = document.getElementById("spritePreviewCanvas");
+  const img = characterState.wizard.spriteSheetImg;
+  if (!canvas || !img) return;
+
+  const cols = parseInt(document.getElementById("spriteColsInput")?.value, 10) || 4;
+  const rows = parseInt(document.getElementById("spriteRowsInput")?.value, 10) || 2;
+  const total = parseInt(document.getElementById("spriteTotalFramesInput")?.value, 10) || 8;
+  const fps = parseInt(document.getElementById("spriteFpsInput")?.value, 10) || 12;
+
+  const fw = img.naturalWidth / cols;
+  const fh = img.naturalHeight / rows;
+
+  canvas.width = 160;
+  canvas.height = Math.round(160 * (fh / fw));
+  const ctx = canvas.getContext("2d");
+
+  let currentFrame = 0;
+  if (canvas._animId) clearInterval(canvas._animId);
+
+  canvas._animId = setInterval(() => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const col = currentFrame % cols;
+    const row = Math.floor(currentFrame / cols);
+    ctx.drawImage(img, col * fw, row * fh, fw, fh, 0, 0, canvas.width, canvas.height);
+    currentFrame = (currentFrame + 1) % total;
+  }, 1000 / fps);
+}
+
+// TAB 4: Gói Nhân Vật (.zip / .json)
+function handlePackageFileSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  characterState.wizard.packageFile = file;
+
+  const infoBox = document.getElementById("packagePreviewInfo");
+  const nameEl = document.getElementById("packageCharName");
+  const detailsEl = document.getElementById("packageCharDetails");
+
+  if (infoBox) infoBox.classList.remove("hidden");
+  if (nameEl) nameEl.textContent = `Tệp: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+  if (detailsEl) detailsEl.textContent = `Sẵn sàng nhập gói nhân vật "${file.name}". Nhấn nút Xác Nhận bên dưới để tiến hành nạp.`;
+}
+
+// Xác nhận tạo nhân vật từ Wizard
+async function confirmImportCharacter() {
+  const nameInput = document.getElementById("importCharNameInput");
+  const charName = nameInput?.value.trim() || `Imported_${Math.floor(100 + Math.random() * 900)}`;
+  const charId = charName.toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+
+  const tab = characterState.wizard.tab;
+
+  try {
+    if (tab === 4) {
+      // Nhập qua gói ZIP / JSON
+      const file = characterState.wizard.packageFile;
+      if (!file) {
+        showToast("Vui lòng chọn file gói nhân vật (.zip hoặc .json)");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64Data = e.target.result;
+        const res = await fetch("/api/characters/import-package", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ base64Data, filename: file.name })
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+
+        showToast(`🎉 ${data.message}`);
+        closeImportModal();
+        await loadCharacterLibrary();
+        selectCharacterForEditing(data.character.id);
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    // Tab 1 hoặc Tab 2 hoặc Tab 3
+    let rawParts = {};
+    if (tab === 1) {
+      if (Object.keys(characterState.wizard.slices).length === 0) {
+        autoSliceSinglePng();
+      }
+      rawParts = characterState.wizard.slices;
+    } else if (tab === 2) {
+      const partsData = characterState.wizard.layeredParts || {};
+      if (Object.keys(partsData).length === 0) {
+        showToast("Vui lòng nạp ít nhất một bộ phận hoặc dùng 'Dùng bộ phận mẫu'!");
+        return;
+      }
+      STANDARD_PART_SLOTS.forEach(slot => {
+        if (partsData[slot.id]) {
+          rawParts[slot.id] = {
+            data: partsData[slot.id],
+            pivot: slot.pivot,
+            position: slot.pos,
+            parent: slot.parent,
+            zIndex: slot.z
+          };
+        }
+      });
+    } else if (tab === 3) {
+      const img = characterState.wizard.spriteSheetImg;
+      if (!img) {
+        showToast("Vui lòng chọn ảnh Sprite Sheet!");
+        return;
+      }
+      rawParts.sprite = {
+        data: img.src,
+        pivot: [Math.round(img.naturalWidth / 8), Math.round(img.naturalHeight / 4)],
+        position: [0, -60],
+        parent: "root"
+      };
+    }
+
+    // Tải các bộ phận lên server qua /api/characters/upload-batch
+    showToast("⏳ Đang tải lên các bộ phận nhân vật...");
+    const uploadRes = await fetch("/api/characters/upload-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ characterId: charId, parts: rawParts })
+    });
+    const uploadData = await uploadRes.json();
+    if (!uploadData.success) throw new Error(uploadData.error);
+
+    // Tạo cấu trúc nhân vật Mode B hoàn chỉnh
+    const newChar = {
+      id: charId,
+      name: charName,
+      type: "imported",
+      assetType: tab === 1 ? "single_png" : tab === 3 ? "sprite_sheet" : "layered_png",
+      thumbnail: uploadData.uploadedParts?.head?.assetUrl || uploadData.uploadedParts?.torso?.assetUrl || Object.values(uploadData.uploadedParts || {})[0]?.assetUrl || "",
+      parts: uploadData.uploadedParts || {},
+      expressions: {
+        neutral: uploadData.uploadedParts?.head?.assetUrl || "",
+        happy: uploadData.uploadedParts?.head?.assetUrl || ""
+      },
+      animations: {
+        idle: { loop: true, speed: 1.0 },
+        walk: { loop: true, speed: 1.0 },
+        wave: { loop: true, speed: 1.0 }
+      },
+      defaultExpression: "neutral",
+      defaultFacing: "three_quarter_right"
+    };
+
+    // Lưu vào thư viện
+    const saveRes = await fetch("/api/characters", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newChar)
+    });
+    const saveData = await saveRes.json();
+    if (!saveData.success) throw new Error(saveData.error);
+
+    showToast(`🎉 Đã nhập thành công nhân vật Mode B: "${charName}"!`);
+    closeImportModal();
+    await loadCharacterLibrary();
+    selectCharacterForEditing(charId);
+  } catch (err) {
+    showToast("❌ Lỗi nhập nhân vật: " + err.message);
+  }
+}
+
+// Bắt đầu tạo một nhân vật hoàn toàn mới (Mode A)
 function createNewCharacter() {
-  const newId = `chibi_hero_${Math.floor(1000 + Math.random() * 9000)}`;
+  const newId = `hero_${Math.floor(1000 + Math.random() * 9000)}`;
   const newChar = {
     id: newId,
     name: "Nhân Vật Mới",
-    skinColor: "#ffdfc4",
-    hair: { style: "short", color: "#343536", highlight: "#5a5b5c" },
+    type: "builtin",
+    skinColor: "#FFFDF8",
+    hair: { style: "none", color: "#343536", highlight: "#5a5b5c" },
     face: { eyeStyle: "oval", eyeColor: "#111116", browStyle: "soft", mouthStyle: "smile", blush: true },
     proportions: { headScale: 1.0, torsoLength: 36, armLength: 34, legLength: 46 },
-    outfit: { id: "outfit_casual", type: "hoodie", topColor: "#0284c7", pantsColor: "#1e293b", shoeColor: "#0f172a", accessories: [] },
+    outfit: { id: "outfit_casual", type: "hoodie", topColor: "#d64a33", pantsColor: "#2e384d", shoeColor: "#111827", shoeType: "sneakers", accessories: [] },
     defaultExpression: "neutral",
     defaultFacing: "three_quarter_right"
   };
@@ -1863,7 +3165,16 @@ function createNewCharacter() {
   showToast(`✨ Bắt đầu thiết lập nhân vật mới: ${newId}`);
 }
 
-// Lưu nhân vật đang chỉnh sửa lên máy chủ
+// Khi tên nhân vật thay đổi
+function onCharacterNameChanged() {
+  const name = document.getElementById("charEditorName")?.value || "";
+  if (characterState.activeCharacter) {
+    characterState.activeCharacter.name = name;
+    renderCharacterCards();
+  }
+}
+
+// Lưu nhân vật đang chỉnh sửa lên máy chủ (Tự động thích ứng Mode A / Mode B)
 async function saveCurrentEditingCharacter() {
   const elId = document.getElementById("charEditorId");
   const elName = document.getElementById("charEditorName");
@@ -1872,40 +3183,51 @@ async function saveCurrentEditingCharacter() {
     return;
   }
 
-  const charData = {
-    id: elId.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "_"),
-    name: elName?.value.trim() || elId.value.trim(),
-    skinColor: document.getElementById("charEditorSkin")?.value || "#ffdfc4",
-    hair: {
-      style: document.getElementById("charEditorHairStyle")?.value || "short",
-      color: document.getElementById("charEditorHairColor")?.value || "#4a3728",
-      highlight: "#7a5c43"
-    },
-    face: {
-      eyeStyle: document.getElementById("charEditorEyeStyle")?.value || "oval",
-      eyeColor: "#111116",
-      browStyle: "soft",
-      mouthStyle: "smile",
-      blush: !!document.getElementById("charEditorBlush")?.checked
-    },
-    proportions: {
-      headScale: parseFloat(document.getElementById("charEditorHeadScale")?.value) || 1.0,
-      torsoLength: parseInt(document.getElementById("charEditorTorsoLen")?.value, 10) || 36,
-      armLength: 34,
-      legLength: 46
-    },
-    outfit: {
-      type: document.getElementById("charEditorOutfitType")?.value || "hoodie",
-      bottomType: document.getElementById("charEditorBottomType")?.value || "pants",
-      shoeType: document.getElementById("charEditorShoeType")?.value || "sneakers",
-      topColor: document.getElementById("charEditorTopColor")?.value || "#d64a33",
-      pantsColor: document.getElementById("charEditorPantsColor")?.value || "#2e384d",
-      shoeColor: document.getElementById("charEditorShoeColor")?.value || "#1e1e24",
-      accessories: document.getElementById("charEditorGlasses")?.checked ? ["glasses"] : []
-    },
-    defaultExpression: document.getElementById("charPreviewExpr")?.value || "neutral",
-    defaultFacing: document.getElementById("charPreviewFacing")?.value || "three_quarter_right"
-  };
+  const active = characterState.activeCharacter;
+  let charData;
+
+  if (active && active.type === "imported") {
+    // Mode B: Lưu nguyên vẹn cấu trúc imported rig
+    active.name = elName?.value.trim() || elId.value.trim();
+    charData = active;
+  } else {
+    // Mode A: Thu thập từ các trường form Mode A
+    charData = {
+      id: elId.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "_"),
+      name: elName?.value.trim() || elId.value.trim(),
+      type: "builtin",
+      skinColor: document.getElementById("charEditorSkin")?.value || "#FFFDF8",
+      hair: {
+        style: document.getElementById("charEditorHairStyle")?.value || "short",
+        color: document.getElementById("charEditorHairColor")?.value || "#4a3728",
+        highlight: "#7a5c43"
+      },
+      face: {
+        eyeStyle: document.getElementById("charEditorEyeStyle")?.value || "oval",
+        eyeColor: "#111116",
+        browStyle: "soft",
+        mouthStyle: "smile",
+        blush: !!document.getElementById("charEditorBlush")?.checked
+      },
+      proportions: {
+        headScale: parseFloat(document.getElementById("charEditorHeadScale")?.value) || 1.0,
+        torsoLength: parseInt(document.getElementById("charEditorTorsoLen")?.value, 10) || 36,
+        armLength: 34,
+        legLength: 46
+      },
+      outfit: {
+        type: document.getElementById("charEditorOutfitType")?.value || "hoodie",
+        bottomType: document.getElementById("charEditorBottomType")?.value || "pants",
+        shoeType: document.getElementById("charEditorShoeType")?.value || "sneakers",
+        topColor: document.getElementById("charEditorTopColor")?.value || "#d64a33",
+        pantsColor: document.getElementById("charEditorPantsColor")?.value || "#2e384d",
+        shoeColor: document.getElementById("charEditorShoeColor")?.value || "#1e1e24",
+        accessories: document.getElementById("charEditorGlasses")?.checked ? ["glasses"] : []
+      },
+      defaultExpression: document.getElementById("charPreviewExpr")?.value || "neutral",
+      defaultFacing: document.getElementById("charPreviewFacing")?.value || "three_quarter_right"
+    };
+  }
 
   try {
     const res = await fetch("/api/characters", {
@@ -1922,6 +3244,23 @@ async function saveCurrentEditingCharacter() {
   } catch (err) {
     showToast("❌ Lỗi lưu nhân vật: " + err.message);
   }
+}
+
+// Xuất gói nhân vật ZIP
+function exportCurrentCharacterPackage() {
+  if (characterState.activeCharacter) {
+    exportCharacterById(characterState.activeCharacter.id);
+  }
+}
+
+function exportCharacterById(id) {
+  const link = document.createElement("a");
+  link.href = `/api/characters/${encodeURIComponent(id)}/export-package`;
+  link.download = `${id}_character_package.zip`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast(`📦 Đang tải xuống gói nhân vật: ${id}_character_package.zip`);
 }
 
 // Nhân bản nhân vật từ ID

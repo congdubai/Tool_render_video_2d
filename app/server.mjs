@@ -39,7 +39,9 @@ import {
   getCharacter,
   saveCharacter,
   duplicateCharacter,
-  deleteCharacter
+  deleteCharacter,
+  saveCharacterPartAsset,
+  getImportedAssetDir
 } from "../lib/character-library.mjs";
 import { validateCharacterRig } from "../lib/character-validator.mjs";
 
@@ -968,12 +970,143 @@ app.delete("/api/characters/:id", (req, res) => {
   }
 });
 
-// Thẩm định tính toàn vẹn Character Rig V2
+// Thẩm định tính toàn vẹn Character Rig V2 / V3
 app.post("/api/characters/validate", (req, res) => {
   try {
     const { character, context } = req.body;
     const result = validateCharacterRig(character, context);
     res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Upload 1 ảnh bộ phận (part) cho nhân vật import
+app.post("/api/characters/upload-part", (req, res) => {
+  try {
+    const { charId, partId, data, filename } = req.body;
+    if (!charId || !data) {
+      return res.status(400).json({ success: false, error: "Thiếu charId hoặc dữ liệu ảnh (data)." });
+    }
+    const url = saveCharacterPartAsset(charId, partId, data, filename);
+    res.json({ success: true, url, partId });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Upload hàng loạt ảnh bộ phận (batch upload)
+app.post("/api/characters/upload-batch", (req, res) => {
+  try {
+    const { charId, parts } = req.body;
+    if (!charId || !Array.isArray(parts)) {
+      return res.status(400).json({ success: false, error: "Thiếu charId hoặc danh sách parts." });
+    }
+    const uploaded = {};
+    for (const p of parts) {
+      if (p.id && p.data) {
+        const url = saveCharacterPartAsset(charId, p.id, p.data, p.filename);
+        uploaded[p.id] = url;
+      }
+    }
+    res.json({ success: true, uploaded });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Xuất gói nhân vật (.zip package)
+app.get("/api/characters/:id/export-package", async (req, res) => {
+  try {
+    const char = getCharacter(req.params.id);
+    if (!char) {
+      return res.status(404).json({ success: false, error: "Không tìm thấy nhân vật." });
+    }
+
+    const AdmZipModule = (await import("adm-zip")).default;
+    const zip = new AdmZipModule();
+
+    // 1. Thêm tệp character.json
+    zip.addFile("character.json", Buffer.from(JSON.stringify(char, null, 2), "utf8"));
+
+    // 2. Thêm toàn bộ tệp assets trong thư mục nếu là imported character
+    const assetDir = getImportedAssetDir(char.id);
+    if (fs.existsSync(assetDir)) {
+      for (const f of fs.readdirSync(assetDir)) {
+        const fullPath = path.join(assetDir, f);
+        if (fs.statSync(fullPath).isFile()) {
+          zip.addLocalFile(fullPath, "assets");
+        }
+      }
+    }
+
+    const zipBuffer = zip.toBuffer();
+    const downloadFilename = `${char.name || char.id}_character_package.zip`;
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(downloadFilename)}"`);
+    res.send(zipBuffer);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Nhập gói nhân vật (.zip hoặc .json package)
+app.post("/api/characters/import-package", async (req, res) => {
+  try {
+    const { zipBase64, jsonPackage } = req.body;
+
+    if (jsonPackage && jsonPackage.id) {
+      // Trường hợp gói JSON thuần
+      const saved = saveCharacter(jsonPackage);
+      return res.json({ success: true, character: saved, message: `Đã nhập nhân vật "${saved.name}" thành công!` });
+    }
+
+    if (!zipBase64) {
+      return res.status(400).json({ success: false, error: "Thiếu dữ liệu tệp zipBase64 hoặc jsonPackage." });
+    }
+
+    const rawBase64 = zipBase64.replace(/^data:application\/[a-zA-Z+.-]+;base64,/, "").replace(/^data:.*?;base64,/, "");
+    const zipBuf = Buffer.from(rawBase64, "base64");
+
+    const AdmZipModule = (await import("adm-zip")).default;
+    const zip = new AdmZipModule(zipBuf);
+    const zipEntries = zip.getEntries();
+
+    // Tìm manifest / character.json
+    let charJsonEntry = zipEntries.find(e => e.entryName === "character.json" || e.entryName === "manifest.json" || e.entryName.endsWith(".json"));
+    if (!charJsonEntry) {
+      return res.status(400).json({ success: false, error: "Không tìm thấy file cấu hình character.json trong tệp ZIP." });
+    }
+
+    const charData = JSON.parse(charJsonEntry.getData().toString("utf8"));
+    const safeId = path.basename(charData.id || `imported_${Date.now()}`).replace(/[^a-zA-Z0-9_-]/g, "");
+    charData.id = safeId;
+    charData.type = "imported";
+
+    const assetDir = getImportedAssetDir(safeId);
+
+    // Giải nén các tệp ảnh vào thư mục assets
+    for (const entry of zipEntries) {
+      if (!entry.isDirectory && (entry.entryName.startsWith("assets/") || entry.entryName.endsWith(".png") || entry.entryName.endsWith(".jpg") || entry.entryName.endsWith(".webp"))) {
+        const fname = path.basename(entry.entryName);
+        fs.writeFileSync(path.join(assetDir, fname), entry.getData());
+      }
+    }
+
+    // Cập nhật lại đường dẫn ảnh trong parts
+    if (charData.parts && typeof charData.parts === "object") {
+      for (const pKey of Object.keys(charData.parts)) {
+        const p = charData.parts[pKey];
+        if (p.image) {
+          const fname = path.basename(p.image);
+          p.image = `/public/characters/imported/${safeId}/${fname}`;
+        }
+      }
+    }
+
+    const saved = saveCharacter(charData);
+    res.json({ success: true, character: saved, message: `Đã nhập gói nhân vật "${saved.name}" thành công!` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
