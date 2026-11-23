@@ -1,0 +1,32 @@
+{
+  "id": "outfit_hoodie_red",
+  "name": "Áo Hoodie Đỏ Năng Động",
+  "type": "outfit",
+  "category": "casual",
+  "tags": [
+    "streetwear",
+    "hoodie",
+    "teen"
+  ],
+  "description": "Áo hoodie thể thao có túi bụng kangaroo và dây nón trắng.",
+  "dimensions": {
+    "width": 140,
+    "height": 180,
+    "scale": 1
+  },
+  "anchor": [
+    70,
+    40
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "white_cartoon",
+      "chibi"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/outfit/outfit_hoodie_red/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.078Z",
+  "updatedAt": "2026-11-23T13:04:15.078Z"
+}

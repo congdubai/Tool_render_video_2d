@@ -1,0 +1,31 @@
+{
+  "id": "vfx_anger_mark",
+  "name": "Dấu Gân Giận Dữ (Anger Cross)",
+  "type": "vfx",
+  "category": "emotion",
+  "tags": [
+    "anger",
+    "furious",
+    "vein"
+  ],
+  "description": "Ký hiệu 4 vạch đỏ co giật trên trán khi tức giận cực độ.",
+  "dimensions": {
+    "width": 36,
+    "height": 36,
+    "scale": 1
+  },
+  "anchor": [
+    18,
+    18
+  ],
+  "compatibility": {
+    "requires": [
+      "head_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_anger_mark/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.080Z",
+  "updatedAt": "2026-11-23T13:04:15.080Z"
+}

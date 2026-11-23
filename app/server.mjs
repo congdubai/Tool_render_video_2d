@@ -44,6 +44,23 @@ import {
   getImportedAssetDir
 } from "../lib/character-library.mjs";
 import { validateCharacterRig } from "../lib/character-validator.mjs";
+import {
+  listAssets,
+  getAsset,
+  saveAsset,
+  duplicateAsset,
+  deleteAsset,
+  checkAssetUsage,
+  exportAssetPackage,
+  importAssetPackage,
+  ensureAssetStorage
+} from "../lib/asset-registry.mjs";
+import {
+  validateAssetSchema,
+  checkAssetCompatibility,
+  ASSET_TYPES,
+  ASSET_TYPE_LABELS
+} from "../lib/asset-validator.mjs";
 
 const execAsync = promisify(exec);
 const app = express();
@@ -1107,6 +1124,220 @@ app.post("/api/characters/import-package", async (req, res) => {
 
     const saved = saveCharacter(charData);
     res.json({ success: true, character: saved, message: `Đã nhập gói nhân vật "${saved.name}" thành công!` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ================= UNIVERSAL ASSET LIBRARY (V4) API ENDPOINTS =================
+
+// Lấy danh mục các loại tài nguyên hỗ trợ (Types & Labels)
+app.get("/api/assets/types", (req, res) => {
+  res.json({
+    success: true,
+    types: ASSET_TYPES,
+    labels: ASSET_TYPE_LABELS
+  });
+});
+
+// Lấy danh sách toàn bộ tài nguyên trong thư viện (hỗ trợ search, filter type, category, tag)
+app.get("/api/assets", (req, res) => {
+  try {
+    const assets = listAssets(req.query);
+    res.json({
+      success: true,
+      assets,
+      total: assets.length
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Lấy chi tiết một tài nguyên kèm thông tin phụ thuộc/sử dụng trong dự án
+app.get("/api/assets/:id", (req, res) => {
+  try {
+    const asset = getAsset(req.params.id);
+    if (!asset) {
+      return res.status(404).json({ success: false, error: "Không tìm thấy tài nguyên." });
+    }
+    const usage = checkAssetUsage(req.params.id);
+    res.json({ success: true, asset, usage });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Tạo mới tài nguyên vào thư viện
+app.post("/api/assets", (req, res) => {
+  try {
+    const saved = saveAsset(req.body);
+    res.json({
+      success: true,
+      asset: saved,
+      message: `Đã lưu tài nguyên "${saved.name}" thành công!`
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Cập nhật tài nguyên theo ID
+app.put("/api/assets/:id", (req, res) => {
+  try {
+    const saved = saveAsset({ ...req.body, id: req.params.id });
+    res.json({
+      success: true,
+      asset: saved,
+      message: `Đã cập nhật tài nguyên "${saved.name}" thành công!`
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Nhân bản tài nguyên
+app.post("/api/assets/:id/duplicate", (req, res) => {
+  try {
+    const duplicated = duplicateAsset(req.params.id);
+    res.json({
+      success: true,
+      asset: duplicated,
+      message: `Đã nhân bản tài nguyên thành "${duplicated.name}"!`
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Xóa tài nguyên (có cảnh báo nếu đang được dự án sử dụng, hỗ trợ ?force=true)
+app.delete("/api/assets/:id", (req, res) => {
+  try {
+    const force = req.query.force === "true" || req.body?.force === true;
+    const result = deleteAsset(req.params.id, force);
+    if (!result.success) {
+      if (result.inUse) {
+        return res.status(409).json({
+          success: false,
+          inUse: true,
+          projects: result.projects,
+          error: result.error
+        });
+      }
+      return res.status(404).json({ success: false, error: result.error || "Không thể xóa tài nguyên." });
+    }
+    res.json({ success: true, message: `Đã xóa tài nguyên "${req.params.id}" thành công.` });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Kiểm tra việc sử dụng tài nguyên trong dự án
+app.get("/api/assets/:id/usage", (req, res) => {
+  try {
+    const usage = checkAssetUsage(req.params.id);
+    res.json({ success: true, ...usage });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Xuất 1 tài nguyên thành gói ZIP
+app.get("/api/assets/:id/export", (req, res) => {
+  try {
+    const asset = getAsset(req.params.id);
+    if (!asset) {
+      return res.status(404).json({ success: false, error: "Không tìm thấy tài nguyên." });
+    }
+    const zipBuf = exportAssetPackage(req.params.id);
+    res.set({
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="asset_${asset.id}.zip"`,
+      "Content-Length": zipBuf.length
+    });
+    res.send(zipBuf);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Xuất toàn bộ tài nguyên theo danh mục (Type) thành gói ZIP (e.g. cartoon_props.zip)
+app.get("/api/assets/export-type/:type", (req, res) => {
+  try {
+    const { type } = req.params;
+    const assets = listAssets({ type });
+    if (assets.length === 0) {
+      return res.status(404).json({ success: false, error: `Không có tài nguyên nào thuộc loại "${type}".` });
+    }
+    const ids = assets.map(a => a.id);
+    const zipBuf = exportAssetPackage(ids);
+    res.set({
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="assets_${type}.zip"`,
+      "Content-Length": zipBuf.length
+    });
+    res.send(zipBuf);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Nhập gói tài nguyên ZIP (.zip package)
+app.post("/api/assets/import-pack", async (req, res) => {
+  try {
+    const { zipBase64, collisionStrategy = "rename" } = req.body;
+    if (!zipBase64) {
+      return res.status(400).json({ success: false, error: "Thiếu dữ liệu tệp zipBase64." });
+    }
+
+    const rawBase64 = zipBase64.replace(/^data:application\/[a-zA-Z+.-]+;base64,/, "").replace(/^data:.*?;base64,/, "");
+    const zipBuf = Buffer.from(rawBase64, "base64");
+
+    const result = importAssetPackage(zipBuf, { collisionStrategy });
+    res.json({
+      success: true,
+      importedCount: result.importedCount,
+      importedAssets: result.importedAssets,
+      message: `Đã nhập thành công ${result.importedCount} tài nguyên vào thư viện!`
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Upload tệp media độc lập cho một asset
+app.post("/api/assets/upload-media", (req, res) => {
+  try {
+    const { assetId, type = "props", filename, data } = req.body;
+    if (!assetId || !data) {
+      return res.status(400).json({ success: false, error: "Thiếu assetId hoặc dữ liệu data." });
+    }
+
+    const safeId = path.basename(assetId).replace(/[^a-zA-Z0-9_-]/g, "");
+    const safeType = path.basename(type).replace(/[^a-zA-Z0-9_-]/g, "");
+    const safeFname = path.basename(filename || "media.png").replace(/[^a-zA-Z0-9_.-]/g, "");
+
+    const targetDir = path.resolve(process.cwd(), "public", "assets", safeType, safeId);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+
+    const filePath = path.join(targetDir, safeFname);
+    let buf = null;
+    if (typeof data === "string") {
+      const match = data.match(/^data:.*?;base64,(.+)$/);
+      buf = Buffer.from(match ? match[1] : data, "base64");
+    } else if (Buffer.isBuffer(data)) {
+      buf = data;
+    }
+
+    if (!buf) {
+      return res.status(400).json({ success: false, error: "Dữ liệu ảnh không hợp lệ." });
+    }
+
+    fs.writeFileSync(filePath, buf);
+    const publicUrl = `/public/assets/${safeType}/${safeId}/${safeFname}`;
+    res.json({ success: true, url: publicUrl, filename: safeFname });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

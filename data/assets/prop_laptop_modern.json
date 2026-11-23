@@ -1,0 +1,35 @@
+{
+  "id": "prop_laptop_modern",
+  "name": "Laptop Mở Màn Hình",
+  "type": "prop",
+  "category": "office",
+  "tags": [
+    "computer",
+    "work",
+    "tech"
+  ],
+  "description": "Máy tính xách tay siêu mỏng phát ánh sáng xanh dịu vào mặt nhân vật.",
+  "dimensions": {
+    "width": 80,
+    "height": 50,
+    "scale": 1
+  },
+  "anchor": [
+    40,
+    46
+  ],
+  "holdOffset": [
+    0,
+    -12
+  ],
+  "compatibility": {
+    "requires": [
+      "hand_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/prop/prop_laptop_modern/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.078Z",
+  "updatedAt": "2026-11-23T13:04:15.078Z"
+}

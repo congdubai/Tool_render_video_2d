@@ -18,6 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSse();
   loadAiProjectsList();
   loadVideosList();
+  loadUniversalAssetsList();
 });
 
 async function initApp() {
@@ -3894,6 +3895,494 @@ async function validateActiveRig() {
     }
   } catch (err) {
     showToast("Lỗi kiểm tra rig: " + err.message);
+  }
+}
+
+// =========================================================================
+// UNIVERSAL ANIMATION & ASSET LIBRARY (V4) FRONTEND CONTROLLER
+// =========================================================================
+
+const universalAssetState = {
+  assets: [],
+  currentType: 'all',
+  currentCategory: '',
+  searchQuery: '',
+  selectedAsset: null,
+  pendingImportBase64: null,
+  typeIcons: {
+    expression: '🎭',
+    outfit: '👕',
+    prop: '📦',
+    action: '🏃',
+    vfx: '✨',
+    weather: '🌧️',
+    background: '🏙️',
+    composite_action: '💥'
+  }
+};
+
+// Cuộn mượt đến bảng Thư Viện Tài Nguyên
+function scrollToAssetLibrary() {
+  const el = document.getElementById('universalAssetLibrarySection');
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    el.style.boxShadow = '0 0 0 2px #38bdf8';
+    setTimeout(() => { el.style.boxShadow = ''; }, 1600);
+  }
+}
+
+// Nạp danh sách toàn bộ tài nguyên từ server
+async function loadUniversalAssetsList() {
+  const grid = document.getElementById('universalAssetGrid');
+  try {
+    const res = await fetch('/api/assets');
+    const data = await res.json();
+    if (!data.success) {
+      if (grid) grid.innerHTML = `<div class="empty-state">❌ Lỗi nạp tài nguyên: ${data.error}</div>`;
+      return;
+    }
+
+    universalAssetState.assets = data.assets || [];
+    updateAssetCategoryCounters();
+    populateAssetCategoryDropdown();
+    renderUniversalAssetCards();
+  } catch (err) {
+    if (grid) grid.innerHTML = `<div class="empty-state">❌ Không thể kết nối máy chủ tài nguyên.</div>`;
+  }
+}
+
+// Cập nhật số đếm trên các nút danh mục
+function updateAssetCategoryCounters() {
+  const allCount = universalAssetState.assets.length;
+  const countAllEl = document.getElementById('assetCount_all');
+  if (countAllEl) countAllEl.textContent = allCount;
+
+  const types = ['expression', 'outfit', 'prop', 'action', 'vfx', 'weather', 'background', 'composite_action'];
+  for (const t of types) {
+    const count = universalAssetState.assets.filter(a => a.type === t).length;
+    const el = document.getElementById(`assetCount_${t}`);
+    if (el) el.textContent = count;
+  }
+}
+
+// Điền các danh mục phụ vào dropdown
+function populateAssetCategoryDropdown() {
+  const sel = document.getElementById('assetCategorySubFilter');
+  if (!sel) return;
+  const currType = universalAssetState.currentType;
+  const filtered = currType === 'all'
+    ? universalAssetState.assets
+    : universalAssetState.assets.filter(a => a.type === currType);
+
+  const categories = [...new Set(filtered.map(a => a.category).filter(Boolean))].sort();
+  let html = `<option value="">-- Tất cả nhóm phụ (${categories.length}) --</option>`;
+  for (const c of categories) {
+    html += `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`;
+  }
+  sel.innerHTML = html;
+  sel.value = universalAssetState.currentCategory;
+}
+
+// Lọc theo loại (Type)
+function filterAssetsByType(type) {
+  universalAssetState.currentType = type;
+  universalAssetState.currentCategory = '';
+
+  document.querySelectorAll('.asset-category-tabs .btn').forEach(btn => btn.classList.remove('active'));
+  const activeBtn = document.getElementById(`assetCat_${type}`);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  populateAssetCategoryDropdown();
+  renderUniversalAssetCards();
+}
+
+// Tìm kiếm text
+function handleAssetSearch(e) {
+  universalAssetState.searchQuery = e.target.value.trim().toLowerCase();
+  renderUniversalAssetCards();
+}
+
+// Lọc theo danh mục phụ
+function handleAssetCategorySubFilter(e) {
+  universalAssetState.currentCategory = e.target.value;
+  renderUniversalAssetCards();
+}
+
+// Render lưới thẻ tài nguyên (Asset Grid)
+function renderUniversalAssetCards() {
+  const grid = document.getElementById('universalAssetGrid');
+  if (!grid) return;
+
+  const { assets, currentType, currentCategory, searchQuery, typeIcons } = universalAssetState;
+
+  let filtered = assets;
+  if (currentType !== 'all') {
+    filtered = filtered.filter(a => a.type === currentType);
+  }
+  if (currentCategory) {
+    filtered = filtered.filter(a => a.category === currentCategory);
+  }
+  if (searchQuery) {
+    filtered = filtered.filter(a => {
+      const name = (a.name || '').toLowerCase();
+      const id = (a.id || '').toLowerCase();
+      const desc = (a.description || '').toLowerCase();
+      const tags = Array.isArray(a.tags) ? a.tags.join(' ').toLowerCase() : '';
+      return name.includes(searchQuery) || id.includes(searchQuery) || desc.includes(searchQuery) || tags.includes(searchQuery);
+    });
+  }
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; padding: 40px 20px;">
+      <div style="font-size: 38px; margin-bottom: 8px;">🔍</div>
+      <strong style="color: #cbd5e1;">Không tìm thấy tài nguyên phù hợp</strong>
+      <p style="color: #64748b; font-size: 12px; margin-top: 4px;">Thử chọn danh mục khác hoặc bấm <strong>"➕ Thêm Asset Mới"</strong></p>
+    </div>`;
+    return;
+  }
+
+  let html = '';
+  for (const asset of filtered) {
+    const icon = typeIcons[asset.type] || '📦';
+    const badgeClass = `badge-${asset.type}`;
+    const tagsHtml = (asset.tags || []).slice(0, 3).map(t => `<span class="asset-tag-chip">#${escapeHtml(t)}</span>`).join('');
+
+    html += `
+    <div class="asset-card" data-asset-id="${escapeHtml(asset.id)}">
+      <div class="asset-card-thumb-wrap">
+        <span class="asset-type-badge ${badgeClass}">${escapeHtml(asset.type)}</span>
+        <div class="asset-thumb-icon">${icon}</div>
+      </div>
+      <div class="asset-card-body">
+        <div class="asset-card-title">${escapeHtml(asset.name)}</div>
+        <div class="asset-card-sub">
+          <span>📁 ${escapeHtml(asset.category || 'general')}</span>
+          <span style="font-family: monospace; font-size: 10px; color: #64748b;">${escapeHtml(asset.id)}</span>
+        </div>
+        <div class="asset-card-desc">${escapeHtml(asset.description || 'Chưa có mô tả.')}</div>
+        <div class="asset-tags-wrap">${tagsHtml}</div>
+      </div>
+      <div class="asset-card-actions">
+        <button class="btn btn-outline" onclick="openAssetDetailModal('${escapeHtml(asset.id)}')">👁️ Chi tiết</button>
+        <button class="btn btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="duplicateAssetById('${escapeHtml(asset.id)}')">📑 Nhân bản</button>
+        <button class="btn btn-outline" style="border-color: #a855f7; color: #c084fc;" onclick="exportSingleAssetZip('${escapeHtml(asset.id)}')">⬇️ Tải ZIP</button>
+      </div>
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+// Mở modal xem / chỉnh sửa chi tiết tài nguyên
+async function openAssetDetailModal(assetId) {
+  const modal = document.getElementById('assetDetailModal');
+  if (!modal) return;
+
+  try {
+    const res = await fetch(`/api/assets/${encodeURIComponent(assetId)}`);
+    const data = await res.json();
+    if (!data.success || !data.asset) {
+      showToast('❌ Không tìm thấy thông tin tài nguyên: ' + (data.error || ''));
+      return;
+    }
+
+    const asset = data.asset;
+    universalAssetState.selectedAsset = asset;
+
+    document.getElementById('assetDetailModalTitle').textContent = `Chi Tiết: ${asset.name}`;
+    document.getElementById('assetDetailName').textContent = asset.name;
+    document.getElementById('assetDetailId').textContent = asset.id;
+    document.getElementById('assetDetailCategory').textContent = `Loại: ${asset.type.toUpperCase()} • Nhóm: ${asset.category || 'general'}`;
+    document.getElementById('assetDetailDescInput').value = asset.description || '';
+    document.getElementById('assetDetailNameInput').value = asset.name || '';
+    document.getElementById('assetDetailCategoryInput').value = asset.category || '';
+    document.getElementById('assetDetailTagsInput').value = (asset.tags || []).join(', ');
+
+    const icon = universalAssetState.typeIcons[asset.type] || '📦';
+    document.getElementById('assetDetailIcon').textContent = icon;
+
+    const badge = document.getElementById('assetDetailBadge');
+    if (badge) {
+      badge.className = `asset-type-badge badge-${asset.type}`;
+      badge.textContent = asset.type;
+    }
+
+    // Hiển thị thông tin dự án đang sử dụng
+    const usage = data.usage || { inUse: false, projects: [] };
+    const usageEl = document.getElementById('assetDetailUsageText');
+    if (usageEl) {
+      if (usage.inUse) {
+        usageEl.innerHTML = `<span style="color: #fbbf24;">⚠️ Đang được dùng trong <strong>${usage.projects.length}</strong> dự án:</span> <br/>• ${usage.projects.join('<br/>• ')}`;
+      } else {
+        usageEl.innerHTML = `<span style="color: #34d399;">✓ Chưa có dự án nào phụ thuộc trực tiếp vào asset này. Có thể xóa an toàn.</span>`;
+      }
+    }
+
+    modal.classList.remove('hidden');
+  } catch (err) {
+    showToast('Lỗi nạp chi tiết asset: ' + err.message);
+  }
+}
+
+function closeAssetDetailModal() {
+  const modal = document.getElementById('assetDetailModal');
+  if (modal) modal.classList.add('hidden');
+  universalAssetState.selectedAsset = null;
+}
+
+// Lưu thay đổi metadata asset
+async function saveAssetDetailChanges() {
+  const asset = universalAssetState.selectedAsset;
+  if (!asset) return;
+
+  const newName = document.getElementById('assetDetailNameInput').value.trim();
+  const newCat = document.getElementById('assetDetailCategoryInput').value.trim();
+  const newDesc = document.getElementById('assetDetailDescInput').value.trim();
+  const rawTags = document.getElementById('assetDetailTagsInput').value;
+  const newTags = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+
+  if (!newName) {
+    showToast('Tên tài nguyên không được để trống.');
+    return;
+  }
+
+  try {
+    const updated = {
+      ...asset,
+      name: newName,
+      category: newCat || 'general',
+      description: newDesc,
+      tags: newTags
+    };
+
+    const res = await fetch(`/api/assets/${encodeURIComponent(asset.id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated)
+    });
+    const data = await res.json();
+    if (!data.success) {
+      showToast('❌ Lưu thất bại: ' + data.error);
+      return;
+    }
+
+    showToast(`✅ Đã lưu cập nhật tài nguyên "${data.asset.name}"!`);
+    closeAssetDetailModal();
+    loadUniversalAssetsList();
+  } catch (err) {
+    showToast('Lỗi lưu asset: ' + err.message);
+  }
+}
+
+// Nhân bản asset
+async function duplicateAssetById(assetId) {
+  try {
+    const res = await fetch(`/api/assets/${encodeURIComponent(assetId)}/duplicate`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (!data.success) {
+      showToast('❌ Không thể nhân bản: ' + data.error);
+      return;
+    }
+
+    showToast(`📑 Đã nhân bản thành "${data.asset.name}"!`);
+    loadUniversalAssetsList();
+  } catch (err) {
+    showToast('Lỗi nhân bản asset: ' + err.message);
+  }
+}
+
+// Xóa asset hiện tại đang xem
+async function handleDeleteCurrentAsset() {
+  const asset = universalAssetState.selectedAsset;
+  if (!asset) return;
+
+  if (!confirm(`Bạn có chắc chắn muốn xóa tài nguyên "${asset.name}" (ID: ${asset.id}) khỏi thư viện?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/assets/${encodeURIComponent(asset.id)}`, { method: 'DELETE' });
+    const data = await res.json();
+
+    if (!data.success) {
+      if (data.inUse) {
+        if (confirm(`${data.error}\n\nBạn có muốn XÓA CƯỠNG BỨC (Force Delete) tài nguyên này không?`)) {
+          const forceRes = await fetch(`/api/assets/${encodeURIComponent(asset.id)}?force=true`, { method: 'DELETE' });
+          const forceData = await forceRes.json();
+          if (forceData.success) {
+            showToast(`🗑️ Đã xóa cưỡng bức tài nguyên "${asset.name}"!`);
+            closeAssetDetailModal();
+            loadUniversalAssetsList();
+            return;
+          }
+        }
+      }
+      showToast('❌ Xóa thất bại: ' + (data.error || ''));
+      return;
+    }
+
+    showToast(`🗑️ Đã xóa tài nguyên "${asset.name}"!`);
+    closeAssetDetailModal();
+    loadUniversalAssetsList();
+  } catch (err) {
+    showToast('Lỗi khi xóa asset: ' + err.message);
+  }
+}
+
+// Xuất 1 tài nguyên thành file ZIP
+function exportSingleAssetZip(assetId) {
+  window.open(`/api/assets/${encodeURIComponent(assetId)}/export`, '_blank');
+}
+
+function exportCurrentAssetZip() {
+  if (universalAssetState.selectedAsset) {
+    exportSingleAssetZip(universalAssetState.selectedAsset.id);
+  }
+}
+
+// Xuất toàn bộ tài nguyên theo danh mục hiện tại thành gói ZIP
+function exportCurrentAssetTypeZip() {
+  const t = universalAssetState.currentType;
+  if (t === 'all') {
+    window.open('/api/assets/export-type/prop', '_blank');
+  } else {
+    window.open(`/api/assets/export-type/${encodeURIComponent(t)}`, '_blank');
+  }
+}
+
+// Tạo asset thủ công mới
+function openCreateAssetModal() {
+  const assetId = prompt('Nhập mã Asset ID duy nhất (vd: prop_magic_book, expr_wink):');
+  if (!assetId) return;
+
+  const safeId = assetId.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!safeId) {
+    showToast('Asset ID không hợp lệ.');
+    return;
+  }
+
+  const name = prompt('Nhập tên hiển thị của tài nguyên:', safeId);
+  if (!name) return;
+
+  const type = universalAssetState.currentType !== 'all' ? universalAssetState.currentType : 'prop';
+
+  const newAsset = {
+    id: safeId,
+    name: name.trim(),
+    type,
+    category: 'custom',
+    tags: ['custom'],
+    description: 'Tài nguyên tự tạo mới trong thư viện V4.',
+    dimensions: { width: 100, height: 100, scale: 1.0 },
+    anchor: [50, 50],
+    compatibility: { bodyProfile: ['all'] }
+  };
+
+  fetch('/api/assets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(newAsset)
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast(`✅ Đã tạo tài nguyên mới "${data.asset.name}"!`);
+        loadUniversalAssetsList();
+        openAssetDetailModal(data.asset.id);
+      } else {
+        showToast('❌ Không thể tạo asset: ' + data.error);
+      }
+    })
+    .catch(err => showToast('Lỗi tạo asset: ' + err.message));
+}
+
+// Modal Import gói ZIP
+function openAssetPackImportModal() {
+  const modal = document.getElementById('assetPackImportModal');
+  if (!modal) return;
+  universalAssetState.pendingImportBase64 = null;
+  const infoBox = document.getElementById('assetPackInfoBox');
+  if (infoBox) infoBox.classList.add('hidden');
+  const btn = document.getElementById('btnConfirmImportAssetPack');
+  if (btn) btn.disabled = true;
+  modal.classList.remove('hidden');
+}
+
+function closeAssetPackImportModal() {
+  const modal = document.getElementById('assetPackImportModal');
+  if (modal) modal.classList.add('hidden');
+  universalAssetState.pendingImportBase64 = null;
+}
+
+function handleAssetZipFileSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (!file.name.toLowerCase().endsWith('.zip')) {
+    showToast('Vui lòng chọn file nén định dạng .ZIP');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    universalAssetState.pendingImportBase64 = event.target.result;
+    const infoBox = document.getElementById('assetPackInfoBox');
+    const packName = document.getElementById('assetPackName');
+    const packDetails = document.getElementById('assetPackDetails');
+    const btn = document.getElementById('btnConfirmImportAssetPack');
+
+    if (infoBox && packName && packDetails && btn) {
+      infoBox.classList.remove('hidden');
+      packName.textContent = `Tệp: ${file.name}`;
+      packDetails.textContent = `Dung lượng: ${(file.size / 1024).toFixed(1)} KB • Sẵn sàng giải nén và kiểm tra an ninh manifest.json`;
+      btn.disabled = false;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function confirmImportAssetPack() {
+  const base64 = universalAssetState.pendingImportBase64;
+  if (!base64) {
+    showToast('Chưa chọn tệp ZIP.');
+    return;
+  }
+
+  const collisionStrategy = document.getElementById('assetCollisionStrategy')?.value || 'rename';
+  const btn = document.getElementById('btnConfirmImportAssetPack');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Đang nhập gói...';
+  }
+
+  try {
+    const res = await fetch('/api/assets/import-pack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zipBase64: base64, collisionStrategy })
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      showToast('❌ Nhập gói thất bại: ' + data.error);
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '🚀 Bắt Đầu Import';
+      }
+      return;
+    }
+
+    showToast(`🎉 ${data.message}`);
+    closeAssetPackImportModal();
+    loadUniversalAssetsList();
+  } catch (err) {
+    showToast('Lỗi nhập gói ZIP: ' + err.message);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🚀 Bắt Đầu Import';
+    }
   }
 }
 

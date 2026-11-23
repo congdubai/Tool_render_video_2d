@@ -1,0 +1,31 @@
+{
+  "id": "vfx_golden_aura",
+  "name": "Hào Quang Hoàng Kim (Golden Aura)",
+  "type": "vfx",
+  "category": "energy",
+  "tags": [
+    "power",
+    "glow",
+    "energy"
+  ],
+  "description": "Quầng sáng vàng bừng nở bao quanh nhân vật và các hạt năng lượng bay lên.",
+  "dimensions": {
+    "width": 200,
+    "height": 300,
+    "scale": 1
+  },
+  "anchor": [
+    100,
+    200
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_golden_aura/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.080Z",
+  "updatedAt": "2026-11-23T13:04:15.080Z"
+}

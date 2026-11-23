@@ -1,0 +1,31 @@
+{
+  "id": "vfx_sweat_drop",
+  "name": "Giọt Mồ Hôi Bối Rối (Sweat Drop)",
+  "type": "vfx",
+  "category": "emotion",
+  "tags": [
+    "sweat",
+    "nervous",
+    "embarrassed"
+  ],
+  "description": "Giọt nước màu xanh lam nhạt lăn xuống bên thái dương phong cách anime/cartoon.",
+  "dimensions": {
+    "width": 32,
+    "height": 48,
+    "scale": 1
+  },
+  "anchor": [
+    16,
+    24
+  ],
+  "compatibility": {
+    "requires": [
+      "head_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_sweat_drop/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.079Z",
+  "updatedAt": "2026-11-23T13:04:15.079Z"
+}

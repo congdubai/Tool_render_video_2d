@@ -1,0 +1,28 @@
+{
+  "id": "weather_rain_cinematic",
+  "name": "Mưa Rơi Điện Ảnh (Cinematic Rain)",
+  "type": "weather",
+  "category": "precipitation",
+  "tags": [
+    "rain",
+    "storm",
+    "wet"
+  ],
+  "description": "Hạt mưa rơi chéo góc theo chiều gió với vệt mờ motion blur và gợn nước chân sàn.",
+  "parameters": {
+    "intensity": 0.8,
+    "angle": 15,
+    "speed": 1.4,
+    "splash": true
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/weather/weather_rain_cinematic/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.080Z",
+  "updatedAt": "2026-11-23T13:04:15.080Z"
+}

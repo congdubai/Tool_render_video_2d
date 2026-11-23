@@ -1,0 +1,52 @@
+{
+  "id": "composite_chase",
+  "name": "Cuộc Đuổi Bắt Hoạt Hình (Cartoon Chase)",
+  "type": "composite_action",
+  "category": "action",
+  "tags": [
+    "chase",
+    "run",
+    "speed",
+    "funny"
+  ],
+  "description": "Nhân vật A chạy thục mạng phía trước với vệt tốc độ, nhân vật B hùng hổ đuổi sát phía sau.",
+  "duration": 3.5,
+  "participants": 2,
+  "parameters": {
+    "speed": 1.8,
+    "dustCount": 20
+  },
+  "tracks": [
+    {
+      "target": "leader",
+      "type": "action",
+      "asset": "action_run",
+      "start": 0,
+      "end": 3.5
+    },
+    {
+      "target": "chaser",
+      "type": "action",
+      "asset": "action_run",
+      "start": 0,
+      "end": 3.5
+    },
+    {
+      "target": "scene",
+      "type": "vfx",
+      "asset": "vfx_speed_lines",
+      "start": 0.5,
+      "end": 3.5
+    }
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/composite_action/composite_chase/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.081Z",
+  "updatedAt": "2026-11-23T13:04:15.081Z"
+}

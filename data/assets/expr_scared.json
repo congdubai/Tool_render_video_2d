@@ -1,0 +1,31 @@
+{
+  "id": "expr_scared",
+  "name": "Sợ Hãi Hoảng Hốt (Scared)",
+  "type": "expression",
+  "category": "extreme",
+  "tags": [
+    "horror",
+    "panic",
+    "fear"
+  ],
+  "description": "Mắt rung bàng hoàng, miệng méo xệch và mặt tái đi.",
+  "dimensions": {
+    "width": 120,
+    "height": 120,
+    "scale": 1
+  },
+  "anchor": [
+    60,
+    60
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/expression/expr_scared/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.077Z",
+  "updatedAt": "2026-11-23T13:04:15.077Z"
+}

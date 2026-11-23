@@ -1,0 +1,31 @@
+{
+  "id": "expr_love_eyes",
+  "name": "Mắt Trái Tim (Love Eyes)",
+  "type": "expression",
+  "category": "comic",
+  "tags": [
+    "love",
+    "heart",
+    "romance"
+  ],
+  "description": "Đôi mắt biến thành hai trái tim đỏ đập thình thịch phong cách hoạt hình.",
+  "dimensions": {
+    "width": 120,
+    "height": 120,
+    "scale": 1
+  },
+  "anchor": [
+    60,
+    60
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/expression/expr_love_eyes/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.077Z",
+  "updatedAt": "2026-11-23T13:04:15.077Z"
+}

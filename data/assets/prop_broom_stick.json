@@ -1,0 +1,35 @@
+{
+  "id": "prop_broom_stick",
+  "name": "Cây Chổi Quét Nhà",
+  "type": "prop",
+  "category": "household",
+  "tags": [
+    "cleaning",
+    "weapon",
+    "defense"
+  ],
+  "description": "Cây chổi rơm cán dài, nhân vật có thể cầm ngang ngực để tự vệ.",
+  "dimensions": {
+    "width": 30,
+    "height": 160,
+    "scale": 1
+  },
+  "anchor": [
+    15,
+    80
+  ],
+  "holdOffset": [
+    0,
+    0
+  ],
+  "compatibility": {
+    "requires": [
+      "hand_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/prop/prop_broom_stick/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.078Z",
+  "updatedAt": "2026-11-23T13:04:15.078Z"
+}

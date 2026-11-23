@@ -1,0 +1,32 @@
+{
+  "id": "outfit_scientist_labcoat",
+  "name": "Áo Blouse Nhà Khoa Học",
+  "type": "outfit",
+  "category": "scientist",
+  "tags": [
+    "lab",
+    "doctor",
+    "researcher"
+  ],
+  "description": "Áo blouse trắng dài tay kèm kính mắt tri thức và bút cài ngực.",
+  "dimensions": {
+    "width": 140,
+    "height": 200,
+    "scale": 1
+  },
+  "anchor": [
+    70,
+    40
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "white_cartoon",
+      "chibi"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/outfit/outfit_scientist_labcoat/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.078Z",
+  "updatedAt": "2026-11-23T13:04:15.078Z"
+}

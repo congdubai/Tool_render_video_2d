@@ -1,0 +1,23 @@
+{
+  "id": "action_sneak_walk",
+  "name": "Rón Rén Khom Người (Sneak Walk)",
+  "type": "action",
+  "category": "locomotion",
+  "tags": [
+    "sneak",
+    "careful",
+    "stealth"
+  ],
+  "description": "Dáng đi nhón gót, đầu gối chùng và mắt đảo quanh cảnh giác.",
+  "duration": 1.5,
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/action/action_sneak_walk/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.079Z",
+  "updatedAt": "2026-11-23T13:04:15.079Z"
+}

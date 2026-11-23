@@ -1,0 +1,52 @@
+{
+  "id": "composite_power_up",
+  "name": "Bùng Nổ Sức Mạnh (Power Up Surge)",
+  "type": "composite_action",
+  "category": "energy",
+  "tags": [
+    "power",
+    "shout",
+    "surge",
+    "glow"
+  ],
+  "description": "Nhân vật gồng mình, mặt đất rung chuyển, hào quang vàng bùng phát và năng lượng cuộn trào.",
+  "duration": 3,
+  "participants": 1,
+  "parameters": {
+    "auraColor": "#f59e0b",
+    "pulseRate": 2
+  },
+  "tracks": [
+    {
+      "target": "character",
+      "type": "expression",
+      "asset": "expr_angry",
+      "start": 0,
+      "end": 3
+    },
+    {
+      "target": "character",
+      "type": "vfx",
+      "asset": "vfx_golden_aura",
+      "start": 0.5,
+      "end": 3
+    },
+    {
+      "target": "camera",
+      "type": "shake",
+      "start": 0.8,
+      "end": 2.8,
+      "intensity": 0.8
+    }
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/composite_action/composite_power_up/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.081Z",
+  "updatedAt": "2026-11-23T13:04:15.081Z"
+}

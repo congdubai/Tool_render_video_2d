@@ -1,0 +1,28 @@
+{
+  "id": "bg_street_night",
+  "name": "Khu Phố Ban Đêm (Night Street)",
+  "type": "background",
+  "category": "outdoor",
+  "tags": [
+    "street",
+    "night",
+    "horror",
+    "lamp"
+  ],
+  "description": "Con phố đêm vắng người với ánh đèn đường hiu hắt và bóng tối rình rập.",
+  "dimensions": {
+    "width": 1280,
+    "height": 720,
+    "scale": 1
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/background/bg_street_night/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.081Z",
+  "updatedAt": "2026-11-23T13:04:15.081Z"
+}

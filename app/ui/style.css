@@ -1818,6 +1818,129 @@ body {
   border-radius: 4px;
 }
 
+/* ================= UNIVERSAL ASSET LIBRARY (V4) STYLES ================= */
+.asset-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+
+.asset-card:hover {
+  transform: translateY(-2px);
+  border-color: #38bdf8;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.asset-card-thumb-wrap {
+  width: 100%;
+  height: 110px;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-bottom: 1px solid #334155;
+}
+
+.asset-card-thumb {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+}
+
+.asset-thumb-icon {
+  font-size: 42px;
+  user-select: none;
+}
+
+.asset-type-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.badge-expression { background: #7c3aed; color: #ede9fe; }
+.badge-outfit { background: #db2777; color: #fce7f3; }
+.badge-prop { background: #d97706; color: #fef3c7; }
+.badge-action { background: #2563eb; color: #dbeafe; }
+.badge-vfx { background: #059669; color: #d1fae5; }
+.badge-weather { background: #0891b2; color: #cffafe; }
+.badge-background { background: #475569; color: #f1f5f9; }
+.badge-composite_action { background: #ea580c; color: #ffedd5; }
+
+.asset-card-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.asset-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.3;
+}
+
+.asset-card-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  justify-content: space-between;
+}
+
+.asset-card-desc {
+  font-size: 11.5px;
+  color: #cbd5e1;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.asset-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.asset-tag-chip {
+  font-size: 10px;
+  background: #334155;
+  color: #94a3b8;
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.asset-card-actions {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #172033;
+  border-top: 1px solid #334155;
+}
+
+.asset-card-actions .btn {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 11px;
+}
+
+
 
 
 

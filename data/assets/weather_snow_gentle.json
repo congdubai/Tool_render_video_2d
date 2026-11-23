@@ -1,0 +1,27 @@
+{
+  "id": "weather_snow_gentle",
+  "name": "Tuyết Rơi Êm Đềm (Gentle Snow)",
+  "type": "weather",
+  "category": "precipitation",
+  "tags": [
+    "snow",
+    "winter",
+    "cold"
+  ],
+  "description": "Bông tuyết trắng bồng bềnh lượn lờ rơi chậm trong không khí.",
+  "parameters": {
+    "intensity": 0.5,
+    "speed": 0.6,
+    "drift": 1.2
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/weather/weather_snow_gentle/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.080Z",
+  "updatedAt": "2026-11-23T13:04:15.080Z"
+}

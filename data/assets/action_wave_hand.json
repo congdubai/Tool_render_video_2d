@@ -1,0 +1,23 @@
+{
+  "id": "action_wave_hand",
+  "name": "Vẫy Tay Chào (Wave Hand)",
+  "type": "action",
+  "category": "gesture",
+  "tags": [
+    "hello",
+    "greet",
+    "bye"
+  ],
+  "description": "Đưa tay lên cao và vẫy qua lại thân thiện.",
+  "duration": 1.2,
+  "compatibility": {
+    "requires": [
+      "hand_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/action/action_wave_hand/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.079Z",
+  "updatedAt": "2026-11-23T13:04:15.079Z"
+}

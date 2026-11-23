@@ -1,0 +1,28 @@
+{
+  "id": "bg_cafe_cozy",
+  "name": "Quán Café Ấm Cúng (Cozy Café)",
+  "type": "background",
+  "category": "indoor",
+  "tags": [
+    "cafe",
+    "table",
+    "coffee",
+    "cozy"
+  ],
+  "description": "Không gian quán cà phê ấm áp ánh đèn vàng, cửa kính nhìn ra phố hoàng hôn.",
+  "dimensions": {
+    "width": 1280,
+    "height": 720,
+    "scale": 1
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/background/bg_cafe_cozy/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.080Z",
+  "updatedAt": "2026-11-23T13:04:15.080Z"
+}

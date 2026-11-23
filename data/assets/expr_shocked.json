@@ -1,0 +1,31 @@
+{
+  "id": "expr_shocked",
+  "name": "Sốc Kinh Ngạc (Shocked)",
+  "type": "expression",
+  "category": "extreme",
+  "tags": [
+    "shock",
+    "surprise",
+    "jaw-drop"
+  ],
+  "description": "Mắt trợn tròn đồng tử thu nhỏ và miệng há to kinh ngạc.",
+  "dimensions": {
+    "width": 120,
+    "height": 120,
+    "scale": 1
+  },
+  "anchor": [
+    60,
+    60
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/expression/expr_shocked/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.077Z",
+  "updatedAt": "2026-11-23T13:04:15.077Z"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "action_walk_cycle",
+  "name": "Bước Đi Tự Tin (Walk Cycle)",
+  "type": "action",
+  "category": "locomotion",
+  "tags": [
+    "walk",
+    "step",
+    "stride"
+  ],
+  "description": "Chuyển động bước đi nhịp nhàng đồng bộ chân, hông và tay đánh đều.",
+  "duration": 1,
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/action/action_walk_cycle/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.079Z",
+  "updatedAt": "2026-11-23T13:04:15.079Z"
+}

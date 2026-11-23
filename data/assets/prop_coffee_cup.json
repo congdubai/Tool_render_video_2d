@@ -1,0 +1,35 @@
+{
+  "id": "prop_coffee_cup",
+  "name": "Ly Cà Phê Gốm Sứ",
+  "type": "prop",
+  "category": "everyday",
+  "tags": [
+    "drink",
+    "cafe",
+    "mug"
+  ],
+  "description": "Ly cà phê gốm sứ có quai cầm tay và hơi nóng bốc lên.",
+  "dimensions": {
+    "width": 40,
+    "height": 40,
+    "scale": 1
+  },
+  "anchor": [
+    20,
+    36
+  ],
+  "holdOffset": [
+    4,
+    -8
+  ],
+  "compatibility": {
+    "requires": [
+      "hand_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/prop/prop_coffee_cup/thumb.png",
+  "createdAt": "2026-11-23T13:04:15.078Z",
+  "updatedAt": "2026-11-23T13:04:15.078Z"
+}
