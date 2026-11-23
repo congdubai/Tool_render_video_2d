@@ -1,7 +1,7 @@
-// scenes/shots/05_cat_fall.js — Cảnh 5: Một con mèo nhảy ra, Nam ngã ngửa
+// scenes/shots/05_cat_fall.js — Cảnh 5: Mèo nhảy ra, Nam ngã ngửa comic rồi cười trừ (Medium Action & Resolution)
 import { E, registerShot, clamp, lerp, ease, circle, poly } from '/engine/core.js';
 import { drawFigure } from '/engine/rig2d.js';
-import { drawTenseHallwayScene, drawCinematicVignette } from '/engine/cinematic-scene.js';
+import { drawTenseHallwaySceneV3, drawCinematicVignette, SHOT_TYPES } from '/engine/cinematic-scene.js';
 import { solveFallBackwardAction, drawBroom, drawBlackCat } from '/engine/action-engine.js';
 import { NAM } from '../cast.js';
 
@@ -10,27 +10,38 @@ registerShot('s005_cat_fall', {
     const W = E.W || 1920;
     const H = E.H || 1080;
 
-    // Rung giật màn hình khi giật mình và khi ngã đập lưng xuống sàn (1.2 -> 2.6s)
+    // Rung lắc giật nảy màn hình khi giật mình và ngã đập lưng xuống sàn (1.2 -> 2.4s)
     let shakeX = 0, shakeY = 0;
-    if (t >= 1.2 && t <= 2.2) {
-      const sAmp = (1 - (t - 1.2) / 1.0) * 12;
-      shakeX = Math.sin(t * 55) * sAmp;
-      shakeY = Math.cos(t * 48) * sAmp;
+    if (t >= 1.2 && t <= 2.4) {
+      const sAmp = (1 - (t - 1.2) / 1.2) * 14;
+      shakeX = Math.sin(t * 54) * sAmp;
+      shakeY = Math.cos(t * 46) * sAmp;
     }
 
-    const cam = { z: 1.15, x: shakeX, y: shakeY + 20 };
+    const s = 1.55;
+    const namX = W * 0.44;
 
-    // 1. Vẽ bối cảnh hành lang nơi cửa mở hé
-    const { groundY, doorEndX, doorEndY } = drawTenseHallwayScene(g, t, cam);
+    // CAMERA DIRECTOR:
+    // 0 -> 3.5s: Medium Action Framing (z = 1.55) bắt trọn cú nhảy của mèo và cú ngã nảy người
+    // 3.8 -> 6.0s: Easing in to Medium-Close (z = 1.75) cận cảnh Nam cười trừ và chú mèo cute
+    const isResolution = t >= 3.8;
+    const camZ = isResolution ? lerp(1.55, 1.80, ease.out(clamp((t - 3.8) / 1.2, 0, 1))) : 1.55;
+    const targetCamX = -(namX - W * 0.46) + shakeX;
 
-    const s = 1.35;
-    const namX = doorEndX - 180;
+    const cam = {
+      z: camZ,
+      x: targetCamX,
+      y: (isResolution ? -80 : -110) + shakeY
+    };
 
-    // 2. Chuyển động ngã của Nam
+    // 1. Vẽ bối cảnh hành lang 5 lớp điện ảnh (V3)
+    const { groundY, doorEndX } = drawTenseHallwaySceneV3(g, t, cam);
+
+    // 2. Chuyển động ngã comic của Nam
     let namPose, namExpr, namLook;
 
     if (t < 1.2) {
-      // Nam đứng thủ thế cầm chổi
+      // Nam đứng thủ thế cầm chổi sẵn sàng tấn công
       namPose = {
         hip: [0, -40],
         sh: [2, -78],
@@ -43,13 +54,13 @@ registerShot('s005_cat_fall', {
       namExpr = 'surprised';
       namLook = [1.0, -0.2];
     } else if (t < 3.8) {
-      // 1.2 -> 3.8s: Mèo nhảy ra -> Nam ngã ngửa ra sau, hai chân giơ lên trời!
+      // 1.2 -> 3.8s: Mèo nhảy ra -> Nam hoảng hốt ngã ngửa ra sau, hai chân giơ lên trời!
       const fallProg = (t - 1.2) / 2.0;
       namPose = solveFallBackwardAction(fallProg);
       namExpr = 'terrified';
       namLook = [0.8, -0.5];
     } else {
-      // 3.8 -> 6.0s: Nằm trên sàn, gượng dậy nhìn con mèo rồi cười trừ ngượng ngùng
+      // 3.8 -> 6.0s: Nằm trên sàn, gượng ngồi dậy nhìn con mèo rồi gãi đầu cười sảng khoái
       const recoverProg = clamp((t - 3.8) / 0.8, 0, 1);
       namPose = {
         hip: [-20, -10],
@@ -85,37 +96,36 @@ registerShot('s005_cat_fall', {
       t
     });
 
-    // 4. Cây chổi bị văng lên không trung rồi rơi xuống sàn
+    // 4. Cây chổi bị hất văng lên không trung xoay tít rồi rơi xuống sàn
     if (t < 1.2) {
-      // Cầm trên tay
-      drawBroom(g, namX + 45, groundY - 110, 0.45, 115);
+      drawBroom(g, namX + 45, groundY - 110, 0.45, 120);
     } else if (t < 2.5) {
-      // Bay xoay tít trên không (Spinning flying broom)
+      // Bay xoay tròn trên không
       const flyProg = (t - 1.2) / 1.3;
       const bx = namX + 40 - flyProg * 50;
-      const by = (groundY - 120) - Math.sin(flyProg * Math.PI) * 140;
+      const by = (groundY - 120) - Math.sin(flyProg * Math.PI) * 160;
       const bRot = flyProg * Math.PI * 4;
-      drawBroom(g, bx, by, bRot, 115);
+      drawBroom(g, bx, by, bRot, 120);
     } else {
       // Nằm yên trên sàn
-      drawBroom(g, namX - 50, groundY + 12, 1.45, 115);
+      drawBroom(g, namX - 50, groundY + 12, 1.45, 120);
     }
 
-    // 5. Chú mèo đen nhảy vọt ra từ cánh cửa (The Leaping Black Cat)
+    // 5. Chú mèo đen nhảy vọt ra từ cửa (The Leaping Black Cat)
     if (t >= 1.0 && t < 2.8) {
       // Pha mèo bay qua không trung
       const leapProg = (t - 1.0) / 1.6;
       const catX = lerp(doorEndX + 40, doorEndX - 340, leapProg);
-      const catY = groundY - 100 - Math.sin(leapProg * Math.PI) * 85;
+      const catY = groundY - 100 - Math.sin(leapProg * Math.PI) * 95;
       drawBlackCat(g, catX, catY, 'leap', t);
 
-      // Tiếng kêu MEOWWW!
+      // Chữ comic tiếng kêu MEOWWW!
       g.save();
-      g.translate(catX - 30, catY - 50);
+      g.translate(catX - 30, catY - 55);
       g.rotate(-0.15);
       g.fillStyle = '#fef08a';
       g.strokeStyle = '#111827';
-      g.lineWidth = 4;
+      g.lineWidth = 4.5;
       g.font = 'bold 36px sans-serif';
       g.strokeText('🐱 NGOAOOO... MEOW! 🐱', 0, 0);
       g.fillText('🐱 NGOAOOO... MEOW! 🐱', 0, 0);
@@ -126,12 +136,12 @@ registerShot('s005_cat_fall', {
       const catY = groundY + 8;
       drawBlackCat(g, catX, catY, 'sit', t);
 
-      // Trái tim tình cảm từ chú mèo
-      const heartA = 0.5 + Math.sin(t * 4) * 0.4;
+      // Bong bóng trái tim từ chú mèo
+      const heartA = 0.55 + Math.sin(t * 4) * 0.45;
       g.fillStyle = `rgba(244, 63, 94, ${heartA})`;
-      circle(g, catX + 10, catY - 55, 6);
-      circle(g, catX + 18, catY - 55, 6);
-      poly(g, [[catX + 4, catY - 53], [catX + 24, catY - 53], [catX + 14, catY - 42]], `rgba(244, 63, 94, ${heartA})`);
+      circle(g, catX + 10, catY - 60, 6.5);
+      circle(g, catX + 20, catY - 60, 6.5);
+      poly(g, [[catX + 4, catY - 58], [catX + 26, catY - 58], [catX + 15, catY - 45]], `rgba(244, 63, 94, ${heartA})`);
     }
 
     // 6. Hiệu ứng ngã bẹp sàn: Ngôi sao choáng váng và bụi va chạm (1.8 -> 3.2s)
@@ -139,21 +149,21 @@ registerShot('s005_cat_fall', {
       const starProg = (t - 1.8) / 1.4;
       const starA = 1 - starProg;
       const starAngle = t * 6;
-      [-15, 15].forEach((sx, idx) => {
+      [-18, 18].forEach((sx, idx) => {
         const starX = namX - 80 + sx;
-        const starY = groundY - 80 + Math.sin(starAngle + idx) * 12;
-        circle(g, starX, starY, 6, `rgba(254, 240, 138, ${starA})`);
+        const starY = groundY - 80 + Math.sin(starAngle + idx) * 14;
+        circle(g, starX, starY, 6.5, `rgba(254, 240, 138, ${starA})`);
       });
     }
 
-    // 7. Chữ comic Nam cười trừ ngượng ngùng (4.2 -> 6.0s)
+    // 7. Chữ comic Nam cười sảng khoái (4.2 -> 6.0s)
     if (t >= 4.2) {
       const textA = clamp((t - 4.2) / 0.8, 0, 1);
       g.save();
-      g.translate(namX - 120, groundY - 140);
+      g.translate(namX - 120, groundY - 150);
       g.fillStyle = `rgba(254, 240, 138, ${textA})`;
       g.strokeStyle = `rgba(17, 24, 39, ${textA})`;
-      g.lineWidth = 4;
+      g.lineWidth = 4.5;
       g.font = 'bold 32px sans-serif';
       g.strokeText('😅 Hóa ra là Mèo... làm hú hồn! 😅', 0, 0);
       g.fillText('😅 Hóa ra là Mèo... làm hú hồn! 😅', 0, 0);

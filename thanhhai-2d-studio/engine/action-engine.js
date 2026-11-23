@@ -438,3 +438,64 @@ export function drawBlackCat(g, x, y, state = 'leap', t = 0, inkCol = '#20202A')
 
   g.restore();
 }
+
+/**
+ * 8. HÀNH ĐỘNG CHUYỂN TIẾP TỪ ĐỨNG SANG NGỒI XUỐNG GHẾ (Standing to Sitting Transition)
+ * Đầu gối gập 90 độ, mông hạ xuống đệm ghế, hai tay đặt lên đùi tự nhiên
+ */
+export function solveSitDownTransition(prog) {
+  const p = clamp(prog, 0, 1);
+  const ep = ease.inOut(p);
+
+  const hip = [lerp(0, -8, ep), lerp(-44, -32, ep)];
+  const sh = [lerp(0, -8, ep), lerp(-82, -70, ep)];
+  const head = [lerp(0, -6, ep), lerp(-126, -112, ep)];
+
+  const kF = [lerp(4, 28, ep), lerp(-22, -32, ep)];
+  const fF = [lerp(4, 30, ep), 0];
+  const kB = [lerp(-4, 22, ep), lerp(-22, -32, ep)];
+  const fB = [lerp(-4, 24, ep), 0];
+
+  const eF = [lerp(18, 12, ep), lerp(-60, -46, ep)];
+  const hF = [lerp(18, 18, ep), lerp(-42, -34, ep)];
+  const eB = [lerp(-18, -8, ep), lerp(-60, -46, ep)];
+  const hB = [lerp(-18, -2, ep), lerp(-42, -34, ep)];
+
+  return {
+    isWhiteCartoon: true,
+    hip, sh, head,
+    eF, hF, eB, hB,
+    kF, fF, kB, fB
+  };
+}
+
+/**
+ * 9. HÀNH ĐỘNG THỞ PHÀO NHẸ NHÕM (Relief Breathing & Sigh)
+ */
+export function solveReliefSigh(t, cycleSpeed = 1.2) {
+  const breath = Math.sin(t * Math.PI * cycleSpeed);
+  const chestBob = breath * 3.0;
+
+  const hip = [0, -44];
+  const sh = [0, -82 + chestBob];
+  const head = [0, -126 + chestBob * 0.8];
+
+  const eF = [16, -60 + chestBob * 0.5];
+  const hF = [18, -42];
+  const eB = [-16, -60 + chestBob * 0.5];
+  const hB = [-18, -42];
+
+  const kF = [4, -22];
+  const fF = [4, 0];
+  const kB = [-4, -22];
+  const fB = [-4, 0];
+
+  return {
+    isWhiteCartoon: true,
+    hip, sh, head,
+    eF, hF, eB, hB,
+    kF, fF, kB, fB
+  };
+}
+
+

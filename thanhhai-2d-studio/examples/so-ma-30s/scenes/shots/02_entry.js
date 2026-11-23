@@ -1,7 +1,8 @@
-// scenes/shots/02_entry.js — Cảnh 2: Nam mở cửa bước vào phòng và bật đèn
+// scenes/shots/02_entry.js — Cảnh 2: Nam bước vào phòng, bật đèn và ngồi xuống sofa
 import { E, registerShot, clamp, lerp, ease } from '/engine/core.js';
 import { drawFigure, POSES, solveWalkCycle } from '/engine/rig2d.js';
-import { drawEntryHallwayScene, drawCinematicVignette } from '/engine/cinematic-scene.js';
+import { drawEntryHallwaySceneV3, drawCozyLivingRoomSceneV3, drawCinematicVignette, SHOT_TYPES } from '/engine/cinematic-scene.js';
+import { solveSitDownTransition, solveReliefSigh } from '/engine/action-engine.js';
 import { NAM } from '../cast.js';
 
 registerShot('s002_entry', {
@@ -12,21 +13,19 @@ registerShot('s002_entry', {
     const isLightOn = t >= 2.5;
     const lightProg = clamp((t - 2.5) / 0.45, 0, 1);
 
-    const cam = { z: 1.08, x: lerp(40, -20, clamp(t / 6.0, 0, 1)), y: 10 };
+    const s = 1.55;
+    let namX, namPose, namExpr, namLook, namFacing = 1;
 
-    // 1. Vẽ bối cảnh căn hộ tối và công tắc
-    const { groundY, doorX, switchX, switchY } = drawEntryHallwayScene(g, t, isLightOn, lightProg, cam);
-
-    // 2. Chuyển động của Nam
-    const s = 1.35;
-    let namX, namPose, namExpr, namLook;
+    // Phân cảnh 2 giai đoạn:
+    // Giai đoạn 1 (0 -> 3.2s): Vào cửa tối, với tay bật công tắc đèn
+    // Giai đoạn 2 (3.2 -> 6.0s): Phòng sáng, Nam thở phào, đi tới ghế sofa và ngồi xuống
+    const isLivingRoomPhase = t >= 3.6;
 
     if (t < 2.5) {
-      // Nam bước từ cửa vào phòng tối, tay với tới công tắc trên tường
+      // Nam bước vào từ cửa, giơ tay với tới công tắc
       const prog = t / 2.5;
-      namX = lerp(doorX + 80, switchX - 45, prog);
-      const walk = solveWalkCycle(t, { speed: 0.8 });
-      // Cánh tay gần (hF) giơ cao với về phía công tắc
+      namX = lerp(W * 0.28, W * 0.46, prog);
+      const walk = solveWalkCycle(t, { speed: 0.85 });
       const reachProg = ease.out(clamp(prog * 1.5, 0, 1));
       namPose = {
         ...walk,
@@ -36,8 +35,8 @@ registerShot('s002_entry', {
       namExpr = 'scared';
       namLook = [0.9, -0.4];
     } else if (t < 3.2) {
-      // Vừa bấm công tắc 'TÁCH', ánh sáng bừng lên, chớp mắt ngạc nhiên
-      namX = switchX - 45;
+      // Bấm công tắc "TÁCH", đèn bừng sáng, ngạc nhiên
+      namX = W * 0.46;
       namPose = {
         ...POSES.stand,
         hF: [26, -72],
@@ -45,45 +44,71 @@ registerShot('s002_entry', {
       };
       namExpr = 'surprised';
       namLook = [0.2, -0.1];
-    } else {
-      // 3.2 -> 6.0s: An tâm vì đã có đèn, hạ tay xuống, thở phào nhẹ nhõm (Relief)
-      namX = switchX - 45;
-      const breatheProg = (t - 3.2) / 2.8;
-      const chestBob = Math.sin(breatheProg * Math.PI * 2) * 2.5;
-      namPose = {
-        ...POSES.stand,
-        sh: [POSES.stand.sh[0], POSES.stand.sh[1] + chestBob],
-        head: [POSES.stand.head[0], POSES.stand.head[1] + chestBob * 0.8],
-        eF: [16, -60], hF: [16, -42],
-        eB: [-16, -60], hB: [-16, -42]
-      };
+    } else if (t < 4.2) {
+      // Thở phào nhẹ nhõm, bắt đầu bước về phía sofa
+      const walkProg = (t - 3.2) / 1.0;
+      namX = lerp(W * 0.46, W * 0.54, walkProg);
+      namPose = solveWalkCycle(t * 1.2, { speed: 1.0 });
       namExpr = 'relief';
-      namLook = [0, 0];
+      namLook = [0.6, 0];
+    } else {
+      // 4.2 -> 6.0s: Đi đến sofa và ngồi xuống êm ái
+      const sitProg = clamp((t - 4.2) / 1.2, 0, 1);
+      namX = lerp(W * 0.54, W * 0.58, Math.min(sitProg * 1.5, 1));
+      namPose = solveSitDownTransition(sitProg);
+      namExpr = 'happy';
+      namLook = [0.2, 0.1];
     }
 
-    // 3. Vẽ nhân vật Nam
+    // Camera Framing (Medium Shot z = 1.55, nâng trục Y để nhân vật ở trung tâm)
+    const targetCamX = -(namX - W * 0.5);
+    const cam = {
+      z: SHOT_TYPES.MEDIUM.z,
+      x: targetCamX,
+      y: -60
+    };
+
+    // 1. Vẽ bối cảnh chuyển tiếp mượt mà từ cửa vào sang phòng khách
+    let groundY, switchX, switchY;
+    if (!isLivingRoomPhase) {
+      const entryScene = drawEntryHallwaySceneV3(g, t, isLightOn, lightProg, cam);
+      groundY = entryScene.groundY;
+      switchX = entryScene.switchX;
+      switchY = entryScene.switchY;
+    } else {
+      const roomScene = drawCozyLivingRoomSceneV3(g, t, cam);
+      groundY = roomScene.groundY;
+    }
+
+    // 2. Vẽ nhân vật Nam
     g.save();
     g.translate(W / 2, H / 2);
     g.scale(cam.z, cam.z);
     g.translate(-W / 2 + cam.x, -H / 2 + cam.y);
 
+    // Bóng đổ tiếp xúc chân
+    g.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    g.beginPath();
+    g.ellipse(namX, groundY + 4, 34 * s, 9 * s, 0, 0, Math.PI * 2);
+    g.fill();
+
     drawFigure(g, {
       x: namX,
       y: groundY,
       s,
-      facing: 1,
+      facing: namFacing,
       outfit: NAM,
       pose: namPose,
       expr: namExpr,
       look: namLook,
-      shadow: true,
+      shadow: false,
       rimWarm: isLightOn ? '#fef08a' : null,
       rimCool: !isLightOn ? '#93c5fd' : null,
       t
     });
 
-    // 4. Chữ comic hiệu ứng bấm đèn "TÁCH!" tại thời điểm 2.5s
-    if (t >= 2.5 && t <= 3.3) {
+    // 3. Hiệu ứng comic khi bấm đèn "TÁCH!" tại 2.5s
+    if (t >= 2.5 && t <= 3.3 && switchX) {
       const clickA = clamp(Math.sin((t - 2.5) / 0.8 * Math.PI), 0, 1);
       g.save();
       g.translate(switchX, switchY - 40);
@@ -98,7 +123,7 @@ registerShot('s002_entry', {
 
     g.restore();
 
-    // 5. Tối viền điện ảnh
+    // 4. Tối viền điện ảnh
     drawCinematicVignette(g, isLightOn ? 0.22 : 0.45);
   }
 });

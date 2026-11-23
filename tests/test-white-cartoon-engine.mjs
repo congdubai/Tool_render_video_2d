@@ -1,4 +1,4 @@
-// tests/test-white-cartoon-engine.mjs — Comprehensive Test Suite for White Cartoon 2D Engine
+// tests/test-white-cartoon-engine.mjs — Comprehensive Test Suite for White Cartoon 2D Engine & Scene Engine V3
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,21 +15,34 @@ import {
   solveRunCycle,
   solveSneakWalkCycle,
   solveFallBackwardAction,
-  solveScaredReactionAction
+  solveScaredReactionAction,
+  solveSitDownTransition,
+  solveReliefSigh
 } from '../thanhhai-2d-studio/engine/action-engine.js';
+
+import {
+  SHOT_TYPES,
+  CameraDirector,
+  CINEMATIC_PALETTES
+} from '../thanhhai-2d-studio/engine/cinematic-scene.js';
 
 import {
   validateCharacterColors,
   validateProportions,
   validateLimbConnections,
   validateProjectPreRender,
+  validateCharacterVisibility,
+  validateCameraFraming,
+  validateSceneBrightness,
+  validateLayerIntegrity,
+  validatePropAttachment,
   VALID_EXPRESSIONS
 } from '../lib/auto-validator.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
-console.log('--- BẮT ĐẦU KIỂM THỬ HỆ THỐNG WHITE CARTOON 2D ---');
+console.log('--- BẮT ĐẦU KIỂM THỬ HỆ THỐNG WHITE CARTOON 2D & SCENE ENGINE V3 ---');
 
 // 1. Kiểm tra Character Style Lock
 console.log('1. Kiểm tra Character Style Lock:');
@@ -90,8 +103,35 @@ const scarePose = solveScaredReactionAction(0.5, 0.5);
 assert.ok(scarePose.head && scarePose.hF, 'Scared reaction action phải có các khớp');
 console.log('  ✔ solveScaredReactionAction: Giật mình hoảng hốt và run rẩy');
 
-// 4. Kiểm tra Demo Project 30s "so-ma-30s"
-console.log('4. Kiểm tra Demo Project 30s "Nếu Bạn Là Một Người Cực Kỳ Sợ Ma?":');
+// Sit Down Transition & Relief Sigh
+const sitPose = solveSitDownTransition(1.0);
+assert.ok(sitPose.hip && sitPose.kF, 'Sit down transition phải tạo pose ngồi');
+const reliefPose = solveReliefSigh(0.5);
+assert.ok(reliefPose.head && reliefPose.sh, 'Relief sigh phải tạo pose thở phào');
+console.log('  ✔ solveSitDownTransition & solveReliefSigh: Ngồi xuống êm ái và thở phào nhẹ nhõm');
+
+// 4. Kiểm tra Cinematic Scene Engine V3 & Camera Director
+console.log('4. Kiểm tra Cinematic Scene Engine V3 & Camera Director:');
+assert.ok(SHOT_TYPES.ESTABLISHING && SHOT_TYPES.WIDE && SHOT_TYPES.MEDIUM && SHOT_TYPES.CLOSE_UP, 'Phải có đủ các preset góc máy');
+assert.ok(SHOT_TYPES.MEDIUM.z >= 1.4, 'MEDIUM shot phải có zoom >= 1.4 để nhân vật đủ lớn');
+assert.ok(SHOT_TYPES.CLOSE_UP.z >= 2.4, 'CLOSE_UP shot phải có zoom >= 2.4 để bắt trọn biểu cảm');
+console.log('  ✔ SHOT_TYPES: Thiết lập đúng chuẩn tỷ lệ khung hình điện ảnh');
+
+const camDirector = new CameraDirector({ shotType: 'MEDIUM' });
+camDirector.frameTarget(960, 540, 1);
+const camState = camDirector.update(0.016, 1.0);
+assert.ok(typeof camState.z === 'number' && typeof camState.x === 'number', 'CameraDirector phải cập nhật mượt mà');
+console.log('  ✔ CameraDirector: Định vị chủ thể, Rule of Thirds và Lead Room');
+
+// 5. Kiểm tra Scene Brightness & Palettes
+console.log('5. Kiểm tra Scene Brightness & Palettes:');
+assert.ok(CINEMATIC_PALETTES.night_exterior && CINEMATIC_PALETTES.cozy_living_room, 'Phải có bảng màu chuẩn');
+const brightnessCheck = validateSceneBrightness(CINEMATIC_PALETTES.night_exterior);
+assert.strictEqual(brightnessCheck.length, 0, 'Bảng màu đêm chuẩn không được bị lỗi đen tuyệt đối');
+console.log('  ✔ Bảng màu điện ảnh đạt chuẩn độ sáng và chiều sâu môi trường');
+
+// 6. Kiểm tra Demo Project 30s "so-ma-30s"
+console.log('6. Kiểm tra Demo Project 30s "Nếu Bạn Là Một Người Cực Kỳ Sợ Ma?":');
 const demoDir = path.join(ROOT, 'thanhhai-2d-studio', 'examples', 'so-ma-30s');
 assert.ok(fs.existsSync(demoDir), 'Thư mục demo so-ma-30s phải tồn tại');
 
@@ -127,8 +167,8 @@ console.log('    - Cảnh 3: Nam nghe tiếng động, giật mình quay đầu'
 console.log('    - Cảnh 4: Nam cầm chổi, rón rén tiến đến cửa');
 console.log('    - Cảnh 5: Một con mèo nhảy ra, Nam ngã ngửa');
 
-// 5. Kiểm tra Auto Quality Validator trên dự án
-console.log('5. Chạy Auto Quality Validator trên toàn bộ dự án:');
+// 7. Kiểm tra Auto Quality Validator trên dự án
+console.log('7. Chạy Auto Quality Validator trên toàn bộ dự án:');
 const valResult = validateProjectPreRender(demoDir, cfg, shotsData.shots);
 console.log(`  - Trạng thái kiểm tra: ${valResult.valid ? 'HỢP LỆ (PASS)' : 'KHÔNG HỢP LỆ (FAIL)'}`);
 console.log(`  - Lỗi nghiêm trọng (Errors): ${valResult.errors.length}`);
@@ -138,4 +178,4 @@ if (valResult.warnings.length > 0) {
 }
 assert.strictEqual(valResult.errors.length, 0, 'Dự án không được có bất kỳ lỗi nghiêm trọng nào');
 
-console.log('--- TOÀN BỘ BÀI KIỂM THỬ WHITE CARTOON 2D THÀNH CÔNG RỰC RỠ! ---');
+console.log('--- TOÀN BỘ BÀI KIỂM THỬ WHITE CARTOON 2D & SCENE ENGINE V3 THÀNH CÔNG RỰC RỠ! ---');
