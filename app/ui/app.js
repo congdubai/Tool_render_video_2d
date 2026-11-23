@@ -1181,28 +1181,6 @@ async function validateCurrentAiProject() {
         </div>
       </div>
     `;
-          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
-            <span style="color: #94a3b8; font-size: 11px;">COMPOSITION ID:</span><br/>
-            <strong style="color: #38bdf8; font-family: monospace;">${aiState.selectedCompositionId || val.config?.compositionId || 'MainVideo'}</strong>
-            ${(aiState.availableCompositions && aiState.availableCompositions.length > 1) ? `<span style="color: #94a3b8; font-size: 11px;">(${aiState.availableCompositions.length} comps)</span>` : ''}
-          </div>
-          <div style="background: #1e293b; padding: 10px; border-radius: 6px;">
-            <span style="color: #94a3b8; font-size: 11px;">DEPENDENCIES:</span><br/>
-            <strong style="color: #10b981;">${val.dependencies?.allowed?.join(', ') || 'react, remotion'}</strong>
-          </div>
-        </div>
-      `;
-    } else {
-      // Giao diện khi Chưa xác định Engine
-      reportHtml += `
-        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 6px; margin-bottom: 12px; color: #fca5a5;">
-          <strong>⚠️ Dự án chưa được nhận diện là Remotion, Python 2D Long Form hoặc Thanh Hai 2D Studio.</strong>
-          <div style="font-size: 12px; margin-top: 4px; color: #cbd5e1;">
-            Vui lòng kiểm tra lại cấu trúc file dự án, hoặc chọn thủ công loại Engine phù hợp ở danh sách bên dưới rồi bấm <strong>Thẩm định lại</strong>.
-          </div>
-        </div>
-      `;
-    }
 
     // Danh sách lỗi
     if (val.errors && val.errors.length > 0) {
