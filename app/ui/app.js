@@ -863,22 +863,14 @@ async function deleteAllImportedProjects() {
   }
 }
 
-// Chọn nhanh Demo project Thanh Hai 2D Studio
+// Chọn nhanh Demo project Thanh Hai 2D Studio (Reaction Time - White Cartoon 2D)
 function selectThanhHaiDemoProject(demoKey = "reaction-time") {
   const select = document.getElementById("aiProjectSelect");
-  let target = null;
-  if (demoKey === "scared-roommates") {
-    target = aiState.projects.find((p) => p.id.includes("scared-roommates"));
-  } else {
-    target = aiState.projects.find((p) => p.id.includes("reaction-time"));
-  }
-  if (!target && aiState.projects.length > 0) {
-    target = aiState.projects[0];
-  }
+  let target = aiState.projects.find((p) => p.id.includes("reaction-time")) || aiState.projects[0];
   if (target && select) {
     select.value = target.id;
     handleAiProjectChanged();
-    showToast(`🎨 Đã chọn dự án mẫu Thanh Hai 2D: "${target.name}"`);
+    showToast(`🎨 Đã chọn dự án mẫu: "${target.name}"`);
   } else {
     showToast("Đang tải lại danh sách dự án...");
     loadAiProjectsList();
@@ -888,7 +880,7 @@ function selectThanhHaiDemoProject(demoKey = "reaction-time") {
 // Giữ lại các alias cũ để tránh lỗi runtime
 function selectDemoProject() { selectThanhHaiDemoProject("reaction-time"); }
 function selectChibiDemoProject() { selectThanhHaiDemoProject("reaction-time"); }
-function selectPythonDemoProject() { selectThanhHaiDemoProject("scared-roommates"); }
+function selectPythonDemoProject() { selectThanhHaiDemoProject("reaction-time"); }
 
 // Bật/tắt bảng điều khiển Chibi Animation Test Panel
 function toggleChibiTestPanel() {
@@ -961,6 +953,17 @@ function handleAiProjectChanged() {
 
   if (charSettingItem) {
     charSettingItem.classList.remove("hidden");
+    const charSelect = document.getElementById("aiCharacterSelect");
+    if (charSelect) {
+      const projChar = project.config?.character;
+      if (projChar === "white_cartoon" || projChar === "chibi" || projChar === "original") {
+        charSelect.value = projChar;
+        aiState.selectedCharacterRenderer = projChar;
+      } else {
+        charSelect.value = "white_cartoon";
+        aiState.selectedCharacterRenderer = "white_cartoon";
+      }
+    }
   }
 
   if (engineBadge) {
@@ -1221,7 +1224,7 @@ async function previewCurrentProjectStills() {
     const engineSelect = document.getElementById("aiEngineSelect");
     const engineOverride = (engineSelect && engineSelect.value !== "auto") ? engineSelect.value : (aiState.manualEngineOverride || null);
     const charSelect = document.getElementById("aiCharacterSelect");
-    const characterRenderer = charSelect ? charSelect.value : "chibi";
+    const characterRenderer = charSelect ? charSelect.value : "white_cartoon";
 
     const res = await fetch("/api/ai-code/contact-sheet", {
       method: "POST",
@@ -1464,7 +1467,7 @@ async function inspectCurrentFrame() {
 
   try {
     const charSelect = document.getElementById("aiCharacterSelect");
-    const characterRenderer = charSelect ? charSelect.value : "chibi";
+    const characterRenderer = charSelect ? charSelect.value : "white_cartoon";
 
     const res = await fetch("/api/ai-code/preview-frame", {
       method: "POST",
@@ -1519,7 +1522,7 @@ async function inspectContactSheet() {
 
   try {
     const charSelect = document.getElementById("aiCharacterSelect");
-    const characterRenderer = charSelect ? charSelect.value : "chibi";
+    const characterRenderer = charSelect ? charSelect.value : "white_cartoon";
 
     const res = await fetch("/api/ai-code/contact-sheet", {
       method: "POST",
@@ -1643,7 +1646,7 @@ async function startAiRender(isTest = false) {
     const engineSelect = document.getElementById("aiEngineSelect");
     const engineOverride = (engineSelect && engineSelect.value !== "auto") ? engineSelect.value : (aiState.manualEngineOverride || null);
     const charSelect = document.getElementById("aiCharacterSelect");
-    const characterRenderer = charSelect ? charSelect.value : "chibi";
+    const characterRenderer = charSelect ? charSelect.value : "white_cartoon";
 
     const res = await fetch("/api/ai-code/render", {
       method: "POST",

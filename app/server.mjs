@@ -439,9 +439,7 @@ app.get("/api/ai-code/projects", (req, res) => {
             const config = detectThanhHaiConfig(pDir);
             let displayLabel = ent.name;
             if (ent.name === "reaction-time") {
-              displayLabel = "reaction-time • Thanh Hai 2D (Chibi/Stickman)";
-            } else if (ent.name === "scared-roommates") {
-              displayLabel = "scared-roommates • Thanh Hai 2D (White Cartoon 2D)";
+              displayLabel = "reaction-time • Thanh Hai 2D (White Cartoon 2D)";
             } else {
               displayLabel = `${ent.name} • Thanh Hai 2D Studio`;
             }

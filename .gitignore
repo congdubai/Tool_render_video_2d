@@ -43,6 +43,7 @@ python-2d-long-form/**/work/
 .DS_Store
 Thumbs.db
 .project-metadata.json
+*.log
 
 
 # Temporary scratch and QC

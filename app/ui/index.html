@@ -194,13 +194,10 @@
               </button>
             </div>
             <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-              <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; flex: 1;" onclick="selectThanhHaiDemoProject('reaction-time')">
-                🎨 Mẫu Reaction Time (Chibi/Stickman)
+              <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; flex: 2; font-weight: 600;" onclick="selectThanhHaiDemoProject('reaction-time')">
+                🎨 Mẫu Reaction Time (White Cartoon 2D)
               </button>
-              <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; flex: 1;" onclick="selectThanhHaiDemoProject('scared-roommates')">
-                👻 Mẫu Scared Roommates (White Cartoon 2D)
-              </button>
-              <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #fca5a5;" onclick="deleteAllImportedProjects()" title="Xóa tất cả các dự án import thừa để làm sạch danh sách">
+              <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #fca5a5; flex: 1;" onclick="deleteAllImportedProjects()" title="Xóa tất cả các dự án import thừa để làm sạch danh sách">
                 🧹 Dọn sạch dự án import
               </button>
             </div>
@@ -313,9 +310,9 @@
               <div class="setting-item" id="aiCharacterSettingItem">
                 <label for="aiCharacterSelect">Character Renderer:</label>
                 <select id="aiCharacterSelect" class="select-control" onchange="handleAiCharacterChanged()">
+                  <option value="white_cartoon" selected>👻 Hoạt hình Trắng (White Cartoon 2D)</option>
+                  <option value="chibi">Chibi V9 (Chibi V9 Cut-out Character)</option>
                   <option value="original">Nhân vật gốc Thanh Hai (Original Character)</option>
-                  <option value="chibi" selected>Chibi V9 (Chibi V9 Cut-out Character)</option>
-                  <option value="white_cartoon">👻 Hoạt hình Trắng (White Cartoon 2D)</option>
                 </select>
               </div>
 
@@ -713,7 +710,7 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=4.1"></script>
+  <script src="app.js?v=4.2"></script>
 </body>
 </html>
 
