@@ -1,7 +1,0 @@
-1
-00:00:00,000 --> 00:00:04,370
-Sáng hôm sau, bạn tỉnh dậy trong một căn phòng không phải của mình.
-
-2
-00:00:04,720 --> 00:00:13,480
-Bạn nhìn xung quanh và nhận ra mọi đồ vật đều lơ lửng giữa không trung một cách kỳ lạ, như thể trọng lực của cả căn phòng đã hoàn toàn biến mất không để lại dấu vết.

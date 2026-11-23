@@ -1,40 +1,30 @@
 {
-  "name": "tool-gender-video-2d",
-  "version": "1.0.0",
-  "description": "Ứng dụng local dựng video giải thích 2D bằng Remotion",
+  "name": "thanhhai-2d-studio",
+  "version": "2.0.0",
+  "description": "Thanh Hai 2D Studio — Tool Dựng Video Hoạt Hình 2D Chuyên Nghiệp",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node app/server.mjs",
     "voice": "node scripts/generate-voice.mjs",
     "cutout": "node scripts/cutout.mjs",
-    "dev": "remotion preview src/index.ts",
-    "render": "node scripts/render-cli.mjs",
-    "render:test": "node scripts/render-cli.mjs --test",
     "gpu-check": "node scripts/gpu-check.mjs",
-    "bench": "node scripts/bench.mjs",
-    "check": "tsc --noEmit && node scripts/check-data.mjs",
-    "import-srt": "node scripts/import-srt.mjs"
+    "import-srt": "node scripts/import-srt.mjs",
+    "test:character": "node scripts/test-character-system-v2.mjs",
+    "test:lower-body": "node scripts/test-lower-body.mjs",
+    "test:shoes": "node scripts/test-redesign-shoes.mjs",
+    "sheets": "node scripts/render-character-sheets.mjs"
   },
   "dependencies": {
-    "@remotion/bundler": "4.0.218",
-    "@remotion/cli": "4.0.218",
-    "@remotion/google-fonts": "4.0.218",
-    "@remotion/media-utils": "4.0.218",
-    "@remotion/renderer": "4.0.218",
     "adm-zip": "^0.6.1",
     "edge-tts-universal": "1.0.6",
     "express": "4.21.2",
     "ffmpeg-static": "5.2.0",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "remotion": "4.0.218",
     "sharp": "0.33.5"
   },
   "devDependencies": {
     "@types/express": "4.17.21",
     "@types/node": "22.10.2",
-    "@types/react": "18.3.18",
     "typescript": "5.7.2"
   }
 }

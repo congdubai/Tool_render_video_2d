@@ -16,10 +16,17 @@ out/metadata/
 .remotion/
 node_modules/.remotion/
 
-# Output media (video files)
+# Output media (video files & test artifacts)
 out/*.mp4
 out/bench/
 *.mp4
+out/test-character-v2/
+out/*.png
+out/*.svg
+out/*.json
+out/*.mp3
+out/*.srt
+out/*.md
 
 # Audio lines & cache
 public/audio/lines/*.mp3

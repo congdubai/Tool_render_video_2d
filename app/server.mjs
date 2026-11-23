@@ -1,5 +1,5 @@
 /**
- * Máy chủ Web Local cho ứng dụng dựng video 2D bằng Remotion
+ * Máy chủ Web Local cho ứng dụng dựng video hoạt hình 2D - Thanh Hai 2D Studio
  * Lắng nghe DUY NHẤT tại 127.0.0.1, phòng chống triệt để Path Traversal và không bao giờ dùng eval.
  */
 
@@ -11,13 +11,7 @@ import { promisify } from "util";
 import { detectGpu } from "../lib/gpu.mjs";
 import { safeParseJson, isSafePath } from "../lib/validate.mjs";
 import { generateAllVoices } from "../lib/voice.mjs";
-import { unzipProjectSafe, detectProjectConfig, listProjectFiles, validateProject } from "../lib/project-loader.mjs";
-import {
-  bundleDynamicProject,
-  renderDynamicStill,
-  renderDynamicVideo,
-  getProjectCompositions
-} from "../lib/dynamic-render.mjs";
+import { unzipProjectSafe, listProjectFiles } from "../lib/project-loader.mjs";
 import {
   ENGINE_TYPES,
   ENGINE_DISPLAY_NAMES,
@@ -28,8 +22,6 @@ import {
   renderEngineVideo
 } from "../lib/engine-manager.mjs";
 import {
-  findPythonLongFormProject,
-  detectPythonProjectConfig,
   normalizeEngineType,
   loadProjectMetadata,
   saveProjectMetadata
@@ -133,8 +125,8 @@ app.get("/api/init", async (req, res) => {
   try {
     const gpuInfo = await detectGpu();
 
-    const scriptPath = path.join(projectRoot, "src/data/script.json");
-    const timelinePath = path.join(projectRoot, "src/data/timeline.json");
+    const scriptPath = path.join(projectRoot, "out/script.json");
+    const timelinePath = path.join(projectRoot, "out/timeline.json");
 
     let scriptData = null;
     let timelineData = null;
@@ -273,13 +265,14 @@ app.post("/api/voice/generate", async (req, res) => {
       success: true,
       scriptData,
       timelineData,
-      timelineMd: fs.readFileSync(path.join(projectRoot, "out/timeline_for_ai.md"), "utf-8")
+      timelineMd: fs.existsSync(path.join(projectRoot, "out/timeline_for_ai.md"))
+        ? fs.readFileSync(path.join(projectRoot, "out/timeline_for_ai.md"), "utf-8")
+        : ""
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
 
 /**
  * 6. Kênh Server-Sent Events (SSE) theo dõi tiến độ render thời gian thực
@@ -380,7 +373,7 @@ app.post("/api/videos/delete", (req, res) => {
 });
 
 /**
- * 8. Hủy render
+ * 9. Hủy render
  */
 app.post("/api/render/cancel", (req, res) => {
   if (isRendering) {
@@ -391,7 +384,6 @@ app.post("/api/render/cancel", (req, res) => {
   }
   res.json({ success: true, message: "Không có tiến trình render nào đang chạy." });
 });
-
 
 /**
  * 10. Mở thư mục out/ hoặc thư mục public assets trên File Explorer
@@ -421,50 +413,23 @@ app.post("/api/open-folder", async (req, res) => {
 
 /**
  * =========================================================================
- * TAB 3 API: AI CODE RENDER (DYNAMIC REMOTION ENGINE)
+ * TAB 2 API: THANH HAI 2D STUDIO PROJECT PIPELINE
  * =========================================================================
  */
 
 /**
- * 12. Lấy danh sách các project AI (Hỗ trợ Remotion, Thanh Hai 2D Studio và Python 2D Long Form)
+ * 12. Lấy danh sách các project Thanh Hai 2D Studio (Mẫu demo & Dự án import)
  */
 app.get("/api/ai-code/projects", (req, res) => {
   try {
     const importedDir = path.join(projectRoot, "imported_projects");
-    const sampleDir = path.join(projectRoot, "sample-projects");
     const thanhhaiExamplesDir = path.join(projectRoot, "thanhhai-2d-studio/examples");
-    const pythonExamplesDir = path.join(projectRoot, "python-2d-long-form/examples");
     fs.mkdirSync(importedDir, { recursive: true });
 
     const sampleProjects = [];
     const importedProjects = [];
 
-    // 1. Quét mẫu Python 2D Long Form (marshmallow)
-    if (fs.existsSync(pythonExamplesDir)) {
-      const pyEntries = fs.readdirSync(pythonExamplesDir, { withFileTypes: true });
-      for (const ent of pyEntries) {
-        if (ent.isDirectory()) {
-          const pDir = path.join(pythonExamplesDir, ent.name);
-          const pyMatch = findPythonLongFormProject(pDir);
-          if (pyMatch) {
-            const config = detectPythonProjectConfig(pyMatch.projectDir);
-            sampleProjects.push({
-              id: `python_${ent.name}`,
-              name: `⭐ [MẪU DEMO] ${config.projectName || ent.name} • Python 2D Long Form`,
-              folderName: ent.name,
-              type: "sample",
-              engine: ENGINE_TYPES.PYTHON_LONG_FORM,
-              engineName: ENGINE_DISPLAY_NAMES[ENGINE_TYPES.PYTHON_LONG_FORM],
-              isDemo: true,
-              path: pyMatch.projectDir,
-              config
-            });
-          }
-        }
-      }
-    }
-
-    // 2. Quét mẫu Thanh Hai 2D Studio (reaction-time)
+    // 1. Quét mẫu Thanh Hai 2D Studio trong examples/
     if (fs.existsSync(thanhhaiExamplesDir)) {
       const thEntries = fs.readdirSync(thanhhaiExamplesDir, { withFileTypes: true });
       for (const ent of thEntries) {
@@ -472,9 +437,18 @@ app.get("/api/ai-code/projects", (req, res) => {
           const pDir = path.join(thanhhaiExamplesDir, ent.name);
           if (isThanhHaiProject(pDir)) {
             const config = detectThanhHaiConfig(pDir);
+            let displayLabel = ent.name;
+            if (ent.name === "reaction-time") {
+              displayLabel = "reaction-time • Thanh Hai 2D (Chibi/Stickman)";
+            } else if (ent.name === "scared-roommates") {
+              displayLabel = "scared-roommates • Thanh Hai 2D (White Cartoon 2D)";
+            } else {
+              displayLabel = `${ent.name} • Thanh Hai 2D Studio`;
+            }
+
             sampleProjects.push({
               id: `thanhhai_${ent.name}`,
-              name: `⭐ [MẪU DEMO] ${ent.name} • Thanh Hai 2D (Canvas/Three.js)`,
+              name: `⭐ [MẪU DEMO] ${displayLabel}`,
               folderName: ent.name,
               type: "sample",
               engine: ENGINE_TYPES.THANH_HAI,
@@ -488,37 +462,7 @@ app.get("/api/ai-code/projects", (req, res) => {
       }
     }
 
-    // 3. Quét mẫu sample-projects (Tự động nhận diện Remotion, Thanh Hai, hoặc Python 2D)
-    if (fs.existsSync(sampleDir)) {
-      const sampleEntries = fs.readdirSync(sampleDir, { withFileTypes: true });
-      for (const ent of sampleEntries) {
-        if (ent.isDirectory()) {
-          const pDir = path.join(sampleDir, ent.name);
-          const detected = detectEngine(pDir);
-          const engine = detected.engineType;
-          const engineName = detected.engineName;
-          const config = detected.config || getEngineConfig(pDir, engine);
-          let engTag = "Chưa rõ Engine";
-          if (engine === ENGINE_TYPES.REMOTION) engTag = "Remotion 2D";
-          else if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) engTag = "Python 2D";
-          else if (engine === ENGINE_TYPES.THANH_HAI) engTag = "Thanh Hai 2D";
-
-          sampleProjects.push({
-            id: `sample_${ent.name}`,
-            name: `⭐ [MẪU DEMO] ${config.projectName || ent.name} • ${engTag}`,
-            folderName: ent.name,
-            type: "sample",
-            engine: engine,
-            engineName: engineName,
-            isDemo: true,
-            path: pDir,
-            config
-          });
-        }
-      }
-    }
-
-    // 4. Quét imported projects (Tự động nhận diện chính xác engine qua Multi-Engine Detector)
+    // 2. Quét imported projects (Tất cả được quản lý theo chuẩn Thanh Hai 2D)
     if (fs.existsSync(importedDir)) {
       const importedEntries = fs.readdirSync(importedDir, { withFileTypes: true });
       for (const ent of importedEntries) {
@@ -527,23 +471,17 @@ app.get("/api/ai-code/projects", (req, res) => {
           const stats = fs.statSync(pDir);
           const detected = detectEngine(pDir);
 
-          const engine = detected.engineType;
-          const engineName = detected.engineName;
-          const config = detected.config;
+          const engine = ENGINE_TYPES.THANH_HAI;
+          const engineName = ENGINE_DISPLAY_NAMES[ENGINE_TYPES.THANH_HAI];
+          const config = detected.config || detectThanhHaiConfig(pDir);
 
-          // Trích xuất tên file sạch và thời gian import
           const cleanName = ent.name.replace(/_\d{8}_\d{6}$/, "");
           const timeStr = new Date(stats.mtime).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
           const dateStr = new Date(stats.mtime).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
 
-          let engTag = "Chưa rõ Engine";
-          if (engine === ENGINE_TYPES.REMOTION) engTag = "Remotion";
-          else if (engine === ENGINE_TYPES.THANH_HAI) engTag = "Thanh Hai 2D";
-          else if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) engTag = "Python 2D";
-
           importedProjects.push({
             id: ent.name,
-            name: `📦 [DỰ ÁN] ${cleanName} (${timeStr} ${dateStr}) • ${engTag}`,
+            name: `📦 [DỰ ÁN] ${cleanName} (${timeStr} ${dateStr}) • Thanh Hai 2D`,
             rawName: cleanName,
             folderName: ent.name,
             type: "imported",
@@ -571,11 +509,11 @@ app.get("/api/ai-code/projects", (req, res) => {
 });
 
 /**
- * 13. Tải lên và giải nén file ZIP dự án (Hỗ trợ Remotion, Thanh Hai Studio & Python Long Form)
+ * 13. Tải lên và giải nén file ZIP dự án Thanh Hai 2D Studio
  */
 app.post("/api/ai-code/upload-zip", async (req, res) => {
   try {
-    const { zipBase64, filename = "project.zip", manualEngine = null } = req.body;
+    const { zipBase64, filename = "project.zip" } = req.body;
     if (!zipBase64) {
       return res.status(400).json({ success: false, error: "Thiếu dữ liệu file ZIP (zipBase64)." });
     }
@@ -592,48 +530,19 @@ app.post("/api/ai-code/upload-zip", async (req, res) => {
     // Giải nén an toàn với cơ chế bảo mật cao chống Zip Slip
     const extractResult = unzipProjectSafe(zipBuffer, targetDir);
 
-    // Chuẩn hóa manualEngine nếu người dùng truyền lên
-    const normalizedManual = normalizeEngineType(manualEngine);
+    // Nhận diện và thẩm định cấu trúc dự án Thanh Hai 2D
+    const detected = detectEngine(targetDir);
+    const validation = validateEngine(targetDir);
 
-    // Tự động nhận diện loại dự án qua Multi-Engine Detector
-    const detected = detectEngine(targetDir, { manualEngine: normalizedManual });
-    const validation = validateEngine(targetDir, normalizedManual || detected.engineType);
-
-    // Lưu metadata định danh dự án để duy trì nhất quán khi reload
+    // Lưu metadata định danh dự án
     saveProjectMetadata(targetDir, {
       projectId,
       rawName: baseSlug,
-      engineType: detected.engineType,
-      engineName: detected.engineName,
+      engineType: ENGINE_TYPES.THANH_HAI,
+      engineName: ENGINE_DISPLAY_NAMES[ENGINE_TYPES.THANH_HAI],
       effectiveRoot: detected.projectRoot,
       entryPoint: detected.entryPoint
     });
-
-    let actualCompositions = validation.compositions || detected.config?.compositions || [];
-    if (detected.engineType === ENGINE_TYPES.REMOTION) {
-      try {
-        const comps = await getProjectCompositions({ projectDir: targetDir });
-        if (comps.length > 0) {
-          actualCompositions = comps;
-          validation.compositions = comps;
-          detected.config = detected.config || {};
-          detected.config.compositions = comps;
-          const match = comps.find((c) => c.id === detected.config.compositionId);
-          detected.config.compositionId = match ? match.id : comps[0].id;
-
-          const vCfgPath = path.join(targetDir, "video.config.json");
-          if (fs.existsSync(vCfgPath)) {
-            try {
-              const cur = JSON.parse(fs.readFileSync(vCfgPath, "utf-8"));
-              cur.compositionId = detected.config.compositionId;
-              fs.writeFileSync(vCfgPath, JSON.stringify(cur, null, 2), "utf-8");
-            } catch (e) {}
-          }
-        }
-      } catch (e) {
-        console.warn("Không thể bundle đọc composition khi upload:", e.message);
-      }
-    }
 
     res.json({
       success: true,
@@ -641,11 +550,9 @@ app.post("/api/ai-code/upload-zip", async (req, res) => {
       projectName: detected.projectName || path.parse(filename).name,
       cleanName: baseSlug,
       targetDir,
-      engine: detected.engineType,
-      engineName: detected.engineName,
+      engine: ENGINE_TYPES.THANH_HAI,
+      engineName: ENGINE_DISPLAY_NAMES[ENGINE_TYPES.THANH_HAI],
       extractedCount: extractResult.extractedFiles.length,
-      compositionId: detected.config?.compositionId,
-      compositions: actualCompositions,
       validation
     });
   } catch (err) {
@@ -654,64 +561,33 @@ app.post("/api/ai-code/upload-zip", async (req, res) => {
 });
 
 /**
- * 14. Thẩm định dự án AI Code (Tự động định tuyến theo engine tương ứng)
+ * 14. Thẩm định dự án Thanh Hai 2D Studio
  */
 app.post("/api/ai-code/validate", async (req, res) => {
   try {
-    const { projectId, engineOverride = null } = req.body;
+    const { projectId } = req.body;
     if (!projectId) {
       return res.status(400).json({ success: false, error: "Thiếu mã dự án (projectId)." });
     }
 
     let targetDir = path.join(projectRoot, "imported_projects", projectId);
-    if (projectId.startsWith("sample_")) {
-      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
-    } else if (projectId.startsWith("thanhhai_")) {
+    if (projectId.startsWith("thanhhai_")) {
       targetDir = path.join(projectRoot, "thanhhai-2d-studio/examples", projectId.replace("thanhhai_", ""));
-    } else if (projectId.startsWith("python_")) {
-      targetDir = path.join(projectRoot, "python-2d-long-form/examples", projectId.replace("python_", ""));
+    } else if (projectId.startsWith("sample_")) {
+      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
     }
 
     if (!fs.existsSync(targetDir)) {
       return res.status(404).json({ success: false, error: `Không tìm thấy dự án tại: ${targetDir}` });
     }
 
-    const normalizedOverride = normalizeEngineType(engineOverride);
-    const validation = validateEngine(targetDir, normalizedOverride);
-
-    // Nếu người dùng chỉ định engine cụ thể, cập nhật metadata đã lưu
-    if (normalizedOverride && normalizedOverride !== "auto") {
-      saveProjectMetadata(targetDir, {
-        engineType: validation.engine,
-        engineName: validation.engineName
-      });
-    }
-
-    let actualCompositions = validation.compositions || validation.config?.compositions || [];
-    if (validation.engine === ENGINE_TYPES.REMOTION) {
-      try {
-        const comps = await getProjectCompositions({ projectDir: targetDir });
-        if (comps.length > 0) {
-          actualCompositions = comps;
-          validation.compositions = comps;
-          validation.config = validation.config || {};
-          validation.config.compositions = comps;
-          const match = comps.find((c) => c.id === validation.config.compositionId);
-          validation.config.compositionId = match ? match.id : comps[0].id;
-        }
-      } catch (e) {
-        // Fallback to statically scanned compositions
-      }
-    }
-    validation.compositions = actualCompositions;
+    const validation = validateEngine(targetDir);
 
     res.json({
       success: true,
       projectId,
-      engine: validation.engine,
-      engineName: validation.engineName,
-      compositionId: validation.config?.compositionId,
-      compositions: actualCompositions,
+      engine: ENGINE_TYPES.THANH_HAI,
+      engineName: ENGINE_DISPLAY_NAMES[ENGINE_TYPES.THANH_HAI],
       validation
     });
   } catch (err) {
@@ -720,83 +596,46 @@ app.post("/api/ai-code/validate", async (req, res) => {
 });
 
 /**
- * 15. Chụp và xem trước Frame bất kỳ từ dự án (Hỗ trợ Remotion, Thanh Hai Studio & Python Long Form)
+ * 15. Chụp và xem trước Frame bất kỳ từ dự án Thanh Hai 2D Studio
  */
 app.post("/api/ai-code/preview-frame", async (req, res) => {
   try {
-    const { projectId, frame = 0, engineOverride = null, compositionId = null, characterRenderer = null } = req.body;
+    const { projectId, frame = 0, characterRenderer = null } = req.body;
     if (!projectId) {
       return res.status(400).json({ success: false, error: "Thiếu mã dự án (projectId)." });
     }
 
     let targetDir = path.join(projectRoot, "imported_projects", projectId);
-    if (projectId.startsWith("sample_")) {
-      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
-    } else if (projectId.startsWith("thanhhai_")) {
+    if (projectId.startsWith("thanhhai_")) {
       targetDir = path.join(projectRoot, "thanhhai-2d-studio/examples", projectId.replace("thanhhai_", ""));
-    } else if (projectId.startsWith("python_")) {
-      targetDir = path.join(projectRoot, "python-2d-long-form/examples", projectId.replace("python_", ""));
+    } else if (projectId.startsWith("sample_")) {
+      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
     }
 
     if (!fs.existsSync(targetDir)) {
       return res.status(404).json({ success: false, error: "Dự án không tồn tại." });
     }
 
-    const detected = detectEngine(targetDir, { manualEngine: engineOverride });
-    const engine = detected.engineType;
+    const cfg = detectThanhHaiConfig(targetDir);
+    const fps = cfg.fps || 24;
+    const timeInSec = Number(frame) / fps;
 
-    if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) {
-      const previewRes = await previewEngine(targetDir, engine);
-      return res.json({
-        success: true,
-        engine,
-        frameUrl: previewRes.url,
-        frame: Number(frame),
-        width: 1920,
-        height: 1080
-      });
-    }
-
-    if (engine === ENGINE_TYPES.THANH_HAI) {
-      const cfg = detectThanhHaiConfig(targetDir);
-      const timeInSec = Number(frame) / (cfg.fps || 24);
-      const stillResult = await renderThanhHaiStill({
-        projectDir: targetDir,
-        time: timeInSec,
-        scale: 0.5,
-        characterRenderer
-      });
-
-      const relPath = path.relative(path.join(projectRoot, "out"), stillResult.framePath).replace(/\\/g, "/");
-      return res.json({
-        success: true,
-        engine: "thanhhai_2d",
-        frameUrl: `/out/${relPath}?t=${Date.now()}`,
-        frame: Number(frame),
-        time: stillResult.time,
-        width: cfg.width,
-        height: cfg.height
-      });
-    }
-
-    // Remotion still
-    const config = detectProjectConfig(targetDir);
-    const stillResult = await renderDynamicStill({
+    const stillResult = await renderThanhHaiStill({
       projectDir: targetDir,
-      config,
-      compositionId,
-      frame: Number(frame)
+      time: timeInSec,
+      scale: 0.5,
+      characterRenderer
     });
 
     const relPath = path.relative(path.join(projectRoot, "out"), stillResult.framePath).replace(/\\/g, "/");
-
-    res.json({
+    return res.json({
       success: true,
-      engine: "remotion",
+      engine: "thanhhai-2d-studio",
       frameUrl: `/out/${relPath}?t=${Date.now()}`,
-      frame: stillResult.frame,
-      width: stillResult.width,
-      height: stillResult.height
+      frame: Number(frame),
+      time: stillResult.time,
+      width: cfg.width,
+      height: cfg.height
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -804,30 +643,27 @@ app.post("/api/ai-code/preview-frame", async (req, res) => {
 });
 
 /**
- * 15b. Render Contact Sheet cho dự án Thanh Hai Studio hoặc Python Long Form
+ * 15b. Render Contact Sheet cho dự án Thanh Hai Studio
  */
 app.post("/api/ai-code/contact-sheet", async (req, res) => {
   try {
-    const { projectId, engineOverride = null, characterRenderer = null } = req.body;
+    const { projectId, characterRenderer = null } = req.body;
     if (!projectId) {
       return res.status(400).json({ success: false, error: "Thiếu mã dự án (projectId)." });
     }
 
     let targetDir = path.join(projectRoot, "imported_projects", projectId);
-    if (projectId.startsWith("sample_")) {
-      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
-    } else if (projectId.startsWith("thanhhai_")) {
+    if (projectId.startsWith("thanhhai_")) {
       targetDir = path.join(projectRoot, "thanhhai-2d-studio/examples", projectId.replace("thanhhai_", ""));
-    } else if (projectId.startsWith("python_")) {
-      targetDir = path.join(projectRoot, "python-2d-long-form/examples", projectId.replace("python_", ""));
+    } else if (projectId.startsWith("sample_")) {
+      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
     }
 
     if (!fs.existsSync(targetDir)) {
       return res.status(400).json({ success: false, error: "Dự án không tồn tại." });
     }
 
-    const detected = detectEngine(targetDir, { manualEngine: engineOverride });
-    const previewRes = await previewEngine(targetDir, detected.engineType, { contactSheet: true, characterRenderer });
+    const previewRes = await previewEngine(targetDir, ENGINE_TYPES.THANH_HAI, { contactSheet: true, characterRenderer });
 
     res.json({
       success: true,
@@ -839,7 +675,7 @@ app.post("/api/ai-code/contact-sheet", async (req, res) => {
 });
 
 /**
- * 16. Render video hoàn chỉnh (Hỗ trợ Remotion, Thanh Hai 2D Studio & Python 2D Long Form)
+ * 16. Render video hoàn chỉnh bằng Thanh Hai 2D Studio Engine
  */
 app.post("/api/ai-code/render", async (req, res) => {
   if (isRendering) {
@@ -852,8 +688,6 @@ app.post("/api/ai-code/render", async (req, res) => {
   try {
     const {
       projectId,
-      compositionId = null,
-      engineOverride = null,
       accelerationMode = "cpu",
       concurrency = null,
       isTest = false,
@@ -868,49 +702,27 @@ app.post("/api/ai-code/render", async (req, res) => {
     }
 
     let targetDir = path.join(projectRoot, "imported_projects", projectId);
-    if (projectId.startsWith("sample_")) {
-      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
-    } else if (projectId.startsWith("thanhhai_")) {
+    if (projectId.startsWith("thanhhai_")) {
       targetDir = path.join(projectRoot, "thanhhai-2d-studio/examples", projectId.replace("thanhhai_", ""));
-    } else if (projectId.startsWith("python_")) {
-      targetDir = path.join(projectRoot, "python-2d-long-form/examples", projectId.replace("python_", ""));
+    } else if (projectId.startsWith("sample_")) {
+      targetDir = path.join(projectRoot, "sample-projects", projectId.replace("sample_", ""));
     }
 
     if (!fs.existsSync(targetDir)) {
       return res.status(404).json({ success: false, error: "Dự án không tồn tại." });
     }
 
-    const normalizedOverride = normalizeEngineType(engineOverride);
-    const detected = detectEngine(targetDir, { manualEngine: normalizedOverride });
-    const engine = detected.engineType;
-    const engineName = detected.engineName;
-    const config = detected.config || {};
+    const config = detectThanhHaiConfig(targetDir);
+    const engine = ENGINE_TYPES.THANH_HAI;
+    const engineName = ENGINE_DISPLAY_NAMES[ENGINE_TYPES.THANH_HAI];
 
-    // 1. Kiểm tra engine có hợp lệ không
-    if (engine === ENGINE_TYPES.UNKNOWN) {
+    // Thẩm định dự án trước khi render
+    const val = validateThanhHaiProject(targetDir);
+    if (!val.valid) {
       return res.status(400).json({
         success: false,
-        error: "Dự án chưa xác định được Engine (Remotion, Python 2D Long Form hoặc Thanh Hai 2D). Vui lòng kiểm tra lại cấu trúc file dự án hoặc chọn Engine thủ công."
+        error: `Dự án Thanh Hai 2D không hợp lệ để render:\n${val.errors.map((e) => `• ${e}`).join("\n")}`
       });
-    }
-
-    // 2. Thẩm định sơ bộ theo đúng Engine tương ứng trước khi đưa vào hàng đợi render
-    if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) {
-      const pyVal = validateEngine(targetDir, ENGINE_TYPES.PYTHON_LONG_FORM);
-      if (!pyVal.valid) {
-        return res.status(400).json({
-          success: false,
-          error: `Dự án Python 2D Long Form không hợp lệ để render:\n${pyVal.errors.map(e => `• ${e}`).join("\n")}`
-        });
-      }
-    } else if (engine === ENGINE_TYPES.REMOTION) {
-      const rmVal = validateEngine(targetDir, ENGINE_TYPES.REMOTION);
-      if (!rmVal.valid) {
-        return res.status(400).json({
-          success: false,
-          error: `Dự án Remotion không hợp lệ để render:\n${rmVal.errors.map(e => `• ${e}`).join("\n")}`
-        });
-      }
     }
 
     if (customResolution) {
@@ -933,9 +745,7 @@ app.post("/api/ai-code/render", async (req, res) => {
       const now = new Date();
       const pad = (n) => String(n).padStart(2, "0");
       const timeStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-      let prefix = "remotion";
-      if (engine === ENGINE_TYPES.PYTHON_LONG_FORM) prefix = "python_longform";
-      else if (engine === ENGINE_TYPES.THANH_HAI) prefix = "thanhhai";
+      const prefix = "thanhhai";
 
       const rawProjectName = config.projectName || projectId;
       const safeProjectSlug = rawProjectName
@@ -991,7 +801,6 @@ app.post("/api/ai-code/render", async (req, res) => {
         const renderResult = await renderEngineVideo({
           projectDir: targetDir,
           engineType: engine,
-          compositionId,
           outputPath: finalOutputPath,
           isTest,
           customResolution,
@@ -1024,9 +833,7 @@ app.post("/api/ai-code/render", async (req, res) => {
           engine: renderResult.engine || engine,
           engineName,
           hasAudio: renderResult.hasAudio !== false,
-          audioMethod: renderResult.audioMethod || "synthesized_mix",
-          fallbackUsed: renderResult.fallbackUsed,
-          fallbackReason: renderResult.fallbackReason
+          audioMethod: renderResult.audioMethod || "synthesized_mix"
         });
       } catch (err) {
         isRendering = false;
@@ -1048,7 +855,7 @@ app.post("/api/ai-code/render", async (req, res) => {
 });
 
 /**
- * 17. Xóa dự án AI đã import (Xóa 1 dự án hoặc dọn sạch tất cả)
+ * 17. Xóa dự án đã import (Xóa 1 dự án hoặc dọn sạch tất cả)
  */
 app.post("/api/ai-code/delete-project", (req, res) => {
   try {
@@ -1067,7 +874,7 @@ app.post("/api/ai-code/delete-project", (req, res) => {
       return res.json({ success: true, message: "Đã dọn sạch tất cả các dự án đã import." });
     }
 
-    if (!projectId || projectId.startsWith("sample_") || projectId.startsWith("thanhhai_") || projectId.startsWith("python_")) {
+    if (!projectId || projectId.startsWith("sample_") || projectId.startsWith("thanhhai_")) {
       return res.status(400).json({ success: false, error: "Không thể xóa dự án mẫu hệ thống." });
     }
 
@@ -1166,7 +973,7 @@ app.post("/api/characters/validate", (req, res) => {
   }
 });
 
-// Đảm bảo mọi request /api/* không tìm thấy luôn trả về JSON (chống lỗi HTML DOCTYPE)
+// Đảm bảo mọi request /api/* không tìm thấy luôn trả về JSON
 app.all("/api/*", (req, res) => {
   res.status(404).json({
     success: false,
@@ -1183,7 +990,7 @@ function startServer(startPort, maxAttempts = 15) {
     const server = app.listen(port, HOST, () => {
       const url = `http://${HOST}:${port}`;
       console.log(`\n=====================================================`);
-      console.log(`🚀 Máy chủ Local đã sẵn sàng tại: ${url}`);
+      console.log(`🎨 Thanh Hai 2D Studio Local Server sẵn sàng tại: ${url}`);
       console.log(`🔒 Bảo mật: Chỉ lắng nghe cục bộ 127.0.0.1`);
       console.log(`=====================================================\n`);
 
@@ -1221,4 +1028,3 @@ function startServer(startPort, maxAttempts = 15) {
 
 const initialPort = parseInt(process.env.PORT, 10) || 3001;
 startServer(initialPort);
-

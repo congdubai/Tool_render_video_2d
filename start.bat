@@ -1,9 +1,9 @@
 @echo off
-title Ung Dung Local Dung Video 2D Remotion
+title Thanh Hai 2D Studio Local
 cd /d "%~dp0"
 
 echo ========================================================
-echo   KHOI DONG TRINH DUNG VIDEO 2D REMOTION LOCAL
+echo   KHOI DONG THANH HAI 2D STUDIO LOCAL
 echo ========================================================
 echo.
 

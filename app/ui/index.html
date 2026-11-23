@@ -6,17 +6,17 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Trình Dựng Video 2D Local - Remotion</title>
-  <link rel="stylesheet" href="style.css?v=3.5" />
+  <title>🎨 Thanh Hai 2D Studio — Tool Dựng Video Hoạt Hình 2D</title>
+  <link rel="stylesheet" href="style.css?v=4.0" />
 </head>
 <body>
   <!-- Header chính -->
   <header class="app-header">
     <div class="header-left">
-      <div class="logo-icon">🎬</div>
+      <div class="logo-icon">🎨</div>
       <div>
-        <h1 class="app-title">Trình Dựng Video 2D Local</h1>
-        <p class="app-subtitle">Ứng dụng Remotion local 2 chức năng (Chạy hoàn toàn trên 127.0.0.1)</p>
+        <h1 class="app-title">Thanh Hai 2D Studio</h1>
+        <p class="app-subtitle">Hệ thống dựng video hoạt hình 2D chuyên nghiệp (Canvas / Procedural Rigging / Three.js)</p>
       </div>
     </div>
     <div class="header-right">
@@ -32,7 +32,7 @@
       <span class="tab-num">1</span> Giọng đọc & Timeline
     </button>
     <button id="tabBtn2" class="tab-btn" onclick="switchTab(2)">
-      <span class="tab-num">2</span> 🤖 Dựng Video AI (Multi-Engine)
+      <span class="tab-num">2</span> 🎨 Dựng Video Thanh Hai 2D
     </button>
     <button id="tabBtn3" class="tab-btn" onclick="switchTab(3)">
       <span class="tab-num">3</span> 🎭 Nhân Vật (Character System V2)
@@ -159,13 +159,13 @@
     </section>
   </main>
 
-  <!-- ================= TAB 2: DỰNG VIDEO AI (MULTI-ENGINE) ================= -->
+  <!-- ================= TAB 2: DỰNG VIDEO THANH HAI 2D ================= -->
   <main id="tabContent2" class="tab-pane">
-    <!-- Khu vực A: Import Dự Án Remotion AI -->
+    <!-- Khu vực A: Import Dự Án Thanh Hai 2D -->
     <section class="card">
       <div class="card-header">
-        <h2>A. Import Dự Án Remotion AI</h2>
-        <span class="hint">Tải lên file ZIP chứa mã nguồn Remotion do Claude Code hoặc AI tạo ra</span>
+        <h2>A. Quản Lý & Import Dự Án Thanh Hai 2D</h2>
+        <span class="hint">Tải lên file ZIP dự án hoạt hình Thanh Hai 2D hoặc chọn kịch bản mẫu bên dưới</span>
       </div>
       <div class="card-body">
         <div class="ai-import-grid">
@@ -174,8 +174,8 @@
             <input type="file" id="aiZipFileInput" accept=".zip" class="hidden-file-input" onchange="handleAiZipSelected(event)" />
             <div class="dropzone-content" onclick="document.getElementById('aiZipFileInput').click()">
               <div class="dropzone-icon">📦</div>
-              <div class="dropzone-title">Nhấp để chọn file ZIP dự án Remotion</div>
-              <div class="dropzone-sub">Hoặc kéo thả file .zip vào đây (Chống Zip Slip & Sandbox an toàn)</div>
+              <div class="dropzone-title">Nhấp để chọn file ZIP dự án Thanh Hai 2D</div>
+              <div class="dropzone-sub">Hoặc kéo thả file .zip vào đây (Chống Zip Slip & Tự động kiểm tra)</div>
             </div>
           </div>
 
@@ -194,17 +194,11 @@
               </button>
             </div>
             <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
-              <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; flex: 1;" onclick="selectDemoProject()">
-                ⭐ Mẫu Remotion (10s)
+              <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; flex: 1;" onclick="selectThanhHaiDemoProject('reaction-time')">
+                🎨 Mẫu Reaction Time (Chibi/Stickman)
               </button>
-              <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24; flex: 1;" onclick="selectChibiDemoProject()">
-                👶 Mẫu Chibi 2D (Demo 10s)
-              </button>
-              <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; flex: 1;" onclick="selectThanhHaiDemoProject()">
-                🎨 Mẫu Thanh Hai 2D (Reaction Time)
-              </button>
-              <button class="btn btn-sm btn-outline" style="border-color: #10b981; color: #34d399; flex: 1;" onclick="selectPythonDemoProject()">
-                🐍 Mẫu Python 2D (Marshmallow)
+              <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; flex: 1;" onclick="selectThanhHaiDemoProject('scared-roommates')">
+                👻 Mẫu Scared Roommates (White Cartoon 2D)
               </button>
               <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #fca5a5;" onclick="deleteAllImportedProjects()" title="Xóa tất cả các dự án import thừa để làm sạch danh sách">
                 🧹 Dọn sạch dự án import
@@ -217,16 +211,15 @@
         <div id="aiProjectOverview" class="ai-project-overview hidden">
           <div class="overview-header" style="padding-bottom: 4px;">
             <div>
-              <span class="project-tag" id="aiProjectTag">DỰ ÁN AI</span>
+              <span class="project-tag" id="aiProjectTag">DỰ ÁN THANH HAI 2D</span>
               <span class="project-tag" id="aiEngineTag" style="background-color: #7c3aed; margin-left: 6px;">ENGINE</span>
               <h3 id="aiProjectNameTitle" style="display: inline-block; margin: 0 0 0 10px; color: #f8fafc; font-size: 17px;">Tên Dự Án</h3>
             </div>
             <div id="aiConfigBadges" class="overview-badges">
-              <span class="badge" id="aiBadgeEngine" style="border-color: #a855f7; color: #d8b4fe;">Engine: Remotion</span>
+              <span class="badge" id="aiBadgeEngine" style="border-color: #a855f7; color: #d8b4fe;">Engine: Thanh Hai 2D</span>
               <span class="badge" id="aiBadgeRes">1920×1080</span>
-              <span class="badge" id="aiBadgeFps">30 FPS</span>
-              <span class="badge" id="aiBadgeDuration">300 frames (10s)</span>
-              <span class="badge" id="aiBadgeComp">Composition: MainVideo</span>
+              <span class="badge" id="aiBadgeFps">24 FPS</span>
+              <span class="badge" id="aiBadgeDuration">0s</span>
             </div>
           </div>
 
@@ -313,17 +306,7 @@
               <div class="setting-item">
                 <label for="aiEngineSelect">Project Engine:</label>
                 <select id="aiEngineSelect" class="select-control" onchange="handleEngineSelectChanged()">
-                  <option value="auto" selected>✨ Tự động nhận diện (Auto Detect)</option>
-                  <option value="remotion">⚛️ Remotion 2D (React / TypeScript)</option>
-                  <option value="thanhhai-2d-studio">🎨 Thanh Hai 2D Studio (Canvas / Three.js)</option>
-                  <option value="python-2d-long-form">🐍 Python 2D Long Form (Skia / FFmpeg)</option>
-                </select>
-              </div>
-
-              <div class="setting-item" id="aiCompositionSettingItem">
-                <label for="aiCompositionSelect">Composition ID:</label>
-                <select id="aiCompositionSelect" class="select-control" onchange="handleAiCompositionChanged()">
-                  <option value="">(Tự động nhận diện)</option>
+                  <option value="thanhhai-2d-studio" selected>🎨 Thanh Hai 2D Studio (Canvas / Three.js)</option>
                 </select>
               </div>
 
