@@ -275,27 +275,39 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
     g.translate(sx, sy);
   }
 
-  // 2. Dual-Rim Light (Warm amber on left, Cool blue on right)
-  const rimWarm = o.rimWarm || char.rimWarm || '#fde047';
-  const rimCool = o.rimCool || char.rimCool || '#93c5fd';
+  // 2. Soft Rim Light (Chỉ bật khi cảnh có yêu cầu ánh sáng rim/đèn vàng)
+  if (o.rimWarm && o.rimCool) {
+    // Chế độ 2 màu rim cho ban đêm/phim kinh dị
+    g.save();
+    g.strokeStyle = o.rimWarm;
+    g.lineWidth = 4.0;
+    g.beginPath();
+    g.arc(0, 0, HR + 2.0, Math.PI * 0.7, Math.PI * 1.3);
+    g.stroke();
+    g.restore();
 
-  // Left warm rim light arc
-  g.save();
-  g.strokeStyle = rimWarm;
-  g.lineWidth = 5;
-  g.beginPath();
-  g.arc(0, 0, HR + 2.5, Math.PI * 0.7, Math.PI * 1.3);
-  g.stroke();
-  g.restore();
-
-  // Right cool rim light arc
-  g.save();
-  g.strokeStyle = rimCool;
-  g.lineWidth = 5;
-  g.beginPath();
-  g.arc(0, 0, HR + 2.5, -Math.PI * 0.3, Math.PI * 0.3);
-  g.stroke();
-  g.restore();
+    g.save();
+    g.strokeStyle = o.rimCool;
+    g.lineWidth = 4.0;
+    g.beginPath();
+    g.arc(0, 0, HR + 2.0, -Math.PI * 0.3, Math.PI * 0.3);
+    g.stroke();
+    g.restore();
+  } else if (o.rim) {
+    const rc = o.rim.color || '#ffc68a';
+    const dirX = o.rim.dir ? o.rim.dir[0] : -1;
+    g.save();
+    g.strokeStyle = rc;
+    g.lineWidth = 3.6;
+    g.beginPath();
+    if (dirX < 0) {
+      g.arc(0, 0, HR + 1.5, Math.PI * 0.75, Math.PI * 1.25);
+    } else {
+      g.arc(0, 0, HR + 1.5, -Math.PI * 0.25, Math.PI * 0.25);
+    }
+    g.stroke();
+    g.restore();
+  }
 
   // 3. Main Round Head (Ivory White with Bold Outline)
   g.fillStyle = skin;
@@ -313,6 +325,38 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
   g.arc(0, HR * 0.45, HR * 0.55, 0, Math.PI);
   g.fill();
   g.restore();
+
+  // Phụ kiện nón / mũ (Jake's backward cap)
+  if (char.head === 'cap') {
+    const capCol = char.headColor || '#f2c21a';
+    g.save();
+    g.fillStyle = capCol;
+    g.strokeStyle = inkCol;
+    g.lineWidth = 3.6;
+
+    // Vòm mũ chụp chóp đỉnh đầu (nằm cao trên trán, y = -18 đến -40)
+    const capAngle = Math.asin(18 / HR); // ~0.47 rad
+    g.beginPath();
+    g.arc(0, 0, HR + 1.2, Math.PI + capAngle, Math.PI * 2 - capAngle);
+    g.quadraticCurveTo(0, -14, Math.cos(Math.PI + capAngle) * (HR + 1.2), -18);
+    g.closePath();
+    g.fill();
+    g.stroke();
+
+    // Lưỡi trai quay về phía sau gáy
+    g.beginPath();
+    g.moveTo(-33, -18);
+    g.quadraticCurveTo(-52, -18, -54, -10);
+    g.quadraticCurveTo(-40, -8, -24, -14);
+    g.closePath();
+    g.fill();
+    g.stroke();
+
+    // Nút tròn đỉnh nón
+    circle(g, 0, -HR - 2, 3.2, capCol);
+    g.stroke();
+    g.restore();
+  }
 
   // 5. Eyes & Eyebrows
   const look = o.look || [0, 0];
@@ -379,6 +423,27 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
       g.arc(ex + lookDx + 1.8, eyeY + lookDy - 2.0, 2.2, 0, Math.PI * 2);
       g.fill();
     });
+  } else if (expr === 'determined') {
+    // Ánh mắt tập trung cao độ, sắc bén
+    eyeX.forEach(ex => {
+      g.fillStyle = '#ffffff';
+      g.strokeStyle = inkCol;
+      g.lineWidth = 3.0;
+      g.beginPath();
+      g.arc(ex + lookDx * 0.35, eyeY + lookDy * 0.35, 8.5, 0, Math.PI * 2);
+      g.fill();
+      g.stroke();
+
+      g.fillStyle = inkCol;
+      g.beginPath();
+      g.arc(ex + lookDx * 0.9, eyeY + lookDy * 0.9, 5.0, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.arc(ex + lookDx * 0.9 + 1.8, eyeY + lookDy * 0.9 - 1.8, 2.0, 0, Math.PI * 2);
+      g.fill();
+    });
   } else if (expr === 'happy' || expr === 'relief') {
     // Peaceful / Joyful crescent curve eyes
     g.strokeStyle = inkCol;
@@ -403,6 +468,25 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
     });
   }
 
+  // Kính Doc
+  if (char.face === 'glasses') {
+    g.strokeStyle = inkCol;
+    g.lineWidth = 2.4;
+    eyeX.forEach(ex => {
+      g.beginPath();
+      g.arc(ex, eyeY + 1, 10.5, 0, Math.PI * 2);
+      g.fillStyle = 'rgba(255, 255, 255, 0.2)';
+      g.fill();
+      g.stroke();
+    });
+    if (eyeX.length > 1) {
+      g.beginPath();
+      g.moveTo(eyeX[0] + 10.5, eyeY + 1);
+      g.lineTo(eyeX[1] - 10.5, eyeY + 1);
+      g.stroke();
+    }
+  }
+
   // Eyebrows
   g.strokeStyle = inkCol;
   g.lineWidth = 3.2;
@@ -417,6 +501,14 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
       // Slanted high in center, worried
       g.moveTo(ex - 7, eyeY - 14);
       g.quadraticCurveTo(ex, eyeY - 18, ex + 7, eyeY - 13);
+    } else if (expr === 'determined') {
+      // Lông mày sắc bén chúc vào trong: \   /
+      const sign = i === 0 ? 1 : -1;
+      g.moveTo(ex - 7, eyeY - 13 - sign * 3);
+      g.lineTo(ex + 7, eyeY - 13 + sign * 3);
+    } else if (expr === 'surprised' || expr === 'shocked') {
+      // Nhướng cao ngạc nhiên
+      g.arc(ex, eyeY - 15, 7, Math.PI * 1.15, Math.PI * 1.85);
     } else if (expr === 'angry') {
       // Furrowed down
       g.moveTo(ex - 7, eyeY - 11);
@@ -434,7 +526,7 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
   const mouthY = eyeY + 18;
   const talk = o.talk || 0;
 
-  if (isTerrified || expr === 'shocked') {
+  if (isTerrified) {
     // Wide open screaming mouth with dark red inner cavity & tongue
     const screamH = 14 + Math.sin(t * 38) * 2;
     g.fillStyle = '#6b1124'; // Dark red inner mouth
@@ -486,6 +578,44 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
     g.beginPath();
     g.arc(mouthX, mouthY + openH * 0.4, 5, 0, Math.PI);
     g.fill();
+  } else if (expr === 'determined') {
+    // Miệng mím tự tin kiên định
+    g.strokeStyle = inkCol;
+    g.lineWidth = 2.8;
+    g.beginPath();
+    g.moveTo(mouthX - 7, mouthY);
+    g.quadraticCurveTo(mouthX, mouthY + 1, mouthX + 8, mouthY - 1);
+    g.stroke();
+  } else if (expr === 'surprised') {
+    // Miệng chữ 'O' nhỏ
+    g.fillStyle = '#4c0519';
+    g.strokeStyle = inkCol;
+    g.lineWidth = 2.6;
+    g.beginPath();
+    g.ellipse(mouthX, mouthY, 4.5, 6, 0, 0, Math.PI * 2);
+    g.fill();
+    g.stroke();
+  } else if (expr === 'shocked') {
+    // Miệng ngạc nhiên chữ 'O' lớn hơn
+    g.fillStyle = '#4c0519';
+    g.strokeStyle = inkCol;
+    g.lineWidth = 2.8;
+    g.beginPath();
+    g.ellipse(mouthX, mouthY, 7, 9, 0, 0, Math.PI * 2);
+    g.fill();
+    g.stroke();
+    g.fillStyle = '#fb7185';
+    g.beginPath();
+    g.arc(mouthX, mouthY + 4, 4.5, 0, Math.PI);
+    g.fill();
+  } else if (expr === 'smirk') {
+    // Cười nhếch mép
+    g.strokeStyle = inkCol;
+    g.lineWidth = 2.8;
+    g.beginPath();
+    g.moveTo(mouthX - 5, mouthY);
+    g.quadraticCurveTo(mouthX, mouthY + 2, mouthX + 7, mouthY - 3);
+    g.stroke();
   } else if (expr === 'relief') {
     // Small sigh of relief mouth
     g.strokeStyle = inkCol;
@@ -508,7 +638,7 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
     g.stroke();
   }
 
-  // 7. Secondary Fear FX: Sweat Drops, Vibration Lines & Shock Sparks
+  // 7. Secondary Fear FX: Sweat Drops, Vibration Lines & Shock Sparks (CHỈ KHI SỢ)
   if (isScared || isTerrified) {
     // Flying sweat teardrops
     const sweatCols = ['#e0f2fe', '#bae6fd'];
@@ -583,72 +713,291 @@ export function drawWhiteCartoonTorso(g, p, char, inkCol, dir, isSit = false) {
   const skin = char.skin || '#fbfbfe';
   const isFront = dir === 'front';
 
+  const hasClothes = char.top && char.top !== 'none';
+  const topCol = char.color || (char.top === 'labcoat' ? '#f3f4f6' : '#d64a33');
+  const pantsCol = char.legs || '#2e384d';
+
   g.save();
-  g.fillStyle = skin;
-  g.strokeStyle = inkCol;
+  g.lineJoin = 'round';
+  g.lineCap = 'round';
   g.lineWidth = 3.8;
 
   if (isSit) {
-    // Dáng ngồi: khối hông đặt đệm ghế, ngực hướng về trước, lưng tựa thành ghế
+    // 1. Dáng ngồi — Thân trên (áo)
     g.beginPath();
     g.moveTo(sx - 16, sy);
     g.quadraticCurveTo(sx, sy - 5, sx + 18, sy);
-    g.lineTo(hx + 20, hy);
-    g.quadraticCurveTo(hx, hy + 5, hx - 18, hy);
+    g.lineTo(hx + 18, hy - 4);
+    g.quadraticCurveTo(hx, hy, hx - 16, hy - 4);
     g.closePath();
+    g.fillStyle = hasClothes ? topCol : skin;
+    g.strokeStyle = inkCol;
     g.fill();
     g.stroke();
 
-    // Khối mông/hông bo tròn tiếp xúc đệm ghế
+    // 2. Khối hông / mông quần ngồi trên mặt ghế
     g.beginPath();
-    g.moveTo(hx - 18, hy - 4);
-    g.lineTo(hx + 18, hy - 4);
-    g.lineTo(hx + 22, hy + 6);
-    g.quadraticCurveTo(hx, hy + 8, hx - 18, hy + 6);
+    g.moveTo(hx - 17, hy - 6);
+    g.lineTo(hx + 19, hy - 6);
+    g.lineTo(hx + 24, hy + 8);
+    g.quadraticCurveTo(hx, hy + 10, hx - 17, hy + 8);
     g.closePath();
+    g.fillStyle = hasClothes ? pantsCol : skin;
     g.fill();
     g.stroke();
-  } else if (isFront) {
-    g.beginPath();
-    g.moveTo(sx - 20, sy);
-    g.quadraticCurveTo(sx, sy - 5, sx + 20, sy);
-    g.lineTo(hx + 16, hy);
-    g.quadraticCurveTo(hx, hy + 3, hx - 16, hy);
-    g.closePath();
-    g.fill();
-    g.stroke();
+
+    if (hasClothes) {
+      if (char.top === 'hoodie') {
+        // Túi kangaroo hoodie ở bụng
+        g.fillStyle = shade(topCol, -0.15);
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.4;
+        g.beginPath();
+        g.moveTo(hx + 6, hy - 20);
+        g.lineTo(hx + 16, hy - 14);
+        g.lineTo(hx + 14, hy - 6);
+        g.lineTo(hx + 2, hy - 6);
+        g.closePath();
+        g.fill();
+        g.stroke();
+
+        // Dây mũ hoodie trắng
+        g.strokeStyle = '#ffffff';
+        g.lineWidth = 2.2;
+        g.beginPath();
+        g.moveTo(sx + 2, sy + 2);
+        g.quadraticCurveTo(sx + 3, sy + 14, sx + 5, sy + 18);
+        g.stroke();
+      } else if (char.top === 'tshirt') {
+        // Cổ áo thun tròn
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.4;
+        g.beginPath();
+        g.arc(sx + 2, sy + 1, 9, 0.2, Math.PI - 0.2);
+        g.stroke();
+      } else if (char.top === 'labcoat') {
+        // Áo trong tối màu bên trong labcoat
+        g.fillStyle = '#1e293b';
+        g.beginPath();
+        g.moveTo(sx - 4, sy);
+        g.lineTo(sx + 8, sy);
+        g.lineTo(sx + 2, sy + 18);
+        g.closePath();
+        g.fill();
+        // Ve áo labcoat
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.2;
+        g.beginPath();
+        g.moveTo(sx - 4, sy);
+        g.lineTo(sx + 2, sy + 18);
+        g.lineTo(sx + 8, sy);
+        g.stroke();
+      }
+    }
   } else {
-    // 3/4 hoặc nghiêng
+    // Dáng đứng (hoặc bước đi)
+    const wTop = isFront ? 20 : 17;
+    const wBot = isFront ? 16 : 14;
+
+    // Phân tầng áo và quần
+    const beltY = hy - 10;
+
+    // 1. Thân áo (từ vai đến thắt lưng)
     g.beginPath();
-    g.moveTo(sx - 16, sy);
-    g.quadraticCurveTo(sx, sy - 5, sx + 18, sy);
-    g.lineTo(hx + 16, hy);
-    g.quadraticCurveTo(hx, hy + 3, hx - 14, hy);
+    g.moveTo(sx - wTop, sy);
+    g.quadraticCurveTo(sx, sy - 5, sx + wTop, sy);
+    g.lineTo(hx + wBot + 1, beltY);
+    g.quadraticCurveTo(hx, beltY + 3, hx - wBot - 1, beltY);
     g.closePath();
+    g.fillStyle = hasClothes ? topCol : skin;
+    g.strokeStyle = inkCol;
     g.fill();
     g.stroke();
+
+    // 2. Vùng hông / quần (từ thắt lưng đến đáy đùi)
+    g.beginPath();
+    g.moveTo(hx - wBot - 1, beltY);
+    g.quadraticCurveTo(hx, beltY + 3, hx + wBot + 1, beltY);
+    g.lineTo(hx + wBot, hy + 4);
+    g.quadraticCurveTo(hx, hy + 6, hx - wBot, hy + 4);
+    g.closePath();
+    g.fillStyle = hasClothes ? pantsCol : skin;
+    g.strokeStyle = inkCol;
+    g.fill();
+    g.stroke();
+
+    if (hasClothes) {
+      if (char.top === 'hoodie') {
+        // Túi kangaroo hoodie
+        g.fillStyle = shade(topCol, -0.15);
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.4;
+        rr(g, hx - 9, beltY - 14, 18, 11, 3);
+        g.fill();
+        g.stroke();
+
+        // 2 dây áo hoodie trắng
+        g.strokeStyle = '#ffffff';
+        g.lineWidth = 2.2;
+        [-4, 4].forEach(dx => {
+          g.beginPath();
+          g.moveTo(sx + dx, sy + 2);
+          g.lineTo(sx + dx, sy + 18);
+          g.stroke();
+        });
+      } else if (char.top === 'tshirt') {
+        // Cổ áo tròn
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.4;
+        g.beginPath();
+        g.arc(sx, sy + 1, 9, 0.2, Math.PI - 0.2);
+        g.stroke();
+      } else if (char.top === 'labcoat') {
+        // Cổ áo V và vạt áo labcoat
+        g.fillStyle = '#1e293b';
+        g.beginPath();
+        g.moveTo(sx - 6, sy);
+        g.lineTo(sx + 6, sy);
+        g.lineTo(sx, sy + 20);
+        g.closePath();
+        g.fill();
+
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.2;
+        g.beginPath();
+        g.moveTo(sx - 6, sy);
+        g.lineTo(sx, sy + 20);
+        g.lineTo(sx + 6, sy);
+        g.stroke();
+
+        // Vạt áo labcoat xòe xuống hông
+        g.fillStyle = '#f3f4f6';
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.6;
+        g.beginPath();
+        g.moveTo(hx - wBot, beltY);
+        g.lineTo(hx - wBot - 3, hy + 14);
+        g.lineTo(hx + wBot + 3, hy + 14);
+        g.lineTo(hx + wBot, beltY);
+        g.closePath();
+        g.fill();
+        g.stroke();
+      }
+    }
   }
 
   g.restore();
 }
 
 /**
- * Render White Cartoon Capsule Arm & Hand
+ * Render White Cartoon Seamless Arm & Hand
  */
-export function drawWhiteCartoonArm(g, sh, elbow, hand, inkCol, char, prop, facing, poseMode = 'normal', t = 0) {
+export function drawWhiteCartoonArm(g, sh, elbow, hand, inkCol, char, prop, facing, poseMode = 'normal', t = 0, isFar = false) {
   const skin = char.skin || '#fbfbfe';
+  const hasClothes = char.top && char.top !== 'none';
+  const topCol = char.color || (char.top === 'labcoat' ? '#f3f4f6' : '#d64a33');
+  const sleeveCol = isFar ? shade(topCol, -0.22) : topCol;
+
+  const isLongSleeve = char.top === 'hoodie' || char.top === 'labcoat' || char.top === 'jacket' || !char.top || char.top === 'none' ? (char.top !== 'tshirt') : false;
 
   g.save();
-  // Upper Arm (Bắp tay capsule bo tròn)
-  drawWhiteCapsule(g, sh, elbow, 13, skin, inkCol, 3.8);
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
 
-  // Khớp khuỷu tay
-  circle(g, elbow[0], elbow[1], 6.5, skin);
+  const armThickness = 12.0;
+  const strokeW = 3.6;
 
-  // Forearm (Cẳng tay capsule bo tròn)
-  drawWhiteCapsule(g, elbow, hand, 11, skin, inkCol, 3.8);
+  // 1. CÁNH TAY LIỀN MẠCH (Seamless Continuous Stroke từ sh -> elbow -> hand)
+  // Viền đen ngoài cùng cho toàn bộ cánh tay
+  g.strokeStyle = inkCol;
+  g.lineWidth = armThickness + strokeW * 2;
+  g.beginPath();
+  g.moveTo(sh[0], sh[1]);
+  g.lineTo(elbow[0], elbow[1]);
+  g.lineTo(hand[0], hand[1]);
+  g.stroke();
 
-  // Hand (Bàn tay hoạt hình bo tròn ngón)
+  // Ruột da tay trắng bên trong
+  g.strokeStyle = skin;
+  g.lineWidth = armThickness;
+  g.beginPath();
+  g.moveTo(sh[0], sh[1]);
+  g.lineTo(elbow[0], elbow[1]);
+  g.lineTo(hand[0], hand[1]);
+  g.stroke();
+
+  // 2. ÁO TAY LIỀN MẠCH (Nếu có trang phục)
+  if (hasClothes) {
+    if (isLongSleeve) {
+      // Tay dài: kéo dài từ vai, qua khuỷu tay đến gần cổ tay
+      const wrist = [lerp(elbow[0], hand[0], 0.72), lerp(elbow[1], hand[1], 0.72)];
+      const sleeveThickness = armThickness + 2.4;
+
+      // Viền tay áo ngoài
+      g.strokeStyle = inkCol;
+      g.lineWidth = sleeveThickness + strokeW * 2;
+      g.beginPath();
+      g.moveTo(sh[0], sh[1]);
+      g.lineTo(elbow[0], elbow[1]);
+      g.lineTo(wrist[0], wrist[1]);
+      g.stroke();
+
+      // Ruột vải tay áo
+      g.strokeStyle = sleeveCol;
+      g.lineWidth = sleeveThickness;
+      g.beginPath();
+      g.moveTo(sh[0], sh[1]);
+      g.lineTo(elbow[0], elbow[1]);
+      g.lineTo(wrist[0], wrist[1]);
+      g.stroke();
+
+      // Bo cổ tay áo (cuff line)
+      g.strokeStyle = inkCol;
+      g.lineWidth = 2.4;
+      g.beginPath();
+      const cuffDx = -(wrist[1] - elbow[1]);
+      const cuffDy = wrist[0] - elbow[0];
+      const cuffLen = Math.hypot(cuffDx, cuffDy) || 1;
+      const ux = (cuffDx / cuffLen) * (sleeveThickness * 0.5);
+      const uy = (cuffDy / cuffLen) * (sleeveThickness * 0.5);
+      g.moveTo(wrist[0] - ux, wrist[1] - uy);
+      g.lineTo(wrist[0] + ux, wrist[1] + uy);
+      g.stroke();
+    } else {
+      // Tay ngắn (t-shirt): bao phủ từ vai đến 65% bắp tay
+      const sleeveEnd = [lerp(sh[0], elbow[0], 0.65), lerp(sh[1], elbow[1], 0.65)];
+      const sleeveThickness = armThickness + 2.4;
+
+      g.strokeStyle = inkCol;
+      g.lineWidth = sleeveThickness + strokeW * 2;
+      g.beginPath();
+      g.moveTo(sh[0], sh[1]);
+      g.lineTo(sleeveEnd[0], sleeveEnd[1]);
+      g.stroke();
+
+      g.strokeStyle = sleeveCol;
+      g.lineWidth = sleeveThickness;
+      g.beginPath();
+      g.moveTo(sh[0], sh[1]);
+      g.lineTo(sleeveEnd[0], sleeveEnd[1]);
+      g.stroke();
+
+      // Viền gấu tay áo
+      g.strokeStyle = inkCol;
+      g.lineWidth = 2.4;
+      g.beginPath();
+      const cuffDx = -(sleeveEnd[1] - sh[1]);
+      const cuffDy = sleeveEnd[0] - sh[0];
+      const cuffLen = Math.hypot(cuffDx, cuffDy) || 1;
+      const ux = (cuffDx / cuffLen) * (sleeveThickness * 0.5);
+      const uy = (cuffDy / cuffLen) * (sleeveThickness * 0.5);
+      g.moveTo(sleeveEnd[0] - ux, sleeveEnd[1] - uy);
+      g.lineTo(sleeveEnd[0] + ux, sleeveEnd[1] + uy);
+      g.stroke();
+    }
+  }
+
+  // 3. BÀN TAY HOẠT HÌNH TRẮNG
   g.save();
   g.translate(hand[0], hand[1]);
   g.fillStyle = skin;
@@ -656,39 +1005,39 @@ export function drawWhiteCartoonArm(g, sh, elbow, hand, inkCol, char, prop, faci
   g.lineWidth = 3.2;
 
   if (poseMode === 'clutch_head') {
-    // Bàn tay ôm đầu sợ hãi (các ngón bám vào đầu)
     g.beginPath();
     g.ellipse(0, 0, 9, 8, 0.3, 0, Math.PI * 2);
     g.fill();
     g.stroke();
-    // 3 ngón tay cong
     for (let f = -4; f <= 4; f += 4) {
       g.beginPath();
       g.arc(f, -6, 3, Math.PI, 0);
       g.stroke();
     }
   } else if (poseMode === 'point') {
-    // Bàn tay chỉ ngón trỏ về phía trước
     g.beginPath();
     g.ellipse(0, 0, 7.5, 7.5, 0, 0, Math.PI * 2);
     g.fill();
     g.stroke();
-    // Ngón trỏ vươn dài
     drawWhiteCapsule(g, [2, -2], [14, -2], 6, skin, inkCol, 2.6);
-  } else if (poseMode === 'hold_blanket') {
-    // Bàn tay nắm mép chăn (các ngón khép lại gác lên chăn)
+  } else if (poseMode === 'hold_blanket' || poseMode === 'fist') {
     g.beginPath();
     g.ellipse(0, 0, 8.5, 7.5, 0, 0, Math.PI * 2);
     g.fill();
     g.stroke();
-    // Đường ngón tay nắm
     g.beginPath();
     g.moveTo(-5, -2); g.lineTo(5, -2);
     g.moveTo(-5, 2); g.lineTo(5, 2);
     g.stroke();
   } else {
-    // Bàn tay hoạt hình mặc định
-    circle(g, 0, 0, 8, skin);
+    // Bàn tay hoạt hình đáng yêu: lòng bàn tay bo tròn + ngón cái
+    g.beginPath();
+    g.ellipse(0, 0, 8.0, 7.0, 0, 0, Math.PI * 2);
+    g.fill();
+    g.stroke();
+    // Ngón cái nhỏ
+    g.beginPath();
+    g.arc(4, -3, 3.2, -0.5, Math.PI * 0.8);
     g.stroke();
   }
   g.restore();
@@ -701,34 +1050,89 @@ export function drawWhiteCartoonArm(g, sh, elbow, hand, inkCol, char, prop, faci
 }
 
 /**
- * Render White Cartoon Capsule Leg & Shoe
+ * Render White Cartoon Seamless Leg & Cartoon Shoe
  */
-export function drawWhiteCartoonLeg(g, hip, knee, foot, inkCol, char) {
+export function drawWhiteCartoonLeg(g, hip, knee, foot, inkCol, char, isFar = false) {
   const skin = char.skin || '#fbfbfe';
-  const legAnkleY = foot[1] - 8;
+  const hasClothes = char.top && char.top !== 'none';
+  const pantsCol = hasClothes ? (char.legs ? (isFar ? shade(char.legs, -0.25) : char.legs) : '#2e384d') : skin;
+
+  const ankleY = foot[1] - 8;
+  const ankle = [foot[0], ankleY];
 
   g.save();
-  // Thigh (Đùi capsule trắng dày dặn)
-  drawWhiteCapsule(g, hip, knee, 14, skin, inkCol, 3.8);
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
 
-  // Knee joint
-  circle(g, knee[0], knee[1], 7, skin);
+  const legThickness = 13.0;
+  const strokeW = 3.6;
 
-  // Shin (Cẳng chân capsule)
-  drawWhiteCapsule(g, knee, [foot[0], legAnkleY], 12, skin, inkCol, 3.8);
+  // 1. CHÂN LIỀN MẠCH (Seamless Continuous Stroke từ hip -> knee -> ankle)
+  // Viền ngoài
+  g.strokeStyle = inkCol;
+  g.lineWidth = legThickness + strokeW * 2;
+  g.beginPath();
+  g.moveTo(hip[0], hip[1]);
+  g.lineTo(knee[0], knee[1]);
+  g.lineTo(ankle[0], ankle[1]);
+  g.stroke();
 
-  // Bàn chân / Giày hoạt hình trắng đế đen phẳng trên sàn y = 0
+  // Ruột quần / da chân bên trong
+  g.strokeStyle = pantsCol;
+  g.lineWidth = legThickness;
+  g.beginPath();
+  g.moveTo(hip[0], hip[1]);
+  g.lineTo(knee[0], knee[1]);
+  g.lineTo(ankle[0], ankle[1]);
+  g.stroke();
+
+  // 2. GIÀY HOẠT HÌNH (Cartoon Sneaker / Shoe)
+  // Giày nối với cổ chân tại ankle và đặt đế tiếp xúc ground (y = foot[1])
+  const shoeCol = char.shoes ? (isFar ? shade(char.shoes, -0.2) : char.shoes) : '#1e1e24';
+  const shoeSoleCol = '#ffffff';
+
   g.save();
   g.translate(foot[0], foot[1]);
-  g.fillStyle = '#111827';
-  g.fillRect(-6, -2.5, 16, 2.5); // Đế giày đen phẳng
-  g.fillStyle = skin;
+
+  // Cổ giày ôm lấy ống quần
+  g.fillStyle = shoeCol;
   g.strokeStyle = inkCol;
-  g.lineWidth = 2.8;
+  g.lineWidth = 2.6;
+
+  // Thân giày (Upper) hình học bo tròn mềm mại
   g.beginPath();
-  g.ellipse(2, -5.5, 9, 5, 0, Math.PI, Math.PI * 2);
+  g.moveTo(-7, -10); // Cổ giày sau
+  g.lineTo(5, -10);  // Cổ giày trước
+  g.quadraticCurveTo(10, -8, 14, -5); // Mũi giày vát cong xuống
+  g.quadraticCurveTo(16, -2, 14, -2.5); // Chóp mũi
+  g.lineTo(-7, -2.5); // Đáy thân giày trên đế
+  g.quadraticCurveTo(-9, -5, -7, -10); // Gót giày cong lên cổ
+  g.closePath();
   g.fill();
   g.stroke();
+
+  // Đế giày cao su trắng phẳng (Sole) nằm ngay trên mặt sàn
+  g.fillStyle = shoeSoleCol;
+  g.fillRect(-8, -2.5, 23, 2.5);
+  g.strokeRect(-8, -2.5, 23, 2.5);
+
+  // Mũi giày cao su trắng (Toe cap)
+  g.fillStyle = shoeSoleCol;
+  g.beginPath();
+  g.moveTo(10, -2.5);
+  g.quadraticCurveTo(15, -3, 14, -5.5);
+  g.quadraticCurveTo(11, -5.5, 10, -2.5);
+  g.closePath();
+  g.fill();
+  g.stroke();
+
+  // Dây giày / chi tiết trang trí
+  g.strokeStyle = '#ffffff';
+  g.lineWidth = 1.8;
+  g.beginPath();
+  g.moveTo(1, -8); g.lineTo(6, -6);
+  g.stroke();
+
   g.restore();
 
   g.restore();
@@ -791,20 +1195,20 @@ export function drawWhiteCartoonFigure(g, o) {
     g.translate(-p.hip[0], -p.hip[1]);
   }
 
-  // 1. Far Limbs
-  drawWhiteCartoonLeg(g, p.hip, p.kB, p.fB, inkCol, char);
-  drawWhiteCartoonArm(g, p.sh, p.eB, p.hB, inkCol, char, o.prop?.hand === 'B' ? o.prop : null, facing, o.poseMode || 'normal', t);
+  // 1. Far Limbs (Phía xa, có đổ bóng nhẹ isFar = true)
+  drawWhiteCartoonLeg(g, p.hip, p.kB, p.fB, inkCol, char, true);
+  drawWhiteCartoonArm(g, p.sh, p.eB, p.hB, inkCol, char, o.prop?.hand === 'B' ? o.prop : null, facing, o.poseMode || 'normal', t, true);
 
   // 2. Neck
   const neckH = 10;
   drawWhiteCapsule(g, [p.head[0], p.head[1] + HR - 6], [p.sh[0], p.sh[1]], 14, char.skin || '#fbfbfe', inkCol, 3.6);
 
-  // 3. Torso
+  // 3. Torso (Áo & Quần liền mạch)
   drawWhiteCartoonTorso(g, p, char, inkCol, dir, p.isSit);
 
-  // 4. Near Limbs
-  drawWhiteCartoonLeg(g, p.hip, p.kF, p.fF, inkCol, char);
-  drawWhiteCartoonArm(g, p.sh, p.eF, p.hF, inkCol, char, o.prop?.hand !== 'B' ? o.prop : null, facing, o.poseMode || 'normal', t);
+  // 4. Near Limbs (Phía gần, màu sắc rõ nét isFar = false)
+  drawWhiteCartoonLeg(g, p.hip, p.kF, p.fF, inkCol, char, false);
+  drawWhiteCartoonArm(g, p.sh, p.eF, p.hF, inkCol, char, o.prop?.hand !== 'B' ? o.prop : null, facing, o.poseMode || 'normal', t, false);
 
   // 5. Head & Facial Expressions
   drawWhiteCartoonHead(g, p.head[0], p.head[1], HR, o, dir, char, inkCol, t);
@@ -814,7 +1218,7 @@ export function drawWhiteCartoonFigure(g, o) {
 
 /**
  * HÀM RENDER ĐẶC TẢ CẬN CẢNH KHUÔN MẶT WHITE CARTOON (BIGFACE CLOSE-UP)
- * Dùng cho các cảnh giật mình kinh hãi (10s - 14s)
+ * Hỗ trợ mọi biểu cảm: determined, surprised, shocked, smirk, happy, scared, terrified, neutral
  */
 export function drawWhiteCartoonBigFace(g, cx, cy, r, o = {}) {
   const st = S();
@@ -822,15 +1226,18 @@ export function drawWhiteCartoonBigFace(g, cx, cy, r, o = {}) {
   const char = { ...WHITE_CARTOON_PRESETS.character_A, ...(o.outfit || {}) };
   const skin = char.skin || '#fbfbfe';
   const t = o.t ?? 0;
-  const expr = o.expr || 'terrified';
+  const expr = o.expr || 'neutral';
   const isTerrified = expr === 'terrified';
   const isScared = expr === 'scared' || isTerrified;
+
+  const hasClothes = char.top && char.top !== 'none';
+  const topCol = char.color || (char.top === 'labcoat' ? '#f3f4f6' : '#d64a33');
 
   g.save();
   g.translate(cx, cy);
   if (o.tilt) g.rotate(o.tilt);
 
-  // 1. Rung lắc kinh hãi cận cảnh
+  // 1. Rung lắc kinh hãi cận cảnh (Chỉ khi sợ hãi / giật mình)
   if (isScared) {
     const shiverAmp = isTerrified ? 3.5 : 2.0;
     const sx = Math.sin(t * 46) * shiverAmp;
@@ -838,8 +1245,8 @@ export function drawWhiteCartoonBigFace(g, cx, cy, r, o = {}) {
     g.translate(sx, sy);
   }
 
-  // 2. Cổ và vai ở góc dưới màn hình
-  g.fillStyle = skin;
+  // 2. Cổ và vai áo ở góc dưới màn hình (clothed shoulders!)
+  g.fillStyle = hasClothes ? topCol : skin;
   g.strokeStyle = inkCol;
   g.lineWidth = 4.5;
   g.beginPath();
@@ -847,25 +1254,67 @@ export function drawWhiteCartoonBigFace(g, cx, cy, r, o = {}) {
   g.fill();
   g.stroke();
 
-  // 3. Dual Rim Lights (Vàng ấm bên trái, Xanh trăng bên phải)
-  const rimWarm = o.rimWarm || char.rimWarm || '#fde047';
-  const rimCool = o.rimCool || char.rimCool || '#93c5fd';
+  // Chi tiết cổ áo / hoodie
+  if (hasClothes) {
+    if (char.top === 'hoodie') {
+      // Dây áo hoodie
+      g.strokeStyle = '#ffffff';
+      g.lineWidth = r * 0.035;
+      [-r * 0.15, r * 0.15].forEach(dx => {
+        g.beginPath();
+        g.moveTo(dx, r * 0.88);
+        g.lineTo(dx, r * 1.25);
+        g.stroke();
+      });
+    } else if (char.top === 'labcoat') {
+      // Áo tối màu bên trong
+      g.fillStyle = '#1e293b';
+      g.beginPath();
+      g.moveTo(-r * 0.25, r * 0.85);
+      g.lineTo(r * 0.25, r * 0.85);
+      g.lineTo(0, r * 1.35);
+      g.closePath();
+      g.fill();
+      g.strokeStyle = inkCol;
+      g.lineWidth = r * 0.04;
+      g.stroke();
+    }
+  }
 
-  g.save();
-  g.strokeStyle = rimWarm;
-  g.lineWidth = r * 0.07;
-  g.beginPath();
-  g.arc(0, 0, r + r * 0.04, Math.PI * 0.65, Math.PI * 1.35);
-  g.stroke();
-  g.restore();
+  // 3. Rim Lighting (Soft rim crescent based on rimColor & rimSide)
+  const rimCol = o.rimColor || (o.rimWarm && o.rimCool ? null : o.rimWarm);
+  const side = o.rimSide ?? -1;
 
-  g.save();
-  g.strokeStyle = rimCool;
-  g.lineWidth = r * 0.07;
-  g.beginPath();
-  g.arc(0, 0, r + r * 0.04, -Math.PI * 0.35, Math.PI * 0.35);
-  g.stroke();
-  g.restore();
+  if (rimCol) {
+    g.save();
+    g.strokeStyle = rimCol;
+    g.lineWidth = r * 0.065;
+    g.beginPath();
+    if (side < 0) {
+      g.arc(0, 0, r + r * 0.02, Math.PI * 0.68, Math.PI * 1.32);
+    } else {
+      g.arc(0, 0, r + r * 0.02, -Math.PI * 0.32, Math.PI * 0.32);
+    }
+    g.stroke();
+    g.restore();
+  } else if (o.rimWarm && o.rimCool) {
+    // Chế độ 2 màu rim cho ban đêm/phim kinh dị
+    g.save();
+    g.strokeStyle = o.rimWarm;
+    g.lineWidth = r * 0.07;
+    g.beginPath();
+    g.arc(0, 0, r + r * 0.04, Math.PI * 0.65, Math.PI * 1.35);
+    g.stroke();
+    g.restore();
+
+    g.save();
+    g.strokeStyle = o.rimCool;
+    g.lineWidth = r * 0.07;
+    g.beginPath();
+    g.arc(0, 0, r + r * 0.04, -Math.PI * 0.35, Math.PI * 0.35);
+    g.stroke();
+    g.restore();
+  }
 
   // 4. Khối đầu lớn trắng ngà
   g.fillStyle = skin;
@@ -876,114 +1325,342 @@ export function drawWhiteCartoonBigFace(g, cx, cy, r, o = {}) {
   g.fill();
   g.stroke();
 
+  // Phụ kiện nón / mũ trên BigFace (Jake's backward cap)
+  if (char.head === 'cap') {
+    const capCol = char.headColor || '#f2c21a';
+    g.save();
+    g.fillStyle = capCol;
+    g.strokeStyle = inkCol;
+    g.lineWidth = r * 0.06;
+
+    // Vòm mũ chụp chóp đỉnh đầu (nằm cao trên trán)
+    const capAngle = Math.asin(0.42);
+    g.beginPath();
+    g.arc(0, 0, r + r * 0.02, Math.PI + capAngle, Math.PI * 2 - capAngle);
+    g.quadraticCurveTo(0, -r * 0.34, -Math.cos(capAngle) * (r + r * 0.02), -r * 0.42);
+    g.closePath();
+    g.fill();
+    g.stroke();
+
+    // Visor quay ngược ra sau gáy
+    g.beginPath();
+    g.moveTo(-r * 0.88, -r * 0.42);
+    g.quadraticCurveTo(-r * 1.32, -r * 0.38, -r * 1.36, -r * 0.18);
+    g.quadraticCurveTo(-r * 1.05, -r * 0.15, -r * 0.65, -r * 0.32);
+    g.closePath();
+    g.fill();
+    g.stroke();
+
+    // Nút đỉnh nón
+    circle(g, 0, -r - r * 0.03, r * 0.07, capCol);
+    g.stroke();
+    g.restore();
+  }
+
   // 5. Ngũ quan cận cảnh
   const look = o.look || [0, 0];
   const lookDx = clamp(look[0], -1, 1) * (r * 0.08);
   const lookDy = clamp(look[1], -1, 1) * (r * 0.06);
 
-  const eyeSpacing = r * 0.38;
+  const eyeSpacing = r * 0.36;
   const eyeY = -r * 0.08;
-  const eyeR = r * 0.28;
+  const eyeR = r * 0.25;
 
-  // Hai tròng mắt to kinh hãi
+  // Hai tròng mắt
   [-eyeSpacing, eyeSpacing].forEach(ex => {
-    // Sclera trắng
-    g.fillStyle = '#ffffff';
-    g.strokeStyle = inkCol;
-    g.lineWidth = r * 0.08;
-    g.beginPath();
-    g.arc(ex + lookDx * 0.4, eyeY + lookDy * 0.4, eyeR, 0, Math.PI * 2);
-    g.fill();
-    g.stroke();
+    if (isTerrified) {
+      // Sclera trắng
+      g.fillStyle = '#ffffff';
+      g.strokeStyle = inkCol;
+      g.lineWidth = r * 0.07;
+      g.beginPath();
+      g.arc(ex + lookDx * 0.4, eyeY + lookDy * 0.4, eyeR, 0, Math.PI * 2);
+      g.fill();
+      g.stroke();
 
-    // Pupil co giật nhỏ
-    const pupilJitter = Math.sin(t * 38) * (r * 0.02);
-    const pupilR = isTerrified ? eyeR * 0.28 : eyeR * 0.45;
-    g.fillStyle = inkCol;
-    g.beginPath();
-    g.arc(ex + lookDx + pupilJitter, eyeY + lookDy + pupilJitter, pupilR, 0, Math.PI * 2);
-    g.fill();
+      // Pupil co giật nhỏ
+      const pupilJitter = Math.sin(t * 38) * (r * 0.02);
+      const pupilR = eyeR * 0.32;
+      g.fillStyle = inkCol;
+      g.beginPath();
+      g.arc(ex + lookDx + pupilJitter, eyeY + lookDy + pupilJitter, pupilR, 0, Math.PI * 2);
+      g.fill();
 
-    // Specular light dot
-    g.fillStyle = '#ffffff';
-    g.beginPath();
-    g.arc(ex + lookDx + pupilJitter + pupilR * 0.3, eyeY + lookDy + pupilJitter - pupilR * 0.3, pupilR * 0.35, 0, Math.PI * 2);
-    g.fill();
+      // Specular light dot
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.arc(ex + lookDx + pupilJitter + pupilR * 0.3, eyeY + lookDy + pupilJitter - pupilR * 0.3, pupilR * 0.35, 0, Math.PI * 2);
+      g.fill();
 
-    // Stress lines under eyes
-    g.strokeStyle = inkCol;
-    g.lineWidth = r * 0.04;
-    g.beginPath();
-    g.arc(ex, eyeY + eyeR * 1.25, eyeR * 0.7, Math.PI * 0.15, Math.PI * 0.85);
-    g.stroke();
+      // Stress lines under eyes
+      g.strokeStyle = inkCol;
+      g.lineWidth = r * 0.035;
+      g.beginPath();
+      g.arc(ex, eyeY + eyeR * 1.25, eyeR * 0.7, Math.PI * 0.15, Math.PI * 0.85);
+      g.stroke();
+    } else if (expr === 'determined') {
+      // Sclera trắng tập trung
+      g.fillStyle = '#ffffff';
+      g.strokeStyle = inkCol;
+      g.lineWidth = r * 0.06;
+      g.beginPath();
+      g.arc(ex + lookDx * 0.35, eyeY + lookDy * 0.35, eyeR, 0, Math.PI * 2);
+      g.fill();
+      g.stroke();
+
+      // Con ngươi đen sắc nét tập trung theo hướng nhìn
+      const pupilR = eyeR * 0.52;
+      g.fillStyle = inkCol;
+      g.beginPath();
+      g.arc(ex + lookDx * 0.9, eyeY + lookDy * 0.9, pupilR, 0, Math.PI * 2);
+      g.fill();
+
+      // Điểm sáng mắt sắc bén
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.arc(ex + lookDx * 0.9 + pupilR * 0.3, eyeY + lookDy * 0.9 - pupilR * 0.3, pupilR * 0.32, 0, Math.PI * 2);
+      g.fill();
+    } else if (expr === 'surprised' || expr === 'shocked') {
+      // Mắt tròn to ngạc nhiên
+      g.fillStyle = '#ffffff';
+      g.strokeStyle = inkCol;
+      g.lineWidth = r * 0.06;
+      g.beginPath();
+      g.arc(ex + lookDx * 0.4, eyeY + lookDy * 0.4, eyeR * 1.08, 0, Math.PI * 2);
+      g.fill();
+      g.stroke();
+
+      const pupilR = expr === 'shocked' ? eyeR * 0.38 : eyeR * 0.48;
+      g.fillStyle = inkCol;
+      g.beginPath();
+      g.arc(ex + lookDx, eyeY + lookDy, pupilR, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.arc(ex + lookDx + pupilR * 0.3, eyeY + lookDy - pupilR * 0.3, pupilR * 0.35, 0, Math.PI * 2);
+      g.fill();
+    } else if (expr === 'happy' || expr === 'smile') {
+      // Mắt cười híp hoặc tròn sáng
+      g.strokeStyle = inkCol;
+      g.lineWidth = r * 0.07;
+      g.beginPath();
+      g.arc(ex, eyeY + eyeR * 0.1, eyeR * 0.8, Math.PI * 1.15, Math.PI * 1.85);
+      g.stroke();
+    } else {
+      // Mắt tiêu chuẩn sạch đẹp
+      g.fillStyle = '#ffffff';
+      g.strokeStyle = inkCol;
+      g.lineWidth = r * 0.06;
+      g.beginPath();
+      g.arc(ex + lookDx * 0.3, eyeY + lookDy * 0.3, eyeR, 0, Math.PI * 2);
+      g.fill();
+      g.stroke();
+
+      const pupilR = eyeR * 0.5;
+      g.fillStyle = inkCol;
+      g.beginPath();
+      g.arc(ex + lookDx, eyeY + lookDy, pupilR, 0, Math.PI * 2);
+      g.fill();
+
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.arc(ex + lookDx + pupilR * 0.3, eyeY + lookDy - pupilR * 0.3, pupilR * 0.35, 0, Math.PI * 2);
+      g.fill();
+    }
   });
 
-  // Lông mày run rẩy
+  // Kính Doc cận cảnh
+  if (char.face === 'glasses') {
+    g.strokeStyle = inkCol;
+    g.lineWidth = r * 0.045;
+    [-eyeSpacing, eyeSpacing].forEach(ex => {
+      circle(g, ex, eyeY, eyeR * 1.35, 'rgba(255, 255, 255, 0.2)');
+      g.stroke();
+    });
+    g.beginPath();
+    g.moveTo(-eyeSpacing + eyeR * 1.35, eyeY);
+    g.lineTo(eyeSpacing - eyeR * 1.35, eyeY);
+    g.stroke();
+  }
+
+  // Lông mày cận cảnh
   g.strokeStyle = inkCol;
   g.lineWidth = r * 0.075;
   [-eyeSpacing, eyeSpacing].forEach((ex, i) => {
-    const browWave = Math.sin(t * 32 + i * 2) * (r * 0.04);
     g.beginPath();
-    g.moveTo(ex - eyeR * 0.8, eyeY - eyeR * 1.1 + browWave);
-    g.quadraticCurveTo(ex, eyeY - eyeR * 1.6 + browWave, ex + eyeR * 0.8, eyeY - eyeR * 1.1 - browWave);
+    if (isTerrified) {
+      // Lông mày run rẩy lượn sóng
+      const browWave = Math.sin(t * 32 + i * 2) * (r * 0.04);
+      g.moveTo(ex - eyeR * 0.8, eyeY - eyeR * 1.1 + browWave);
+      g.quadraticCurveTo(ex, eyeY - eyeR * 1.6 + browWave, ex + eyeR * 0.8, eyeY - eyeR * 1.1 - browWave);
+    } else if (expr === 'determined') {
+      // Lông mày sắc bén chéo xuống mũi: \  /
+      const sign = i === 0 ? 1 : -1;
+      g.moveTo(ex - eyeR * 0.85, eyeY - eyeR * 1.15 - sign * (r * 0.065));
+      g.lineTo(ex + eyeR * 0.85, eyeY - eyeR * 1.15 + sign * (r * 0.065));
+    } else if (expr === 'surprised' || expr === 'shocked') {
+      // Lông mày nhướng cao ngạc nhiên
+      g.arc(ex, eyeY - eyeR * 1.25, eyeR * 0.75, Math.PI * 1.15, Math.PI * 1.85);
+    } else if (expr === 'smirk') {
+      // Một bên nhướng một bên bình thường
+      if (i === 0) {
+        g.arc(ex, eyeY - eyeR * 1.25, eyeR * 0.75, Math.PI * 1.15, Math.PI * 1.85);
+      } else {
+        g.moveTo(ex - eyeR * 0.7, eyeY - eyeR * 1.05);
+        g.lineTo(ex + eyeR * 0.7, eyeY - eyeR * 1.05);
+      }
+    } else {
+      // Bình thường vòng cung mềm mại
+      g.moveTo(ex - eyeR * 0.75, eyeY - eyeR * 1.1);
+      g.quadraticCurveTo(ex, eyeY - eyeR * 1.35, ex + eyeR * 0.75, eyeY - eyeR * 1.1);
+    }
     g.stroke();
   });
 
-  // Miệng há to hét lên kinh hãi
-  const my = eyeY + r * 0.48;
-  const mouthW = r * 0.32;
-  const mouthH = r * 0.36 + Math.sin(t * 38) * (r * 0.04);
+  // Miệng cận cảnh
+  const my = eyeY + r * 0.46;
+  const talk = o.talk || 0;
 
-  g.fillStyle = '#6b1124';
-  g.strokeStyle = inkCol;
-  g.lineWidth = r * 0.08;
-  g.beginPath();
-  g.ellipse(0, my, mouthW, mouthH, 0, 0, Math.PI * 2);
-  g.fill();
-  g.stroke();
-
-  // Răng trên cắn chặt
-  g.fillStyle = '#ffffff';
-  g.fillRect(-mouthW * 0.75, my - mouthH + r * 0.08, mouthW * 1.5, r * 0.12);
-  g.strokeRect(-mouthW * 0.75, my - mouthH + r * 0.08, mouthW * 1.5, r * 0.12);
-
-  // Lưỡi hồng bên dưới
-  g.fillStyle = '#fb7185';
-  g.beginPath();
-  g.arc(0, my + mouthH - r * 0.08, mouthW * 0.65, 0, Math.PI);
-  g.fill();
-
-  // Sweat drops spraying outwards
-  const drops = [
-    { x: -r * 1.05, y: -r * 0.25, vx: -r * 0.12, vy: -r * 0.08, rad: r * 0.1 },
-    { x: -r * 0.95, y: r * 0.3, vx: -r * 0.1, vy: r * 0.1, rad: r * 0.08 },
-    { x: r * 1.05, y: -r * 0.3, vx: r * 0.12, vy: -r * 0.08, rad: r * 0.09 },
-    { x: r * 0.95, y: r * 0.35, vx: r * 0.1, vy: r * 0.12, rad: r * 0.08 },
-  ];
-  drops.forEach((d, idx) => {
-    const cycle = (t * 3.5 + idx * 0.25) % 1;
-    const px = d.x + d.vx * cycle;
-    const py = d.y + d.vy * cycle;
-    g.fillStyle = '#e0f2fe';
+  if (talk > 0.05) {
+    // Đang nói chuyện (Lip-sync)
+    const openH = r * (0.06 + 0.22 * talk);
+    g.fillStyle = '#4c0519';
     g.strokeStyle = inkCol;
-    g.lineWidth = r * 0.035;
+    g.lineWidth = r * 0.06;
     g.beginPath();
-    g.arc(px, py, d.rad, 0, Math.PI * 2);
+    g.ellipse(0, my, r * 0.2, openH, 0, 0, Math.PI * 2);
     g.fill();
     g.stroke();
-  });
 
-  // Fear lines
-  g.strokeStyle = 'rgba(255,255,255,0.7)';
-  g.lineWidth = r * 0.05;
-  [-r * 1.15, r * 1.15].forEach((vx, i) => {
-    const sign = i === 0 ? -1 : 1;
-    for (let k = -1; k <= 1; k++) {
+    // Lưỡi hồng bên trong
+    g.fillStyle = '#fb7185';
+    g.beginPath();
+    g.arc(0, my + openH * 0.4, r * 0.12, 0, Math.PI);
+    g.fill();
+  } else if (isTerrified) {
+    // Miệng há to hét lên kinh hãi
+    const mouthW = r * 0.32;
+    const mouthH = r * 0.36 + Math.sin(t * 38) * (r * 0.04);
+    g.fillStyle = '#6b1124';
+    g.strokeStyle = inkCol;
+    g.lineWidth = r * 0.08;
+    g.beginPath();
+    g.ellipse(0, my, mouthW, mouthH, 0, 0, Math.PI * 2);
+    g.fill();
+    g.stroke();
+
+    // Răng trên cắn chặt
+    g.fillStyle = '#ffffff';
+    g.fillRect(-mouthW * 0.7, my - mouthH + r * 0.06, mouthW * 1.4, r * 0.1);
+    g.strokeRect(-mouthW * 0.7, my - mouthH + r * 0.06, mouthW * 1.4, r * 0.1);
+
+    // Lưỡi hồng bên dưới
+    g.fillStyle = '#fb7185';
+    g.beginPath();
+    g.arc(0, my + mouthH - r * 0.08, mouthW * 0.65, 0, Math.PI);
+    g.fill();
+  } else if (expr === 'determined') {
+    // Nét miệng mím chặt kiên định, tự tin
+    g.strokeStyle = inkCol;
+    g.lineWidth = r * 0.06;
+    g.beginPath();
+    g.moveTo(-r * 0.18, my - r * 0.02);
+    g.quadraticCurveTo(0, my + r * 0.025, r * 0.18, my - r * 0.035);
+    g.stroke();
+    // Vết khóe miệng nhỏ
+    g.beginPath();
+    g.moveTo(r * 0.16, my - r * 0.07);
+    g.lineTo(r * 0.2, my);
+    g.stroke();
+  } else if (expr === 'surprised') {
+    // Miệng chữ 'O' nhỏ
+    g.fillStyle = '#4c0519';
+    g.strokeStyle = inkCol;
+    g.lineWidth = r * 0.055;
+    g.beginPath();
+    g.ellipse(0, my, r * 0.11, r * 0.14, 0, 0, Math.PI * 2);
+    g.fill();
+    g.stroke();
+  } else if (expr === 'shocked') {
+    // Miệng ngạc nhiên chữ 'O' lớn hơn
+    g.fillStyle = '#4c0519';
+    g.strokeStyle = inkCol;
+    g.lineWidth = r * 0.06;
+    g.beginPath();
+    g.ellipse(0, my, r * 0.2, r * 0.26, 0, 0, Math.PI * 2);
+    g.fill();
+    g.stroke();
+
+    g.fillStyle = '#fb7185';
+    g.beginPath();
+    g.arc(0, my + r * 0.12, r * 0.13, 0, Math.PI);
+    g.fill();
+  } else if (expr === 'smirk') {
+    // Cười nhếch mép
+    g.strokeStyle = inkCol;
+    g.lineWidth = r * 0.06;
+    g.beginPath();
+    g.moveTo(-r * 0.12, my + r * 0.02);
+    g.quadraticCurveTo(r * 0.05, my + r * 0.05, r * 0.2, my - r * 0.06);
+    g.stroke();
+  } else if (expr === 'happy' || expr === 'smile') {
+    // Cười tươi
+    g.fillStyle = '#4c0519';
+    g.strokeStyle = inkCol;
+    g.lineWidth = r * 0.06;
+    g.beginPath();
+    g.arc(0, my - r * 0.05, r * 0.22, 0.2, Math.PI - 0.2);
+    g.closePath();
+    g.fill();
+    g.stroke();
+
+    g.fillStyle = '#fb7185';
+    g.beginPath();
+    g.arc(0, my + r * 0.06, r * 0.13, 0, Math.PI);
+    g.fill();
+  } else {
+    // Nụ cười mỉm đáng yêu mặc định
+    g.strokeStyle = inkCol;
+    g.lineWidth = r * 0.055;
+    g.beginPath();
+    g.arc(0, my - r * 0.08, r * 0.18, 0.35, Math.PI - 0.35);
+    g.stroke();
+  }
+
+  // 6. Hiệu ứng sợ hãi (CHỈ HIỂN THỊ KHI SỢ HÃI / KINH HOÀNG)
+  if (isScared) {
+    const drops = [
+      { x: -r * 1.05, y: -r * 0.25, vx: -r * 0.12, vy: -r * 0.08, rad: r * 0.1 },
+      { x: -r * 0.95, y: r * 0.3, vx: -r * 0.1, vy: r * 0.1, rad: r * 0.08 },
+      { x: r * 1.05, y: -r * 0.3, vx: r * 0.12, vy: -r * 0.08, rad: r * 0.09 },
+      { x: r * 0.95, y: r * 0.35, vx: r * 0.1, vy: r * 0.12, rad: r * 0.08 },
+    ];
+    drops.forEach((d, idx) => {
+      const cycle = (t * 3.5 + idx * 0.25) % 1;
+      const px = d.x + d.vx * cycle;
+      const py = d.y + d.vy * cycle;
+      g.fillStyle = '#e0f2fe';
+      g.strokeStyle = inkCol;
+      g.lineWidth = r * 0.035;
       g.beginPath();
-      g.arc(vx, k * (r * 0.35), r * 0.25, sign > 0 ? Math.PI * 0.8 : -Math.PI * 0.2, sign > 0 ? Math.PI * 1.2 : Math.PI * 0.2);
+      g.arc(px, py, d.rad, 0, Math.PI * 2);
+      g.fill();
       g.stroke();
-    }
-  });
+    });
+
+    // Fear lines
+    g.strokeStyle = 'rgba(255,255,255,0.7)';
+    g.lineWidth = r * 0.05;
+    [-r * 1.15, r * 1.15].forEach((vx, i) => {
+      const sign = i === 0 ? -1 : 1;
+      for (let k = -1; k <= 1; k++) {
+        g.beginPath();
+        g.arc(vx, k * (r * 0.35), r * 0.25, sign > 0 ? Math.PI * 0.8 : -Math.PI * 0.2, sign > 0 ? Math.PI * 1.2 : Math.PI * 0.2);
+        g.stroke();
+      }
+    });
+  }
 
   g.restore();
 }
