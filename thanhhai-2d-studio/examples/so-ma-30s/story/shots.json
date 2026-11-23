@@ -1,0 +1,48 @@
+{
+  "project": "so-ma-30s",
+  "title": "Nếu Bạn Là Một Người Cực Kỳ Sợ Ma?",
+  "style": "dusk",
+  "character": "white_cartoon",
+  "shots": [
+    {
+      "id": "s001_street",
+      "name": "Nam đi bộ về nhà ban đêm và ngoái đầu nhìn phía sau",
+      "start": 0.0,
+      "end": 6.0,
+      "duration": 6.0,
+      "desc": "Cảnh 1: Nam đi bộ trên con phố đêm vắng, ánh đèn đường vàng rọi bóng. Bỗng nghe tiếng động lạ, Nam dừng lại và ngoái đầu nhìn ra sau đầy lo lắng."
+    },
+    {
+      "id": "s002_entry",
+      "name": "Nam mở cửa bước vào phòng và bật đèn",
+      "start": 6.0,
+      "end": 12.0,
+      "duration": 6.0,
+      "desc": "Cảnh 2: Nam mở cửa bước vào căn hộ tối om, ánh trăng lọt qua khe cửa. Nam rờ tường tìm công tắc, bấm 'TÁCH' — đèn bừng sáng ấm áp, thở phào nhẹ nhõm."
+    },
+    {
+      "id": "s003_creak",
+      "name": "Nam nghe tiếng động, giật mình quay đầu",
+      "start": 12.0,
+      "end": 18.0,
+      "duration": 6.0,
+      "desc": "Cảnh 3: Nam ngồi trên sofa trùm chăn xem tivi. Đột nhiên một tiếng 'KÉTTTT' rùng rợn vang lên, Nam giật bắn người, mắt tròn xoe kinh hãi, người run bần bật."
+    },
+    {
+      "id": "s004_sneak",
+      "name": "Nam cầm chổi, rón rén tiến đến cửa",
+      "start": 18.0,
+      "end": 24.0,
+      "duration": 6.0,
+      "desc": "Cảnh 4: Nam thủ sẵn cây chổi quét nhà làm vũ khí phòng thân, cúi khom người rón rén bước từng bước chậm rãi tiến về phía cánh cửa phát ra tiếng động."
+    },
+    {
+      "id": "s005_cat_fall",
+      "name": "Một con mèo nhảy ra, Nam ngã ngửa",
+      "start": 24.0,
+      "end": 30.0,
+      "duration": 6.0,
+      "desc": "Cảnh 5: Bất ngờ một chú mèo đen mắt sáng rực nhảy vồ ra kêu 'MEOW!', Nam hét toáng vứt chổi trượt chân ngã ngửa ra sàn, rồi nhận ra là mèo nên cười trừ ngượng ngùng."
+    }
+  ]
+}

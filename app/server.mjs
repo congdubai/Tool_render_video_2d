@@ -438,13 +438,15 @@ app.get("/api/ai-code/projects", (req, res) => {
           if (isThanhHaiProject(pDir)) {
             const config = detectThanhHaiConfig(pDir);
             let displayLabel = ent.name;
-            if (ent.name === "reaction-time") {
+            if (ent.name === "so-ma-30s") {
+              displayLabel = "so-ma-30s • Nếu Bạn Là Một Người Cực Kỳ Sợ Ma? (White Cartoon 2D - 30s)";
+            } else if (ent.name === "reaction-time") {
               displayLabel = "reaction-time • Thanh Hai 2D (White Cartoon 2D)";
             } else {
               displayLabel = `${ent.name} • Thanh Hai 2D Studio`;
             }
 
-            sampleProjects.push({
+            const pObj = {
               id: `thanhhai_${ent.name}`,
               name: `⭐ [MẪU DEMO] ${displayLabel}`,
               folderName: ent.name,
@@ -454,7 +456,13 @@ app.get("/api/ai-code/projects", (req, res) => {
               isDemo: true,
               path: pDir,
               config
-            });
+            };
+
+            if (ent.name === "so-ma-30s") {
+              sampleProjects.unshift(pObj);
+            } else {
+              sampleProjects.push(pObj);
+            }
           }
         }
       }

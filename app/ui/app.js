@@ -864,13 +864,13 @@ async function deleteAllImportedProjects() {
 }
 
 // Chọn nhanh Demo project Thanh Hai 2D Studio (Reaction Time - White Cartoon 2D)
-function selectThanhHaiDemoProject(demoKey = "reaction-time") {
+function selectThanhHaiDemoProject(demoKey = "so-ma-30s") {
   const select = document.getElementById("aiProjectSelect");
-  let target = aiState.projects.find((p) => p.id.includes("reaction-time")) || aiState.projects[0];
+  let target = aiState.projects.find((p) => p.id.includes(demoKey)) || aiState.projects.find((p) => p.id.includes("reaction-time")) || aiState.projects[0];
   if (target && select) {
     select.value = target.id;
     handleAiProjectChanged();
-    showToast(`🎨 Đã chọn dự án mẫu: "${target.name}"`);
+    showToast(`👻 Đã chọn dự án: "${target.name}"`);
   } else {
     showToast("Đang tải lại danh sách dự án...");
     loadAiProjectsList();
