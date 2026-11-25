@@ -1,0 +1,42 @@
+{
+  "id": "hat_beanie_winter",
+  "name": "Mũ len mùa đông (Winter Beanie)",
+  "type": "outfit",
+  "category": "accessory",
+  "version": 1,
+  "thumbnail": "/public/assets/outfit/hat_beanie_winter/thumb.png",
+  "filePath": "/public/assets/outfit/hat_beanie_winter/accessory.png",
+  "tags": [
+    "accessory",
+    "headwear",
+    "phase5",
+    "wearable"
+  ],
+  "description": "",
+  "dimensions": {
+    "width": 100,
+    "height": 100,
+    "scale": 1
+  },
+  "anchor": [
+    50,
+    50
+  ],
+  "slot": "headwear",
+  "compatibility": {
+    "bodyProfile": [
+      "white_cartoon",
+      "chibi_standard",
+      "imported_custom",
+      "simple_doodle"
+    ],
+    "requires": [
+      "head_anchor"
+    ]
+  },
+  "license": "Proprietary",
+  "author": "Thanh Hai 2D Studio",
+  "isBuiltin": true,
+  "createdAt": "2026-11-25T06:31:29.658Z",
+  "updatedAt": "2026-11-25T06:31:29.658Z"
+}

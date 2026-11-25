@@ -1,0 +1,93 @@
+{
+  "id": "outfit_business_suit",
+  "name": "Áo Vest Doanh Nhân (Business Suit)",
+  "type": "outfit",
+  "category": "professional",
+  "version": 1,
+  "thumbnail": "/public/assets/outfit/outfit_business_suit/thumb.png",
+  "filePath": "/public/assets/outfit/outfit_business_suit/outfit.png",
+  "tags": [
+    "outfit",
+    "professional",
+    "phase5",
+    "suit"
+  ],
+  "description": "Bộ âu phục sang trọng: áo vest xẻ ve lịch lãm, sơ mi trắng, cà vạt đỏ nổi bật, quần âu tối màu phẳng phiu và giày da đen bóng.",
+  "dimensions": {
+    "width": 140,
+    "height": 180,
+    "scale": 1
+  },
+  "anchor": [
+    70,
+    90
+  ],
+  "slots": {
+    "outer_top": {
+      "type": "suit",
+      "color": "#1e293b",
+      "layer": 20
+    },
+    "inner_top": {
+      "type": "shirt",
+      "color": "#ffffff",
+      "layer": 15
+    },
+    "torso_accessory": {
+      "type": "tie",
+      "color": "#dc2626",
+      "layer": 18
+    },
+    "pants": {
+      "type": "trousers",
+      "color": "#1e293b",
+      "layer": 10
+    },
+    "shoes": {
+      "type": "formal",
+      "color": "#090d16",
+      "layer": 12
+    }
+  },
+  "occlusionMasks": {
+    "hideBaseTorso": true,
+    "hideBaseArms": false,
+    "hideBaseLegs": true
+  },
+  "variants": [
+    {
+      "id": "navy",
+      "label": "Xanh Navy (Navy Blue)",
+      "color": "#1e3a8a",
+      "legs": "#1e3a8a",
+      "tieColor": "#dc2626"
+    },
+    {
+      "id": "charcoal",
+      "label": "Than chì (Charcoal)",
+      "color": "#1e293b",
+      "legs": "#1e293b",
+      "tieColor": "#d97706"
+    },
+    {
+      "id": "black",
+      "label": "Đen quý phái (Classic Black)",
+      "color": "#090d16",
+      "legs": "#090d16",
+      "tieColor": "#ef4444"
+    }
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "white_cartoon",
+      "chibi_standard",
+      "imported_custom"
+    ],
+    "requires": []
+  },
+  "license": "Proprietary",
+  "author": "Thanh Hai 2D Studio",
+  "isBuiltin": true,
+  "createdAt": "2026-11-25T06:31:29.646Z",
+  "updatedAt": "2026-11-25T06:31:29.646Z"
+}

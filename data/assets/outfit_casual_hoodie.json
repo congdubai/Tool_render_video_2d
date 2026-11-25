@@ -1,0 +1,80 @@
+{
+  "id": "outfit_casual_hoodie",
+  "name": "Áo Hoodie & Quần Jeans (Casual Hoodie & Jeans)",
+  "type": "outfit",
+  "category": "everyday",
+  "version": 1,
+  "thumbnail": "/public/assets/outfit/outfit_casual_hoodie/thumb.png",
+  "filePath": "/public/assets/outfit/outfit_casual_hoodie/outfit.png",
+  "tags": [
+    "outfit",
+    "everyday",
+    "phase5",
+    "hoodie"
+  ],
+  "description": "Trang phục năng động thoải mái: áo hoodie túi bụng kangaroo, dây rút trắng, quần jeans ống suông và giày sneakers thể thao.",
+  "dimensions": {
+    "width": 140,
+    "height": 180,
+    "scale": 1
+  },
+  "anchor": [
+    70,
+    90
+  ],
+  "slots": {
+    "outer_top": {
+      "type": "hoodie",
+      "color": "#d64a33",
+      "layer": 20
+    },
+    "pants": {
+      "type": "jeans",
+      "color": "#2e384d",
+      "layer": 10
+    },
+    "shoes": {
+      "type": "sneakers",
+      "color": "#111827",
+      "layer": 12
+    }
+  },
+  "occlusionMasks": {
+    "hideBaseTorso": true,
+    "hideBaseArms": false,
+    "hideBaseLegs": true
+  },
+  "variants": [
+    {
+      "id": "red",
+      "label": "Đỏ thể thao (Crimson Red)",
+      "color": "#d64a33",
+      "legs": "#2e384d"
+    },
+    {
+      "id": "black",
+      "label": "Đen Streetwear (Onyx Black)",
+      "color": "#18181b",
+      "legs": "#3f3f46"
+    },
+    {
+      "id": "forest",
+      "label": "Xanh rêu (Forest Green)",
+      "color": "#15803d",
+      "legs": "#1e293b"
+    }
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "white_cartoon",
+      "chibi_standard",
+      "imported_custom"
+    ],
+    "requires": []
+  },
+  "license": "Proprietary",
+  "author": "Thanh Hai 2D Studio",
+  "isBuiltin": true,
+  "createdAt": "2026-11-25T06:31:29.648Z",
+  "updatedAt": "2026-11-25T06:31:29.648Z"
+}

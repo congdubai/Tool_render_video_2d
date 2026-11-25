@@ -1,0 +1,79 @@
+{
+  "id": "outfit_winter_coat",
+  "name": "Áo Khoác Mùa Đông & Khăn Quàng Len (Winter Parka & Scarf)",
+  "type": "outfit",
+  "category": "seasonal",
+  "version": 1,
+  "thumbnail": "/public/assets/outfit/outfit_winter_coat/thumb.png",
+  "filePath": "/public/assets/outfit/outfit_winter_coat/outfit.png",
+  "tags": [
+    "outfit",
+    "seasonal",
+    "phase5",
+    "winter_coat"
+  ],
+  "description": "Trang phục giữ ấm mùa đông: áo khoác dày bo cổ lông ấm áp, khăn len đỏ quàng quanh cổ, quần giữ nhiệt và ủng tuyết cao cổ.",
+  "dimensions": {
+    "width": 140,
+    "height": 180,
+    "scale": 1
+  },
+  "anchor": [
+    70,
+    90
+  ],
+  "slots": {
+    "outer_top": {
+      "type": "winter_coat",
+      "color": "#0f766e",
+      "layer": 20
+    },
+    "neck_accessory": {
+      "type": "scarf",
+      "color": "#dc2626",
+      "layer": 25
+    },
+    "pants": {
+      "type": "winter_pants",
+      "color": "#1e293b",
+      "layer": 10
+    },
+    "shoes": {
+      "type": "boots",
+      "color": "#334155",
+      "layer": 12
+    }
+  },
+  "occlusionMasks": {
+    "hideBaseTorso": true,
+    "hideBaseArms": false,
+    "hideBaseLegs": true
+  },
+  "variants": [
+    {
+      "id": "teal",
+      "label": "Xanh Teal (Nordic Teal)",
+      "color": "#0f766e",
+      "scarfColor": "#dc2626"
+    },
+    {
+      "id": "maroon",
+      "label": "Đỏ đun (Winter Maroon)",
+      "color": "#881337",
+      "scarfColor": "#fef08a"
+    }
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "white_cartoon",
+      "chibi_standard",
+      "imported_custom"
+    ],
+    "requires": []
+  },
+  "license": "Proprietary",
+  "author": "Thanh Hai 2D Studio",
+  "isBuiltin": true,
+  "createdAt": "2026-11-25T06:31:29.650Z",
+  "updatedAt": "2026-11-25T06:31:29.650Z"
+}

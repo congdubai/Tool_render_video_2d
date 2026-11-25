@@ -249,6 +249,9 @@
           <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #f87171; font-weight: 700;" onclick="toggleV4CompositeActionsPanel()">
             🎬 Composite Actions V4
           </button>
+          <button class="btn btn-sm btn-outline" style="border-color: #10b981; color: #34d399; font-weight: 700;" onclick="toggleV4OutfitCompatibilityPanel()">
+            👔 Outfits & Compatibility V4
+          </button>
           <div id="previewStatusInfo" class="preview-status-info hidden" style="margin: 0; padding: 4px 10px;">
             <span id="previewStatusText">🎥 Đang phát video thành phẩm</span>
           </div>
@@ -590,6 +593,99 @@
               </div>
             </div>
 
+            <!-- Khu vực Outfit Library & Universal Compatibility Engine V4 (Phase 5) -->
+            <div id="v4OutfitCompatibilityPanel" class="hidden" style="background: #0f172a; border: 1px solid #10b981; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="color: #34d399; font-size: 14px;">👔 BỘ ĐIỀU KHIỂN TRANG PHỤC & TƯƠNG THÍCH ASSET V4 (OUTFITS & COMPATIBILITY)</strong>
+                  <span class="asset-type-badge badge-action" style="position: static; background: #10b981; color: white;">PHASE 5</span>
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="toggleV4OutfitCompatibilityPanel()">Đóng ✕</button>
+              </div>
+              <p class="hint-small" style="color: #94a3b8; margin-bottom: 12px;">
+                Giai đoạn 5 • Outfit Slots, Bone-tracking Clothing, Layering Occlusion & Universal Asset Compatibility Inspector. Tách biệt danh tính nhân vật khỏi trang phục; tự động kiểm tra ma trận tương thích giữa nhân vật, rig, trang phục, biểu cảm, đạo cụ & hành động.
+              </p>
+
+              <!-- Grid cấu hình Outfit & Compatibility -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 14px;">
+                <div class="setting-item">
+                  <label for="v4OutfitCharSelect">Nhân vật (Character):</label>
+                  <select id="v4OutfitCharSelect" class="select-control" onchange="updateV4OutfitCompatibilityPreview()">
+                    <option value="doc" selected>Doc (Hoạt hình Trắng - Nhà khoa học)</option>
+                    <option value="alex">Alex (Hoạt hình Trắng - Thiếu niên)</option>
+                    <option value="ben">Ben / Jake (Hoạt hình Trắng - Năng động)</option>
+                    <option value="chibi_luna">Luna (Chibi V9 Standard Cut-out)</option>
+                    <option value="monolithic_doodle">Doodle Guy (Mode C - Monolithic PNG đơn khối)</option>
+                  </select>
+                </div>
+
+                <div class="setting-item">
+                  <label for="v4OutfitSelect">Bộ Trang Phục (Outfit):</label>
+                  <select id="v4OutfitSelect" class="select-control" onchange="updateV4OutfitCompatibilityPreview()">
+                    <option value="outfit_scientist_labcoat" selected>🥼 Áo Blouse Nhà Khoa Học (Lab Coat)</option>
+                    <option value="outfit_business_suit">💼 Âu Phục Doanh Nhân (Business Suit)</option>
+                    <option value="outfit_casual_hoodie">🧥 Áo Hoodie Đường Phố (Casual Hoodie)</option>
+                    <option value="outfit_winter_coat">❄️ Áo Măng Tô Mùa Đông (Winter Parka)</option>
+                    <option value="outfit_historical_inventor">⚙️ Nhà Sáng Chế Cổ Điển (Historical Inventor)</option>
+                    <option value="outfit_casual_tshirt">👕 Áo Thun Năng Động (Casual T-Shirt)</option>
+                  </select>
+                </div>
+
+                <div class="setting-item">
+                  <label for="v4AccessorySelect">Phụ Kiện Đi Kèm (Accessory):</label>
+                  <select id="v4AccessorySelect" class="select-control" onchange="updateV4OutfitCompatibilityPreview()">
+                    <option value="none">-- Không mang phụ kiện --</option>
+                    <option value="face_glasses_round" selected>👓 Kính Tròn Tri Thức (Round Glasses)</option>
+                    <option value="face_goggles_inventor">🥽 Kính Bảo Hộ Sáng Chế (Brass Goggles)</option>
+                    <option value="face_sunglasses_dark">🕶️ Kính Râm Ngầu (Dark Sunglasses)</option>
+                    <option value="hat_crown_gold">👑 Vương Miện Hoàng Gia (Gold Crown)</option>
+                    <option value="hat_beanie_winter">🧶 Mũ Len Mùa Đông (Wool Beanie)</option>
+                    <option value="hat_cap_yellow">🧢 Mũ Lưỡi Trai Vàng (Yellow Cap)</option>
+                    <option value="scarf_red_knit">🧣 Khăn Len Quàng Cổ Đỏ (Red Scarf)</option>
+                  </select>
+                </div>
+
+                <div class="setting-item">
+                  <label for="v4OutfitTimelineTime">Thời Điểm Đổi Trang Phục (s):</label>
+                  <input type="number" id="v4OutfitTimelineTime" class="input-control" min="0" max="60" step="0.5" value="5.0" />
+                </div>
+              </div>
+
+              <!-- Hộp Kết Quả Kiểm Tra Tương Thích Trực Tiếp (Universal Compatibility Inspector Box) -->
+              <div id="v4CompatibilityStatusBox" style="background: #1e293b; border-left: 4px solid #10b981; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span style="font-weight: 700; color: #f1f5f9; font-size: 13px;">🔍 Trạng Thái Tương Thích (Compatibility Assessment):</span>
+                  <span id="v4CompatBadge" class="asset-type-badge" style="position: static; background: #10b981; color: white; font-weight: 700;">COMPATIBLE</span>
+                </div>
+                <div id="v4CompatMessage" style="font-size: 12px; color: #cbd5e1; line-height: 1.5;">
+                  Nhân vật sở hữu Body Profile "white_cartoon", hỗ trợ đầy đủ 11 khe trang phục đa lớp, IK xương và vector rendering. Tương thích hoàn hảo 100%!
+                </div>
+                <div id="v4CompatCapabilities" style="font-size: 11px; color: #94a3b8; margin-top: 6px; font-family: monospace;">
+                  Capabilities: Skeletal IK: ✓ | Vector Outfits: ✓ | Multi-layer: ✓ | Color Tint: ✓
+                </div>
+              </div>
+
+              <!-- Hàng Nút Thao Tác & Quick Demos -->
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 1px solid #334155; padding-top: 12px;">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button class="btn btn-sm btn-outline" style="border-color: #10b981; color: #34d399;" onclick="runV4OutfitCycleDemo()">
+                    🔄 Demo Đổi 5 Trang Phục Nhanh (5-Outfit Cycle)
+                  </button>
+                  <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="openOutfitFittingModal()">
+                    📐 Outfit Fitting & Slot Editor
+                  </button>
+                  <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24;" onclick="openUniversalCompatibilityModal()">
+                    🛡️ Toàn Bộ Ma Trận Tương Thích (Full Matrix)
+                  </button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-sm btn-primary" style="background: #10b981; border-color: #059669;" onclick="applyOutfitChangeToTimeline()">
+                    ➕ Áp Dụng Đổi Trang Phục vào Timeline
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <!-- 1. Tùy chọn cấu hình xuất video & Engine -->
             <div class="render-settings-grid" style="margin-bottom: 16px;">
               <div class="setting-item">
@@ -917,6 +1013,8 @@
                     <option value="tshirt">Áo Thun tay ngắn + Mũ (Jake)</option>
                     <option value="labcoat">Áo Blouse Bác sĩ / Nhà khoa học (Doc)</option>
                     <option value="suit">Vest Lịch Lãm / Cà vạt (Suit)</option>
+                    <option value="winter_coat">Áo Măng Tô Mùa Đông (Winter Parka)</option>
+                    <option value="inventor_vest">Nhà Sáng Chế Cổ Điển (Inventor Vest)</option>
                     <option value="dress">Váy Dễ Thương (Luna Dress)</option>
                     <option value="casual">Thường phục giản dị</option>
                   </select>
@@ -1589,6 +1687,120 @@
             <button class="btn btn-secondary" onclick="closeActionTemplateEditor()">Hủy</button>
             <button class="btn btn-success" style="font-weight: 700;" onclick="saveCustomActionTemplate()">💾 Lưu Mẫu Hành Động</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Outfit Fitting & Slot Editor (Phase 5) -->
+  <div id="outfitFittingModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 780px; width: 90%;">
+      <div class="modal-header">
+        <h2 style="font-size: 16px; color: #34d399; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <span>📐</span> Bộ Hiệu Chỉnh Trang Phục & Khe Đồ (Outfit Fitting & Slot Editor)
+        </h2>
+        <button class="modal-close-btn" onclick="closeOutfitFittingModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <span style="font-size: 12px; color: #94a3b8;">Danh tính nhân vật (Bảo toàn tuyệt đối):</span>
+            <div id="fittingCharIdentity" style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-top: 2px;">
+              Doc (Màu da: #FFFDF8 | Tóc: Xám Bạc | Profile: white_cartoon)
+            </div>
+          </div>
+          <span class="asset-type-badge badge-action" style="position: static; background: #10b981; color: white;">IDENTITY LOCKED</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+          <div class="setting-item">
+            <label for="fittingOutfitSelect">Bộ trang phục chuẩn (Preset):</label>
+            <select id="fittingOutfitSelect" class="select-control" onchange="loadOutfitIntoFittingEditor()">
+              <option value="outfit_scientist_labcoat" selected>Áo Blouse Nhà Khoa Học (Labcoat)</option>
+              <option value="outfit_business_suit">Âu Phục Doanh Nhân (Business Suit)</option>
+              <option value="outfit_casual_hoodie">Áo Hoodie Thể Thao (Casual Hoodie)</option>
+              <option value="outfit_winter_coat">Áo Măng Tô Mùa Đông (Winter Parka)</option>
+              <option value="outfit_historical_inventor">Nhà Sáng Chế Cổ Điển (Historical Inventor)</option>
+              <option value="outfit_casual_tshirt">Áo Thun Năng Động (Casual T-Shirt)</option>
+            </select>
+          </div>
+
+          <div class="setting-item">
+            <label for="fittingScale">Tỉ lệ Fitting Scale: <span id="valFittingScale" style="color: #34d399;">1.00x</span></label>
+            <input type="range" id="fittingScale" min="0.80" max="1.20" step="0.02" value="1.00" oninput="document.getElementById('valFittingScale').textContent=this.value+'x';" />
+          </div>
+
+          <div class="setting-item">
+            <label for="fittingOffsetX">Độ dịch Offset X: <span id="valFittingOffsetX" style="color: #34d399;">0px</span></label>
+            <input type="range" id="fittingOffsetX" min="-25" max="25" step="1" value="0" oninput="document.getElementById('valFittingOffsetX').textContent=this.value+'px';" />
+          </div>
+
+          <div class="setting-item">
+            <label for="fittingOffsetY">Độ dịch Offset Y: <span id="valFittingOffsetY" style="color: #34d399;">0px</span></label>
+            <input type="range" id="fittingOffsetY" min="-25" max="25" step="1" value="0" oninput="document.getElementById('valFittingOffsetY').textContent=this.value+'px';" />
+          </div>
+        </div>
+
+        <div style="background: #090d16; border-radius: 6px; padding: 12px; border: 1px solid #1e293b;">
+          <h4 style="font-size: 13px; color: #38bdf8; margin: 0 0 10px 0;">🛡️ Khe Đồ & Mặt Nạ Che Khuất (Occlusion Masking):</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; font-size: 12px; color: #cbd5e1;">
+            <div><label><input type="checkbox" id="maskHideTorso" checked /> Che thân áo lót (Hide Base Torso)</label></div>
+            <div><label><input type="checkbox" id="maskHideLegs" checked /> Che quần trong (Hide Base Legs)</label></div>
+            <div><label><input type="checkbox" id="maskHideArms" /> Che cánh tay (Hide Base Arms)</label></div>
+            <div><label><input type="checkbox" id="maskCollarSnap" checked /> Tự động khóa cổ ve áo (Collar Snap)</label></div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #334155; padding-top: 12px;">
+          <button class="btn btn-secondary" onclick="closeOutfitFittingModal()">Đóng</button>
+          <button class="btn btn-success" style="font-weight: 700;" onclick="saveOutfitFittingConfig()">💾 Lưu Cấu Hình Fitting</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Universal Compatibility Matrix Inspector (Phase 5) -->
+  <div id="universalCompatibilityModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 900px; width: 95%;">
+      <div class="modal-header">
+        <h2 style="font-size: 16px; color: #f59e0b; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <span>🛡️</span> Ma Trận Tương Thích Tài Nguyên Hoạt Hình (Universal Asset Compatibility Matrix)
+        </h2>
+        <button class="modal-close-btn" onclick="closeUniversalCompatibilityModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; background: #0f172a; padding: 12px; border-radius: 6px;">
+          <div>
+            <span style="font-size: 12px; color: #94a3b8;">Nhân vật được kiểm tra:</span>
+            <div id="compatInspectorCharName" style="font-size: 14px; font-weight: 700; color: #f8fafc;">Doc (White Cartoon Character)</div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-sm btn-outline active" onclick="filterCompatibilityList('all')">Tất cả (<span id="countCompatAll">0</span>)</button>
+            <button class="btn btn-sm btn-outline" style="border-color: #10b981; color: #34d399;" onclick="filterCompatibilityList('compatible')">Tương thích (<span id="countCompatOk">0</span>)</button>
+            <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24;" onclick="filterCompatibilityList('partial')">Một phần (<span id="countCompatPartial">0</span>)</button>
+            <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #f87171;" onclick="filterCompatibilityList('incompatible')">Không tương thích (<span id="countCompatNo">0</span>)</button>
+          </div>
+        </div>
+
+        <div style="max-height: 420px; overflow-y: auto; border: 1px solid #1e293b; border-radius: 6px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+            <thead style="background: #1e293b; color: #94a3b8; position: sticky; top: 0;">
+              <tr>
+                <th style="padding: 8px 12px;">Loại (Type)</th>
+                <th style="padding: 8px 12px;">Mã Tài Nguyên (Asset ID)</th>
+                <th style="padding: 8px 12px;">Tên Tài Nguyên</th>
+                <th style="padding: 8px 12px;">Trạng Thái</th>
+                <th style="padding: 8px 12px;">Chẩn Đoán / Khuyến Nghị</th>
+              </tr>
+            </thead>
+            <tbody id="universalCompatibilityTableBody">
+              <!-- Dynamically populated via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; border-top: 1px solid #334155; padding-top: 12px;">
+          <button class="btn btn-secondary" onclick="closeUniversalCompatibilityModal()">Đóng</button>
         </div>
       </div>
     </div>

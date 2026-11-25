@@ -457,7 +457,7 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
   // 5. Ngũ quan & Biểu cảm hoạt hình Universal Rig V4
   drawFacialExpressionV4(g, 0, 0, HR, expr, o, dir, inkCol, t);
 
-  // Kính Doc
+  // Phụ kiện kính & mắt
   if (char.face === 'glasses') {
     const c = inkCol;
     g.strokeStyle = c;
@@ -468,6 +468,53 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
       g.stroke();
     }
     seg(g, [[-0.5, -4], [3.5, -4]], 2, c);
+  } else if (char.face === 'goggles') {
+    // Kính bảo hộ kỹ sư / nhà phát minh
+    g.fillStyle = '#78350f';
+    g.strokeStyle = inkCol;
+    g.lineWidth = 2.4;
+    rr(g, -18, -10, 36, 12, 4);
+    g.fill();
+    g.stroke();
+    // 2 mắt kính vàng đồng
+    circle(g, -8, -4, 5, '#fef08a');
+    ring(g, -8, -4, 5, 2.0, '#d97706');
+    circle(g, 8, -4, 5, '#fef08a');
+    ring(g, 8, -4, 5, 2.0, '#d97706');
+  } else if (char.face === 'sunglasses') {
+    // Kính râm đen thời trang
+    g.fillStyle = '#090d16';
+    g.strokeStyle = inkCol;
+    g.lineWidth = 2.2;
+    poly(g, [[-16, -9], [-2, -9], [-4, 2], [-14, 2]], '#090d16');
+    g.stroke();
+    poly(g, [[2, -9], [16, -9], [14, 2], [4, 2]], '#090d16');
+    g.stroke();
+    seg(g, [[-2, -6], [2, -6]], 2.4, inkCol);
+  }
+
+  // Phụ kiện mũ khác (crown, beanie)
+  if (char.head === 'crown') {
+    g.fillStyle = '#f59e0b';
+    g.strokeStyle = inkCol;
+    g.lineWidth = 2.6;
+    poly(g, [
+      [-18, -HR + 4], [-16, -HR - 14], [-8, -HR - 6], [0, -HR - 20], [8, -HR - 6], [16, -HR - 14], [18, -HR + 4]
+    ], '#f59e0b');
+    g.stroke();
+    circle(g, 0, -HR - 20, 2.8, '#dc2626');
+  } else if (char.head === 'beanie') {
+    g.fillStyle = char.headColor || '#0f766e';
+    g.strokeStyle = inkCol;
+    g.lineWidth = 3.0;
+    g.beginPath();
+    g.arc(0, -6, HR + 2, Math.PI * 0.95, Math.PI * 2.05);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    // Chóp len tròn
+    circle(g, 0, -HR - 6, 4.5, '#f1f5f9');
+    g.stroke();
   }
   g.restore();
 }
@@ -640,7 +687,7 @@ export function drawWhiteCartoonTorso(g, p, char, inkCol, dir, isSit = false) {
         g.stroke();
 
         // Vạt áo labcoat xòe xuống hông
-        g.fillStyle = '#f3f4f6';
+        g.fillStyle = char.color || '#f3f4f6';
         g.strokeStyle = inkCol;
         g.lineWidth = 2.6;
         g.beginPath();
@@ -651,6 +698,132 @@ export function drawWhiteCartoonTorso(g, p, char, inkCol, dir, isSit = false) {
         g.closePath();
         g.fill();
         g.stroke();
+      } else if (char.top === 'suit') {
+        // Áo vest doanh nhân / công sở (Business Suit)
+        // Áo sơ mi trắng bên trong
+        g.fillStyle = char.innerColor || '#ffffff';
+        g.beginPath();
+        g.moveTo(sx - 7, sy);
+        g.lineTo(sx + 7, sy);
+        g.lineTo(sx, sy + 22);
+        g.closePath();
+        g.fill();
+
+        // Cà vạt đỏ quyền lực (Power Red Tie)
+        g.fillStyle = char.tieColor || '#dc2626';
+        g.beginPath();
+        g.moveTo(sx - 2.5, sy + 2);
+        g.lineTo(sx + 2.5, sy + 2);
+        g.lineTo(sx + 3.5, sy + 18);
+        g.lineTo(sx, sy + 23);
+        g.lineTo(sx - 3.5, sy + 18);
+        g.closePath();
+        g.fill();
+
+        // Ve áo vest xẻ chữ V (Lapels)
+        g.fillStyle = topCol;
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.4;
+        poly(g, [[sx - 12, sy], [sx - 7, sy], [sx - 1, sy + 20], [sx - 9, sy + 18]], topCol);
+        g.stroke();
+        poly(g, [[sx + 12, sy], [sx + 7, sy], [sx + 1, sy + 20], [sx + 9, sy + 18]], topCol);
+        g.stroke();
+
+        // Vạt áo vest ngang hông
+        g.fillStyle = topCol;
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.4;
+        g.beginPath();
+        g.moveTo(hx - wBot, beltY);
+        g.lineTo(hx - wBot - 2, hy + 8);
+        g.lineTo(hx + wBot + 2, hy + 8);
+        g.lineTo(hx + wBot, beltY);
+        g.closePath();
+        g.fill();
+        g.stroke();
+
+        // Cúc áo vest kim loại
+        circle(g, sx, sy + 25, 1.8, '#cbd5e1');
+        circle(g, sx, sy + 31, 1.8, '#cbd5e1');
+      } else if (char.top === 'winter_coat') {
+        // Áo khoác măng tô mùa đông (Winter Coat)
+        // Vạt áo dài bo ấm
+        g.fillStyle = topCol;
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.6;
+        g.beginPath();
+        g.moveTo(hx - wBot, beltY);
+        g.lineTo(hx - wBot - 3, hy + 18);
+        g.lineTo(hx + wBot + 3, hy + 18);
+        g.lineTo(hx + wBot, beltY);
+        g.closePath();
+        g.fill();
+        g.stroke();
+
+        // Bo lông cừu cổ áo
+        g.fillStyle = char.furColor || '#f1f5f9';
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.2;
+        rr(g, sx - 15, sy - 5, 30, 11, 5);
+        g.fill();
+        g.stroke();
+
+        // Khăn quàng len đỏ
+        if (char.hasScarf !== false) {
+          g.fillStyle = char.scarfColor || '#dc2626';
+          g.strokeStyle = inkCol;
+          g.lineWidth = 2.2;
+          rr(g, sx - 12, sy - 2, 24, 9, 3);
+          g.fill();
+          g.stroke();
+          // Đuôi khăn rủ
+          g.beginPath();
+          g.moveTo(sx + 3, sy + 5);
+          g.lineTo(sx + 9, sy + 5);
+          g.lineTo(sx + 7, sy + 24);
+          g.lineTo(sx + 1, sy + 24);
+          g.closePath();
+          g.fill();
+          g.stroke();
+        }
+      } else if (char.top === 'inventor_vest') {
+        // Áo gile nhà phát minh thế kỷ 19 (Historical Inventor)
+        // Cổ sơ mi kem
+        g.fillStyle = char.shirtColor || '#fef3c7';
+        g.beginPath();
+        g.moveTo(sx - 6, sy);
+        g.lineTo(sx + 6, sy);
+        g.lineTo(sx, sy + 18);
+        g.closePath();
+        g.fill();
+
+        // Áo gile tweed nâu
+        g.fillStyle = topCol;
+        g.strokeStyle = inkCol;
+        g.lineWidth = 2.4;
+        g.beginPath();
+        g.moveTo(sx - 14, sy);
+        g.lineTo(sx - 6, sy);
+        g.lineTo(sx, sy + 18);
+        g.lineTo(sx + 6, sy);
+        g.lineTo(sx + 14, sy);
+        g.lineTo(hx + wBot, beltY);
+        g.lineTo(hx - wBot, beltY);
+        g.closePath();
+        g.fill();
+        g.stroke();
+
+        // Dây xích đồng hồ quả quýt vàng
+        g.strokeStyle = char.watchChain || '#d97706';
+        g.lineWidth = 1.8;
+        g.beginPath();
+        g.moveTo(sx - 3, sy + 16);
+        g.quadraticCurveTo(sx + 4, sy + 23, sx + 8, sy + 18);
+        g.stroke();
+
+        // Cúc áo gile
+        circle(g, sx, sy + 11, 1.5, '#451a03');
+        circle(g, sx, sy + 15, 1.5, '#451a03');
       }
     }
   }

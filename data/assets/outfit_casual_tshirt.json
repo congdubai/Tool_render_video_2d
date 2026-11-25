@@ -1,0 +1,66 @@
+{
+  "id": "outfit_casual_tshirt",
+  "name": "Áo Thun & Quần Đùi (Casual T-Shirt & Shorts)",
+  "type": "outfit",
+  "category": "everyday",
+  "version": 1,
+  "thumbnail": "/public/assets/outfit/outfit_casual_tshirt/thumb.png",
+  "filePath": "/public/assets/outfit/outfit_casual_tshirt/outfit.png",
+  "tags": [
+    "outfit",
+    "everyday",
+    "phase5",
+    "tshirt"
+  ],
+  "description": "Áo phông tay ngắn thoải mái, cổ áo tròn, quần soóc mát mẻ đi kèm mũ lưỡi trai và giày sneakers.",
+  "dimensions": {
+    "width": 140,
+    "height": 180,
+    "scale": 1
+  },
+  "anchor": [
+    70,
+    90
+  ],
+  "slots": {
+    "outer_top": {
+      "type": "tshirt",
+      "color": "#3a6ea5",
+      "layer": 20
+    },
+    "pants": {
+      "type": "shorts",
+      "color": "#374151",
+      "layer": 10
+    },
+    "headwear": {
+      "type": "cap",
+      "color": "#f2c21a",
+      "layer": 30
+    },
+    "shoes": {
+      "type": "sneakers",
+      "color": "#111827",
+      "layer": 12
+    }
+  },
+  "occlusionMasks": {
+    "hideBaseTorso": true,
+    "hideBaseArms": false,
+    "hideBaseLegs": true
+  },
+  "variants": [],
+  "compatibility": {
+    "bodyProfile": [
+      "white_cartoon",
+      "chibi_standard",
+      "imported_custom"
+    ],
+    "requires": []
+  },
+  "license": "Proprietary",
+  "author": "Thanh Hai 2D Studio",
+  "isBuiltin": true,
+  "createdAt": "2026-11-25T06:31:29.654Z",
+  "updatedAt": "2026-11-25T06:31:29.654Z"
+}

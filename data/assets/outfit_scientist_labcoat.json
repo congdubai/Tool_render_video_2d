@@ -1,32 +1,95 @@
 {
   "id": "outfit_scientist_labcoat",
-  "name": "Áo Blouse Nhà Khoa Học",
+  "name": "Áo Blouse Nhà Khoa Học (Scientist Lab Coat)",
   "type": "outfit",
-  "category": "scientist",
+  "category": "professional",
+  "version": 1,
+  "thumbnail": "/public/assets/outfit/outfit_scientist_labcoat/thumb.png",
+  "filePath": "/public/assets/outfit/outfit_scientist_labcoat/outfit.png",
   "tags": [
-    "lab",
-    "doctor",
-    "researcher"
+    "outfit",
+    "professional",
+    "phase5",
+    "labcoat"
   ],
-  "description": "Áo blouse trắng dài tay kèm kính mắt tri thức và bút cài ngực.",
+  "description": "Áo blouse trắng tinh của nhà khoa học với túi ngực cắm bút, ve áo chữ V, áo trong sơ mi xanh thắt cà vạt, quần âu xám đen và giày công sở.",
   "dimensions": {
     "width": 140,
-    "height": 200,
+    "height": 180,
     "scale": 1
   },
   "anchor": [
     70,
-    40
+    90
+  ],
+  "slots": {
+    "outer_top": {
+      "type": "labcoat",
+      "color": "#f8fafc",
+      "layer": 20
+    },
+    "inner_top": {
+      "type": "shirt",
+      "color": "#e0f2fe",
+      "layer": 15
+    },
+    "torso_accessory": {
+      "type": "tie",
+      "color": "#1e3a8a",
+      "layer": 18
+    },
+    "pants": {
+      "type": "trousers",
+      "color": "#1e293b",
+      "layer": 10
+    },
+    "shoes": {
+      "type": "casual",
+      "color": "#0f172a",
+      "layer": 12
+    },
+    "facewear": {
+      "type": "glasses",
+      "color": "#1e293b",
+      "layer": 35
+    }
+  },
+  "occlusionMasks": {
+    "hideBaseTorso": true,
+    "hideBaseArms": false,
+    "hideBaseLegs": true
+  },
+  "variants": [
+    {
+      "id": "white",
+      "label": "Trắng chuẩn (Classic White)",
+      "color": "#f8fafc",
+      "legs": "#1e293b"
+    },
+    {
+      "id": "light_gray",
+      "label": "Xám phòng thí nghiệm (Lab Gray)",
+      "color": "#e2e8f0",
+      "legs": "#0f172a"
+    },
+    {
+      "id": "cream",
+      "label": "Kem cổ điển (Vintage Cream)",
+      "color": "#fef3c7",
+      "legs": "#292524"
+    }
   ],
   "compatibility": {
     "bodyProfile": [
       "white_cartoon",
-      "chibi"
-    ]
+      "chibi_standard",
+      "imported_custom"
+    ],
+    "requires": []
   },
+  "license": "Proprietary",
+  "author": "Thanh Hai 2D Studio",
   "isBuiltin": true,
-  "version": 1,
-  "thumbnail": "/public/assets/outfit/outfit_scientist_labcoat/thumb.png",
-  "createdAt": "2026-11-23T13:04:15.078Z",
-  "updatedAt": "2026-11-23T13:04:15.078Z"
+  "createdAt": "2026-11-25T06:31:29.641Z",
+  "updatedAt": "2026-11-25T06:31:29.642Z"
 }
