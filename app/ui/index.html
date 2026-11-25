@@ -35,7 +35,7 @@
       <span class="tab-num">2</span> 🎨 Dựng Video Thanh Hai 2D
     </button>
     <button id="tabBtn3" class="tab-btn" onclick="switchTab(3)">
-      <span class="tab-num">3</span> 🎭 Nhân Vật (Character System V2)
+      <span class="tab-num">3</span> 🎭 Nhân Vật & Tài Nguyên V4
     </button>
   </nav>
 
@@ -897,61 +897,15 @@
         </div>
       </div>
     </section>
-    <!-- Khu vực C: Universal Animation & Asset Library V4 -->
-    <section class="card" id="universalAssetLibrarySection" style="margin-top: 20px;">
-      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <div>
-          <h2>C. Thư Viện Tài Nguyên Dùng Chung (Universal Asset Library V4)</h2>
-          <span class="hint">Kho tài nguyên hoạt hình tái sử dụng: Biểu cảm, Trang phục, Đạo cụ, Hành động, VFX, Thời tiết, Bối cảnh & Composite Actions</span>
-        </div>
-        <div class="card-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button class="btn btn-sm btn-success" style="font-weight: 700;" onclick="openCreateAssetModal()">➕ Thêm Asset Mới</button>
-          <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="openAssetPackImportModal()">📦 Import Gói ZIP</button>
-          <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc;" onclick="exportCurrentAssetTypeZip()">⬇️ Xuất Gói ZIP</button>
-          <button class="btn btn-sm btn-outline" onclick="loadUniversalAssetsList()">🔄 Làm mới</button>
-        </div>
-      </div>
-      <div class="card-body">
-        <!-- Category Filter Tabs -->
-        <div class="asset-category-tabs" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px;">
-          <button class="btn btn-sm btn-secondary active" id="assetCat_all" onclick="filterAssetsByType('all')">🌟 Tất cả (<span id="assetCount_all">0</span>)</button>
-          <button class="btn btn-sm btn-secondary" id="assetCat_expression" onclick="filterAssetsByType('expression')">🎭 Biểu Cảm (<span id="assetCount_expression">0</span>)</button>
-          <button class="btn btn-sm btn-secondary" id="assetCat_outfit" onclick="filterAssetsByType('outfit')">👕 Trang Phục (<span id="assetCount_outfit">0</span>)</button>
-          <button class="btn btn-sm btn-secondary" id="assetCat_prop" onclick="filterAssetsByType('prop')">📦 Đạo Cụ (<span id="assetCount_prop">0</span>)</button>
-          <button class="btn btn-sm btn-secondary" id="assetCat_action" onclick="filterAssetsByType('action')">🏃 Hành Động (<span id="assetCount_action">0</span>)</button>
-          <button class="btn btn-sm btn-secondary" id="assetCat_vfx" onclick="filterAssetsByType('vfx')">✨ Cartoon VFX (<span id="assetCount_vfx">0</span>)</button>
-          <button class="btn btn-sm btn-secondary" id="assetCat_weather" onclick="filterAssetsByType('weather')">🌧️ Thời Tiết (<span id="assetCount_weather">0</span>)</button>
-          <button class="btn btn-sm btn-secondary" id="assetCat_background" onclick="filterAssetsByType('background')">🏙️ Bối Cảnh (<span id="assetCount_background">0</span>)</button>
-          <button class="btn btn-sm btn-secondary" id="assetCat_composite_action" onclick="filterAssetsByType('composite_action')">💥 Composite Actions (<span id="assetCount_composite_action">0</span>)</button>
-        </div>
-
-        <!-- Search & Quick Filters -->
-        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
-          <div style="flex: 2; min-width: 200px;">
-            <input type="text" id="assetSearchInput" class="text-input" placeholder="🔍 Tìm kiếm theo tên, ID, mô tả hoặc tag..." oninput="handleAssetSearch(event)" />
-          </div>
-          <div style="flex: 1; min-width: 150px;">
-            <select id="assetCategorySubFilter" class="select-control" onchange="handleAssetCategorySubFilter(event)">
-              <option value="">-- Tất cả nhóm phụ --</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Asset Grid -->
-        <div id="universalAssetGrid" class="universal-asset-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; min-height: 200px;">
-          <div class="empty-state">Đang nạp tài nguyên thư viện...</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Khu vực D: Thư Viện Video Đã Dựng (out/) -->
+    <!-- Khu vực C: Thư Viện Video Đã Dựng (out/) -->
     <section class="card" id="videoGallerySection" style="margin-top: 20px;">
       <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h2>D. Danh Sách Video Đã Dựng (Thư Viện Video)</h2>
+          <h2>C. Danh Sách Video Đã Dựng (Thư Viện Video)</h2>
           <span class="hint">Tất cả video MP4 đã render trong thư mục <code>out/</code></span>
         </div>
-        <div class="card-actions">
+        <div class="card-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; font-weight: 600;" onclick="scrollToAssetLibrary();">📦 Thư Viện Tài Nguyên V4 (Sang Tab 3)</button>
           <button class="btn btn-sm btn-outline" onclick="loadVideosList()">🔄 Làm mới danh sách</button>
           <button class="btn btn-sm btn-outline" onclick="openOutputFolder()">📂 Mở thư mục out/</button>
         </div>
@@ -978,7 +932,7 @@
           <span class="hint">Hỗ trợ 2 chế độ: Mode A (Nhân vật dựng sẵn Chibi / White Cartoon) & Mode B (Import nhân vật tách lớp / PNG ngoài)</span>
         </div>
         <div class="card-actions" style="display: flex; gap: 8px;">
-          <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc;" onclick="switchTab(2); scrollToAssetLibrary();">📚 Mở Thư Viện Dùng Chung V4</button>
+          <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc;" onclick="scrollToAssetLibrary();">📦 Cuộn đến Thư Viện Tài Nguyên V4</button>
           <button class="btn btn-sm btn-success" style="font-weight: 700;" onclick="openImportModal()">➕ Import Nhân Vật (Mode B)</button>
           <button class="btn btn-sm btn-primary" onclick="createNewCharacter()">➕ Tạo Nhân Vật Mới (Mode A)</button>
           <button class="btn btn-sm btn-outline" onclick="loadCharacterLibrary()">🔄 Làm mới</button>
@@ -1416,6 +1370,53 @@
         </div>
       </section>
     </div>
+
+    <!-- ================= THƯ VIỆN TÀI NGUYÊN DÙNG CHUNG (UNIVERSAL ASSET LIBRARY V4) ================= -->
+    <section class="card" id="universalAssetLibrarySection" style="margin-top: 24px;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>C. Thư Viện Tài Nguyên Dùng Chung (Universal Asset Library V4)</h2>
+          <span class="hint">Kho tài nguyên hoạt hình tái sử dụng: Biểu cảm, Trang phục, Đạo cụ, Hành động, VFX, Thời tiết, Bối cảnh & Composite Actions</span>
+        </div>
+        <div class="card-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-success" style="font-weight: 700;" onclick="openCreateAssetModal()">➕ Thêm Asset Mới</button>
+          <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="openAssetPackImportModal()">📦 Import Gói ZIP</button>
+          <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc;" onclick="exportCurrentAssetTypeZip()">⬇️ Xuất Gói ZIP</button>
+          <button class="btn btn-sm btn-outline" onclick="loadUniversalAssetsList()">🔄 Làm mới</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- Category Filter Tabs -->
+        <div class="asset-category-tabs" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px;">
+          <button class="btn btn-sm btn-secondary active" id="assetCat_all" onclick="filterAssetsByType('all')">🌟 Tất cả (<span id="assetCount_all">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="assetCat_expression" onclick="filterAssetsByType('expression')">🎭 Biểu Cảm (<span id="assetCount_expression">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="assetCat_outfit" onclick="filterAssetsByType('outfit')">👕 Trang Phục (<span id="assetCount_outfit">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="assetCat_prop" onclick="filterAssetsByType('prop')">📦 Đạo Cụ (<span id="assetCount_prop">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="assetCat_action" onclick="filterAssetsByType('action')">🏃 Hành Động (<span id="assetCount_action">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="assetCat_vfx" onclick="filterAssetsByType('vfx')">✨ Cartoon VFX (<span id="assetCount_vfx">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="assetCat_weather" onclick="filterAssetsByType('weather')">🌧️ Thời Tiết (<span id="assetCount_weather">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="assetCat_background" onclick="filterAssetsByType('background')">🏙️ Bối Cảnh (<span id="assetCount_background">0</span>)</button>
+          <button class="btn btn-sm btn-secondary" id="assetCat_composite_action" onclick="filterAssetsByType('composite_action')">💥 Composite Actions (<span id="assetCount_composite_action">0</span>)</button>
+        </div>
+
+        <!-- Search & Quick Filters -->
+        <div style="display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+          <div style="flex: 2; min-width: 200px;">
+            <input type="text" id="assetSearchInput" class="text-input" placeholder="🔍 Tìm kiếm theo tên, ID, mô tả hoặc tag..." oninput="handleAssetSearch(event)" />
+          </div>
+          <div style="flex: 1; min-width: 150px;">
+            <select id="assetCategorySubFilter" class="select-control" onchange="handleAssetCategorySubFilter(event)">
+              <option value="">-- Tất cả nhóm phụ --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Asset Grid -->
+        <div id="universalAssetGrid" class="universal-asset-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; min-height: 200px;">
+          <div class="empty-state">Đang nạp tài nguyên thư viện...</div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- ================= POPUP MODAL: CHARACTER IMPORT WIZARD (MODE B) ================= -->

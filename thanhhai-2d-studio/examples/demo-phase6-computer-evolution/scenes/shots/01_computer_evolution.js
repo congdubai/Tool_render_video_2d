@@ -477,3 +477,4 @@ registerShot('s008', {
     drawSubtitleBar(g, info.line, W, H);
   }
 });
+

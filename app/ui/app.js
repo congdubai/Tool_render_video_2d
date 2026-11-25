@@ -82,6 +82,7 @@ function switchTab(tabNum) {
     loadVideosList();
   } else if (tabNum === 3) {
     loadCharacterLibrary();
+    loadUniversalAssetsList();
   }
 }
 
@@ -3993,14 +3994,17 @@ const universalAssetState = {
   }
 };
 
-// Cuộn mượt đến bảng Thư Viện Tài Nguyên
+// Cuộn mượt đến bảng Thư Viện Tài Nguyên (Tab 3)
 function scrollToAssetLibrary() {
-  const el = document.getElementById('universalAssetLibrarySection');
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    el.style.boxShadow = '0 0 0 2px #38bdf8';
-    setTimeout(() => { el.style.boxShadow = ''; }, 1600);
-  }
+  switchTab(3);
+  setTimeout(() => {
+    const el = document.getElementById('universalAssetLibrarySection');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      el.style.boxShadow = '0 0 0 2px #38bdf8';
+      setTimeout(() => { el.style.boxShadow = ''; }, 1600);
+    }
+  }, 120);
 }
 
 // Nạp danh sách toàn bộ tài nguyên từ server
