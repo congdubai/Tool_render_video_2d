@@ -1,0 +1,33 @@
+{
+  "id": "vfx_dust_cloud",
+  "name": "Đám Bụi Cuộn (Dust Cloud)",
+  "type": "vfx",
+  "category": "action",
+  "tags": [
+    "dust",
+    "smoke",
+    "puff",
+    "run"
+  ],
+  "description": "Đám khói bụi hoạt hình cuộn tròn bung ra sau bước chạy.",
+  "dimensions": {
+    "width": 90,
+    "height": 70,
+    "scale": 1
+  },
+  "anchor": [
+    45,
+    65
+  ],
+  "compatibility": {
+    "requires": [
+      "feet_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_dust_cloud/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_dust_cloud/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.956Z",
+  "updatedAt": "2026-11-25T05:40:08.956Z"
+}

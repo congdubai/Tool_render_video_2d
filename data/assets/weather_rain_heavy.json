@@ -1,0 +1,30 @@
+{
+  "id": "weather_rain_heavy",
+  "name": "Mưa To Xối Xả (Heavy Torrential Rain)",
+  "type": "weather",
+  "category": "precipitation",
+  "tags": [
+    "rain",
+    "storm",
+    "heavy",
+    "wet"
+  ],
+  "description": "Cơn mưa lớn xối xả trắng trời kèm hiệu ứng tạt nước mạnh mẽ.",
+  "parameters": {
+    "intensity": "heavy",
+    "windAngle": 0.28,
+    "speed": 2800,
+    "splash": true
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/weather/weather_rain_heavy/thumb.png",
+  "filePath": "/public/assets/weather/weather_rain_heavy/weather.png",
+  "createdAt": "2026-11-25T05:40:08.963Z",
+  "updatedAt": "2026-11-25T05:40:08.963Z"
+}

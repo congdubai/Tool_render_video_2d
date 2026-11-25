@@ -1,0 +1,28 @@
+{
+  "id": "weather_storm_thunder",
+  "name": "Bão Tố Sấm Sét (Thunderstorm)",
+  "type": "weather",
+  "category": "storm",
+  "tags": [
+    "storm",
+    "thunder",
+    "lightning",
+    "rain"
+  ],
+  "description": "Mưa bão dữ dội kèm theo những tia sét chói lòa xé toạc màn đêm.",
+  "parameters": {
+    "rainColor": "#93c5fd",
+    "lightning": true
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/weather/weather_storm_thunder/thumb.png",
+  "filePath": "/public/assets/weather/weather_storm_thunder/weather.png",
+  "createdAt": "2026-11-25T05:40:08.964Z",
+  "updatedAt": "2026-11-25T05:40:08.964Z"
+}

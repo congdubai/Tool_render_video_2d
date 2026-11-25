@@ -1,0 +1,32 @@
+{
+  "id": "vfx_question_mark",
+  "name": "Dấu Hỏi Băn Khoăn (Question Mark)",
+  "type": "vfx",
+  "category": "emotion",
+  "tags": [
+    "question",
+    "confused",
+    "curious"
+  ],
+  "description": "Biểu tượng dấu hỏi màu xanh nổi bồng bềnh trên đầu.",
+  "dimensions": {
+    "width": 40,
+    "height": 50,
+    "scale": 1
+  },
+  "anchor": [
+    20,
+    45
+  ],
+  "compatibility": {
+    "requires": [
+      "head_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_question_mark/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_question_mark/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.941Z",
+  "updatedAt": "2026-11-25T05:40:08.941Z"
+}

@@ -1,0 +1,33 @@
+{
+  "id": "vfx_sparkles",
+  "name": "Hạt Sáng Lấp Lánh (Sparkles)",
+  "type": "vfx",
+  "category": "energy",
+  "tags": [
+    "sparkles",
+    "glitter",
+    "twinkle",
+    "magic"
+  ],
+  "description": "Các đốm sáng 4 cánh lấp lánh như kim cương.",
+  "dimensions": {
+    "width": 140,
+    "height": 140,
+    "scale": 1
+  },
+  "anchor": [
+    70,
+    70
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_sparkles/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_sparkles/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.962Z",
+  "updatedAt": "2026-11-25T05:40:08.962Z"
+}

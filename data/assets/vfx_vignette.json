@@ -1,0 +1,33 @@
+{
+  "id": "vfx_vignette",
+  "name": "Tối Góc Điện Ảnh (Vignette)",
+  "type": "vfx",
+  "category": "scene",
+  "tags": [
+    "vignette",
+    "cinematic",
+    "focus",
+    "dark"
+  ],
+  "description": "Quầng tối 4 góc màn hình tập trung thị giác vào hành động chính.",
+  "dimensions": {
+    "width": 1920,
+    "height": 1080,
+    "scale": 1
+  },
+  "anchor": [
+    960,
+    540
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_vignette/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_vignette/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.962Z",
+  "updatedAt": "2026-11-25T05:40:08.962Z"
+}

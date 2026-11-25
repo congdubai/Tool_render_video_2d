@@ -1,0 +1,33 @@
+{
+  "id": "vfx_anger_smoke",
+  "name": "Khói Bốc Trên Đầu (Anger Smoke)",
+  "type": "vfx",
+  "category": "emotion",
+  "tags": [
+    "anger",
+    "smoke",
+    "rage",
+    "steam"
+  ],
+  "description": "Khói trắng bốc lên cuồn cuộn từ thái dương khi phát hỏa.",
+  "dimensions": {
+    "width": 60,
+    "height": 80,
+    "scale": 1
+  },
+  "anchor": [
+    30,
+    75
+  ],
+  "compatibility": {
+    "requires": [
+      "head_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_anger_smoke/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_anger_smoke/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.940Z",
+  "updatedAt": "2026-11-25T05:40:08.941Z"
+}

@@ -1,0 +1,32 @@
+{
+  "id": "vfx_power_burst",
+  "name": "Bùng Phát Năng Lượng (Power Burst)",
+  "type": "vfx",
+  "category": "energy",
+  "tags": [
+    "burst",
+    "nova",
+    "wave"
+  ],
+  "description": "Vòng tròn sóng nova phát nổ từ ngực nhân vật ra toàn khung hình.",
+  "dimensions": {
+    "width": 200,
+    "height": 200,
+    "scale": 1
+  },
+  "anchor": [
+    100,
+    100
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_power_burst/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_power_burst/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.961Z",
+  "updatedAt": "2026-11-25T05:40:08.961Z"
+}

@@ -1,0 +1,33 @@
+{
+  "id": "vfx_blue_aura",
+  "name": "Hào Quang Lam Ngọc (Blue Aura)",
+  "type": "vfx",
+  "category": "energy",
+  "tags": [
+    "power",
+    "blue",
+    "cyan",
+    "spiritual"
+  ],
+  "description": "Hào quang xanh lam huyền ảo bao phủ cơ thể nhân vật.",
+  "dimensions": {
+    "width": 200,
+    "height": 300,
+    "scale": 1
+  },
+  "anchor": [
+    100,
+    200
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_blue_aura/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_blue_aura/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.960Z",
+  "updatedAt": "2026-11-25T05:40:08.960Z"
+}

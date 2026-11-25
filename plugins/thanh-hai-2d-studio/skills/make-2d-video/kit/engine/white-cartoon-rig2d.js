@@ -6,6 +6,7 @@
 import { E, S, clamp, lerp, seg, circle, ring, alpha, shade, mix, rr, poly, ease, linGrad, radGrad } from './core.js';
 import { drawFacialExpressionV4, normalizeExpressionName } from './expression-v4.js';
 import { drawHandAttachedProp, drawSceneProp, solvePropTimelineState, normalizePropSpec } from './prop-v4.js';
+import { drawUniversalVfx, normalizeVfxSpec, VFX_DISPATCHER } from './vfx-engine-v4.js';
 
 export const WHITE_CARTOON_STYLE = {
   skin: '#FFFDF8',
@@ -988,20 +989,48 @@ export function drawWhiteCartoonFigure(g, o) {
     }
   }
 
-  // 1. Far Limbs (Phía xa, có đổ bóng nhẹ isFar = true)
-  drawWhiteCartoonLeg(g, p.hip, p.kB, p.fB, inkCol, char, true);
-  drawWhiteCartoonArm(g, p.sh, p.eB, p.hB, inkCol, char, solvedFarProp, facing, o.poseMode || 'normal', t, true);
+  // Lọc và chuẩn bị danh sách Cartoon VFX gắn vào nhân vật (Phase 3)
+  const rawVfxList = o.vfx || o.effects;
+  const vfxItems = rawVfxList ? (Array.isArray(rawVfxList) ? rawVfxList : [rawVfxList]) : [];
+  const normalizedVfx = vfxItems.map(normalizeVfxSpec);
 
-  // 2. Neck
-  const neckH = 10;
-  drawWhiteCapsule(g, [p.head[0], p.head[1] + HR - 6], [p.sh[0], p.sh[1]], 14, char.skin || '#fbfbfe', inkCol, 3.6);
+  // Kiểm tra mask từ Fight Smoke hoặc cấu hình ẩn hiện nhân vật (Phase 4 ready)
+  let hideBody = o.bodyVisible === false || o.visible === false;
+  let hideHead = o.headVisible === false || o.visible === false;
 
-  // 3. Torso (Áo & Quần liền mạch)
-  drawWhiteCartoonTorso(g, p, char, inkCol, dir, p.isSit);
+  for (const vfx of normalizedVfx) {
+    if ((vfx.type === 'vfx_fight_smoke' || vfx.type === 'fight_smoke') && (vfx.params?.maskCharacters || vfx.maskCharacters)) {
+      if (t >= vfx.startTime && t <= vfx.endTime) {
+        hideBody = true;
+      }
+    }
+  }
 
-  // 4. Near Limbs (Phía gần, màu sắc rõ nét isFar = false)
-  drawWhiteCartoonLeg(g, p.hip, p.kF, p.fF, inkCol, char, false);
-  drawWhiteCartoonArm(g, p.sh, p.eF, p.hF, inkCol, char, solvedNearProp, facing, o.poseMode || 'normal', t, false);
+  // 0. Behind-Character VFX (Golden/Blue/Red Auras, back energy rings, body glows)
+  for (const vfx of normalizedVfx) {
+    const isBehind = vfx.layer === 'behind_character' || vfx.layer === 'behind' ||
+      (['vfx_golden_aura', 'golden_aura', 'vfx_blue_aura', 'blue_aura', 'vfx_red_aura', 'red_aura', 'vfx_energy_ring', 'energy_ring', 'vfx_body_glow', 'body_glow'].includes(vfx.type) && vfx.layer !== 'front_character');
+    if (isBehind) {
+      drawUniversalVfx(g, vfx, t, { character: { ...o, x: 0, y: 0, s: 1, facing: 1, pose: p }, currentLayer: 'behind' });
+    }
+  }
+
+  if (!hideBody) {
+    // 1. Far Limbs (Phía xa, có đổ bóng nhẹ isFar = true)
+    drawWhiteCartoonLeg(g, p.hip, p.kB, p.fB, inkCol, char, true);
+    drawWhiteCartoonArm(g, p.sh, p.eB, p.hB, inkCol, char, solvedFarProp, facing, o.poseMode || 'normal', t, true);
+
+    // 2. Neck
+    const neckH = 10;
+    drawWhiteCapsule(g, [p.head[0], p.head[1] + HR - 6], [p.sh[0], p.sh[1]], 14, char.skin || '#fbfbfe', inkCol, 3.6);
+
+    // 3. Torso (Áo & Quần liền mạch)
+    drawWhiteCartoonTorso(g, p, char, inkCol, dir, p.isSit);
+
+    // 4. Near Limbs (Phía gần, màu sắc rõ nét isFar = false)
+    drawWhiteCartoonLeg(g, p.hip, p.kF, p.fF, inkCol, char, false);
+    drawWhiteCartoonArm(g, p.sh, p.eF, p.hF, inkCol, char, solvedNearProp, facing, o.poseMode || 'normal', t, false);
+  }
 
   // Đạo cụ đã thả / đặt (vẽ trong không gian local của nhân vật)
   for (const dp of sceneDropProps) {
@@ -1011,7 +1040,17 @@ export function drawWhiteCartoonFigure(g, o) {
   }
 
   // 5. Head & Facial Expressions
-  drawWhiteCartoonHead(g, p.head[0], p.head[1], HR, o, dir, char, inkCol, t);
+  if (!hideHead) {
+    drawWhiteCartoonHead(g, p.head[0], p.head[1], HR, o, dir, char, inkCol, t);
+  }
+
+  // 6. Front-Character VFX (Emotions, Sweat Drops, Anger Crosses, Question Marks, Front Aura Motes, Lightning)
+  for (const vfx of normalizedVfx) {
+    const isBehind = vfx.layer === 'behind_character' || vfx.layer === 'behind';
+    if (!isBehind) {
+      drawUniversalVfx(g, vfx, t, { character: { ...o, x: 0, y: 0, s: 1, facing: 1, pose: p }, currentLayer: 'front' });
+    }
+  }
 
   g.restore();
 }

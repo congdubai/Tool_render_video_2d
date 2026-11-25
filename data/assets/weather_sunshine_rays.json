@@ -1,0 +1,28 @@
+{
+  "id": "weather_sunshine_rays",
+  "name": "Tia Nắng Hoàng Kim (God Rays)",
+  "type": "weather",
+  "category": "light",
+  "tags": [
+    "sun",
+    "rays",
+    "light",
+    "golden"
+  ],
+  "description": "Tia nắng vàng ấm áp chiếu xuyên qua tán cây hoặc cửa sổ.",
+  "parameters": {
+    "count": 8,
+    "alphaVal": 0.14
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/weather/weather_sunshine_rays/thumb.png",
+  "filePath": "/public/assets/weather/weather_sunshine_rays/weather.png",
+  "createdAt": "2026-11-25T05:40:08.964Z",
+  "updatedAt": "2026-11-25T05:40:08.964Z"
+}

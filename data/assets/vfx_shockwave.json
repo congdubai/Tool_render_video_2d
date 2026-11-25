@@ -1,0 +1,33 @@
+{
+  "id": "vfx_shockwave",
+  "name": "Sóng Xung Kích (Shockwave)",
+  "type": "vfx",
+  "category": "action",
+  "tags": [
+    "shockwave",
+    "wave",
+    "ground",
+    "ring"
+  ],
+  "description": "Vòng tròn sóng xung kích nở rộng trên mặt đất.",
+  "dimensions": {
+    "width": 220,
+    "height": 100,
+    "scale": 1
+  },
+  "anchor": [
+    110,
+    50
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_shockwave/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_shockwave/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.958Z",
+  "updatedAt": "2026-11-25T05:40:08.958Z"
+}

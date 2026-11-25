@@ -1,0 +1,33 @@
+{
+  "id": "vfx_dizzy_stars",
+  "name": "Ngôi Sao Choáng Váng (Dizzy Stars)",
+  "type": "vfx",
+  "category": "emotion",
+  "tags": [
+    "dizzy",
+    "stars",
+    "faint",
+    "orbit"
+  ],
+  "description": "Vòng sao vàng xoay tít quanh đầu khi bị choáng.",
+  "dimensions": {
+    "width": 90,
+    "height": 40,
+    "scale": 1
+  },
+  "anchor": [
+    45,
+    20
+  ],
+  "compatibility": {
+    "requires": [
+      "head_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_dizzy_stars/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_dizzy_stars/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.942Z",
+  "updatedAt": "2026-11-25T05:40:08.942Z"
+}

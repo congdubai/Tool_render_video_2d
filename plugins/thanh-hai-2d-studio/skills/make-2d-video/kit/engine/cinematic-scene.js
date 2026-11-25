@@ -3,6 +3,7 @@
 // CameraDirector with cinematic framing presets, and high-detail 2D cartoon environments without empty voids.
 
 import { E, clamp, lerp, seg, circle, ring, alpha, shade, mix, rr, poly, ease, linGrad, radGrad, glow } from './core.js';
+import { drawUniversalVfx, normalizeVfxSpec, solveVfxCameraShake, VFX_DISPATCHER } from './vfx-engine-v4.js';
 
 /**
  * CAMERA DIRECTOR V3 — SHOT TYPES & PRESETS
@@ -91,6 +92,9 @@ export function renderCinematic5Layers(g, t, cam = { z: 1, x: 0, y: 0 }, layers 
   const W = E.W || 1920;
   const H = E.H || 1080;
 
+  // Xử lý VFX theo 6 lớp chuyên biệt (Phase 3)
+  const sceneVfxList = layers.vfx ? (Array.isArray(layers.vfx) ? layers.vfx : [layers.vfx]).map(normalizeVfxSpec) : [];
+
   // Layer 1: Background
   if (layers.background) {
     g.save();
@@ -100,6 +104,20 @@ export function renderCinematic5Layers(g, t, cam = { z: 1, x: 0, y: 0 }, layers 
     g.translate(-W / 2 + (cam.x || 0) * p1, -H / 2 + (cam.y || 0) * p1);
     layers.background(g, t);
     g.restore();
+  }
+
+  // Layer 1b: Background VFX
+  if (layers.backgroundVfx) {
+    g.save();
+    layers.backgroundVfx(g, t, cam);
+    g.restore();
+  }
+  for (const vfx of sceneVfxList) {
+    if (vfx.layer === 'background') {
+      g.save();
+      drawUniversalVfx(g, vfx, t, { camera: cam, currentLayer: 'background' });
+      g.restore();
+    }
   }
 
   // Layer 2: Mid-Background
@@ -134,11 +152,42 @@ export function renderCinematic5Layers(g, t, cam = { z: 1, x: 0, y: 0 }, layers 
     g.restore();
   }
 
-  // Layer 5: Lighting & Atmosphere
+  // Layer 4b: Foreground VFX
+  if (layers.foregroundVfx) {
+    g.save();
+    layers.foregroundVfx(g, t, cam);
+    g.restore();
+  }
+  for (const vfx of sceneVfxList) {
+    if (vfx.layer === 'foreground') {
+      g.save();
+      drawUniversalVfx(g, vfx, t, { camera: cam, currentLayer: 'foreground' });
+      g.restore();
+    }
+  }
+
+  // Layer 5: Weather & Lighting & Screen Overlays
+  if (layers.weather) {
+    g.save();
+    layers.weather(g, t, cam);
+    g.restore();
+  }
   if (layers.lighting) {
     g.save();
     layers.lighting(g, t, cam);
     g.restore();
+  }
+  if (layers.screenOverlay) {
+    g.save();
+    layers.screenOverlay(g, t, cam);
+    g.restore();
+  }
+  for (const vfx of sceneVfxList) {
+    if (vfx.layer === 'screen_overlay' || vfx.layer === 'screen') {
+      g.save();
+      drawUniversalVfx(g, vfx, t, { camera: cam, currentLayer: 'screen_overlay' });
+      g.restore();
+    }
   }
 }
 

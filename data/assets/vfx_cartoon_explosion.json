@@ -1,0 +1,33 @@
+{
+  "id": "vfx_cartoon_explosion",
+  "name": "Vụ Nổ Hoạt Hình (Cartoon Explosion)",
+  "type": "vfx",
+  "category": "action",
+  "tags": [
+    "explosion",
+    "boom",
+    "blast",
+    "fire"
+  ],
+  "description": "Vụ nổ truyện tranh cam vàng kèm mảnh vỡ bay tỏa.",
+  "dimensions": {
+    "width": 160,
+    "height": 160,
+    "scale": 1
+  },
+  "anchor": [
+    80,
+    80
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_cartoon_explosion/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_cartoon_explosion/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.958Z",
+  "updatedAt": "2026-11-25T05:40:08.958Z"
+}

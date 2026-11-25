@@ -1,0 +1,28 @@
+{
+  "id": "weather_env_fireflies",
+  "name": "Đom Đóm Phát Sáng (Fireflies)",
+  "type": "weather",
+  "category": "particles",
+  "tags": [
+    "fireflies",
+    "glow",
+    "night",
+    "magic"
+  ],
+  "description": "Những chú đom đóm xanh vàng nhấp nháy phát sáng trong đêm tĩnh mịch.",
+  "parameters": {
+    "count": 18,
+    "color": "#a3e635"
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/weather/weather_env_fireflies/thumb.png",
+  "filePath": "/public/assets/weather/weather_env_fireflies/weather.png",
+  "createdAt": "2026-11-25T05:40:08.965Z",
+  "updatedAt": "2026-11-25T05:40:08.965Z"
+}

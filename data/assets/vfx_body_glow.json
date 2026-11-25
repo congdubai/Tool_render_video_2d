@@ -1,0 +1,32 @@
+{
+  "id": "vfx_body_glow",
+  "name": "Phát Sáng Cơ Thể (Body Glow)",
+  "type": "vfx",
+  "category": "energy",
+  "tags": [
+    "glow",
+    "silhouette",
+    "soft"
+  ],
+  "description": "Vầng hào quang dịu nhẹ tỏa sáng quanh đường viền cơ thể.",
+  "dimensions": {
+    "width": 160,
+    "height": 220,
+    "scale": 1
+  },
+  "anchor": [
+    80,
+    110
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_body_glow/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_body_glow/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.961Z",
+  "updatedAt": "2026-11-25T05:40:08.961Z"
+}

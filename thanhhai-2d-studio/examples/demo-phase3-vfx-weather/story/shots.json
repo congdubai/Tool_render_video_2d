@@ -1,0 +1,14 @@
+{
+  "title": "Phase 3 Demo - Cartoon VFX & Weather Simulation",
+  "duration": 6.0,
+  "shots": [
+    {
+      "id": "s001",
+      "start": 0,
+      "end": 6.0,
+      "line": "Storm weather surges, lightning flashes, Alex unleashes a golden aura with power burst.",
+      "scene": "Night street: Heavy rain & storm, thunder lightning, golden aura with front sparks, power burst with camera shake."
+    }
+  ]
+}
+

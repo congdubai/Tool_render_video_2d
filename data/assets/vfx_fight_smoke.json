@@ -1,0 +1,33 @@
+{
+  "id": "vfx_fight_smoke",
+  "name": "Khói Đánh Nhau Hoạt Hình (Fight Smoke)",
+  "type": "vfx",
+  "category": "action",
+  "tags": [
+    "fight",
+    "smoke",
+    "brawl",
+    "punch"
+  ],
+  "description": "Khối khói ẩu đả quay cuồng thò nắm đấm, chân đá và sao va chạm, hỗ trợ che nhân vật.",
+  "dimensions": {
+    "width": 180,
+    "height": 180,
+    "scale": 1
+  },
+  "anchor": [
+    90,
+    90
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_fight_smoke/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_fight_smoke/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.956Z",
+  "updatedAt": "2026-11-25T05:40:08.956Z"
+}

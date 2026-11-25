@@ -1,0 +1,13 @@
+{
+  "title": "Phase 3 Demo - Cartoon VFX, Weather Simulation & Energy Auras",
+  "aspect": "16:9",
+  "resolution": "720p",
+  "fps": 24,
+  "style": "dusk",
+  "character": "white_cartoon",
+  "duration": 6.0,
+  "captions": false,
+  "fadeIn": 0.3,
+  "fadeOut": 0.5
+}
+

@@ -1,0 +1,32 @@
+{
+  "id": "vfx_exclamation_mark",
+  "name": "Dấu Chấm Than Bất Ngờ (Exclamation Mark)",
+  "type": "vfx",
+  "category": "emotion",
+  "tags": [
+    "alert",
+    "surprise",
+    "notice"
+  ],
+  "description": "Dấu chấm than màu cam giật nảy khi chú ý hoặc ngạc nhiên.",
+  "dimensions": {
+    "width": 36,
+    "height": 55,
+    "scale": 1
+  },
+  "anchor": [
+    18,
+    50
+  ],
+  "compatibility": {
+    "requires": [
+      "head_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_exclamation_mark/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_exclamation_mark/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.941Z",
+  "updatedAt": "2026-11-25T05:40:08.941Z"
+}

@@ -1,0 +1,28 @@
+{
+  "id": "weather_fog_mystic",
+  "name": "Sương Mù Huyền Ảo (Mystic Fog)",
+  "type": "weather",
+  "category": "atmosphere",
+  "tags": [
+    "fog",
+    "mist",
+    "mystery",
+    "haze"
+  ],
+  "description": "Dải sương mù trắng trôi lững lờ sát mặt sàn và ngang tầm mắt.",
+  "parameters": {
+    "density": 0.38,
+    "speed": 25
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/weather/weather_fog_mystic/thumb.png",
+  "filePath": "/public/assets/weather/weather_fog_mystic/weather.png",
+  "createdAt": "2026-11-25T05:40:08.964Z",
+  "updatedAt": "2026-11-25T05:40:08.964Z"
+}

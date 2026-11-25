@@ -1,0 +1,33 @@
+{
+  "id": "vfx_camera_shake",
+  "name": "Rung Chấn Máy Quay (Camera Shake)",
+  "type": "vfx",
+  "category": "scene",
+  "tags": [
+    "camera",
+    "shake",
+    "earthquake",
+    "impact"
+  ],
+  "description": "Rung lắc góc máy điện ảnh tác động lên camera mà không đổi tọa độ nhân vật.",
+  "dimensions": {
+    "width": 100,
+    "height": 100,
+    "scale": 1
+  },
+  "anchor": [
+    50,
+    50
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_camera_shake/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_camera_shake/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.962Z",
+  "updatedAt": "2026-11-25T05:40:08.962Z"
+}

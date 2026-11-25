@@ -1,0 +1,28 @@
+{
+  "id": "weather_env_petals",
+  "name": "Cánh Hoa Bay (Cherry Petals)",
+  "type": "weather",
+  "category": "particles",
+  "tags": [
+    "petals",
+    "sakura",
+    "cherry",
+    "flower"
+  ],
+  "description": "Cánh hoa anh đào phớt hồng bay phất phơ trong gió.",
+  "parameters": {
+    "count": 32,
+    "speed": 60
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/weather/weather_env_petals/thumb.png",
+  "filePath": "/public/assets/weather/weather_env_petals/weather.png",
+  "createdAt": "2026-11-25T05:40:08.965Z",
+  "updatedAt": "2026-11-25T05:40:08.965Z"
+}

@@ -1,0 +1,28 @@
+{
+  "id": "weather_wind_breeze",
+  "name": "Cơn Gió Hoạt Hình (Cartoon Wind)",
+  "type": "weather",
+  "category": "atmosphere",
+  "tags": [
+    "wind",
+    "breeze",
+    "air",
+    "gust"
+  ],
+  "description": "Luồng gió trắng uốn lượn thổi ngang qua khung cảnh.",
+  "parameters": {
+    "count": 18,
+    "speed": 650
+  },
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/weather/weather_wind_breeze/thumb.png",
+  "filePath": "/public/assets/weather/weather_wind_breeze/weather.png",
+  "createdAt": "2026-11-25T05:40:08.964Z",
+  "updatedAt": "2026-11-25T05:40:08.964Z"
+}

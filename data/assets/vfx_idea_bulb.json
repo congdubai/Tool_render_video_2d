@@ -1,0 +1,33 @@
+{
+  "id": "vfx_idea_bulb",
+  "name": "Bóng Đèn Ý Tưởng (Idea Bulb)",
+  "type": "vfx",
+  "category": "emotion",
+  "tags": [
+    "idea",
+    "bulb",
+    "eureka",
+    "smart"
+  ],
+  "description": "Bóng đèn vàng phát sáng bừng nở trên đầu khi nảy ra sáng kiến.",
+  "dimensions": {
+    "width": 60,
+    "height": 75,
+    "scale": 1
+  },
+  "anchor": [
+    30,
+    70
+  ],
+  "compatibility": {
+    "requires": [
+      "head_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_idea_bulb/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_idea_bulb/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.956Z",
+  "updatedAt": "2026-11-25T05:40:08.956Z"
+}

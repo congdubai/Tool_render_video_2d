@@ -1,0 +1,32 @@
+{
+  "id": "vfx_love_hearts",
+  "name": "Trái Tim Tình Yêu (Love Hearts)",
+  "type": "vfx",
+  "category": "emotion",
+  "tags": [
+    "love",
+    "heart",
+    "romance"
+  ],
+  "description": "Trái tim màu hồng bay bổng lãng mạn dập dờn quanh đầu.",
+  "dimensions": {
+    "width": 60,
+    "height": 70,
+    "scale": 1
+  },
+  "anchor": [
+    30,
+    60
+  ],
+  "compatibility": {
+    "requires": [
+      "head_anchor"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_love_hearts/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_love_hearts/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.942Z",
+  "updatedAt": "2026-11-25T05:40:08.942Z"
+}

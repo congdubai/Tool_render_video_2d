@@ -1,0 +1,33 @@
+{
+  "id": "vfx_smoke_puff",
+  "name": "Khói Xuất Hiện (Smoke Puff)",
+  "type": "vfx",
+  "category": "action",
+  "tags": [
+    "poof",
+    "puff",
+    "vanish",
+    "appear"
+  ],
+  "description": "Làn khói poof bung nhanh rồi tan cho cảnh biến mất hoặc xuất hiện.",
+  "dimensions": {
+    "width": 100,
+    "height": 100,
+    "scale": 1
+  },
+  "anchor": [
+    50,
+    50
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/vfx/vfx_smoke_puff/thumb.png",
+  "filePath": "/public/assets/vfx/vfx_smoke_puff/vfx.png",
+  "createdAt": "2026-11-25T05:40:08.959Z",
+  "updatedAt": "2026-11-25T05:40:08.959Z"
+}
