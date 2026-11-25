@@ -328,3 +328,5 @@ export function exportFullAiCapabilityRegistry() {
     }
   };
 }
+
+export const CAPABILITY_REGISTRY = exportFullAiCapabilityRegistry().capabilities;

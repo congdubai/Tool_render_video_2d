@@ -1,0 +1,36 @@
+{
+  "title": "Sự Tiến Hóa Của Máy Tính (1945 - Hiện Đại)",
+  "duration": 25,
+  "shots": [
+    {
+      "id": "s001",
+      "start": 0,
+      "end": 5,
+      "line": "Năm 1945, siêu máy tính ENIAC ra đời mở ra kỷ nguyên số."
+    },
+    {
+      "id": "s002",
+      "start": 5,
+      "end": 10,
+      "line": "Sự xuất hiện của transistor đã thu nhỏ kích thước máy tính đi hàng ngàn lần."
+    },
+    {
+      "id": "s003",
+      "start": 10,
+      "end": 15,
+      "line": "Từng chiếm trọn cả căn phòng, nay toàn bộ sức mạnh xử lý nằm gọn trên đầu ngón tay."
+    },
+    {
+      "id": "s004",
+      "start": 15,
+      "end": 20,
+      "line": "Máy tính cá nhân xuất hiện trên bàn làm việc của mọi gia đình và văn phòng."
+    },
+    {
+      "id": "s005",
+      "start": 20,
+      "end": 25,
+      "line": "Công nghệ tiếp tục phát triển không ngừng hướng tới trí tuệ nhân tạo và lượng tử."
+    }
+  ]
+}

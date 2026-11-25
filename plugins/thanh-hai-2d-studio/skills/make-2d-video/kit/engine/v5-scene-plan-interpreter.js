@@ -13,6 +13,15 @@ export function compileScenePlanToV4(scenePlan = {}, projectContext = {}) {
 
   const scenes = Array.isArray(scenePlan.scenes) ? scenePlan.scenes : [];
   const v4Scenes = [];
+  const bindings = projectContext.bindings || (projectContext.bindingRegistry ? projectContext.bindingRegistry.getAllBindings() : {});
+
+  function resolveId(id) {
+    if (!id) return id;
+    if (bindings[id] && bindings[id].resolvedAssetId) return bindings[id].resolvedAssetId;
+    const upper = id.toUpperCase();
+    if (bindings[upper] && bindings[upper].resolvedAssetId) return bindings[upper].resolvedAssetId;
+    return id;
+  }
 
   for (let i = 0; i < scenes.length; i++) {
     const s = scenes[i];
@@ -25,18 +34,23 @@ export function compileScenePlanToV4(scenePlan = {}, projectContext = {}) {
       const posX = typeof c.position?.x === 'number' ? (c.position.x <= 1.0 ? Math.round(c.position.x * 1280) : c.position.x) : 640;
       const posY = typeof c.position?.y === 'number' ? (c.position.y <= 1.0 ? Math.round(c.position.y * 720) : c.position.y) : 570;
 
+      const rawPropId = typeof c.prop === 'string' ? c.prop : c.prop?.assetId;
+      const resolvedPropId = resolveId(rawPropId);
+      const propAnchor = bindings[rawPropId]?.anchor || bindings[resolvedPropId]?.anchor;
+
       return {
-        id: c.characterId || c.instanceId || 'doc',
-        characterId: c.characterId || c.instanceId || 'doc',
+        id: resolveId(c.characterId || c.instanceId || 'doc'),
+        characterId: resolveId(c.characterId || c.instanceId || 'doc'),
         x: posX,
         y: posY,
         scale: c.scale ?? 1.0,
         facing: c.facing ?? 1,
-        outfit: c.outfitId || 'outfit_scientist_labcoat',
-        expression: c.expressionId || 'neutral',
-        prop: c.prop ? {
-          assetId: c.prop.assetId,
-          attachedTo: c.prop.attachedTo || 'right_hand'
+        outfit: resolveId(c.outfitId || 'outfit_scientist_labcoat'),
+        expression: resolveId(c.expressionId || 'neutral'),
+        prop: resolvedPropId ? {
+          assetId: resolvedPropId,
+          attachedTo: (typeof c.prop === 'object' && c.prop.attachedTo) || 'right_hand',
+          anchor: propAnchor
         } : null
       };
     });
@@ -61,20 +75,24 @@ export function compileScenePlanToV4(scenePlan = {}, projectContext = {}) {
     const compositeActions = [];
     const vfx = [];
     for (const beat of (s.visualBeats || [])) {
-      if (beat.actionId && beat.actionId.startsWith('composite_')) {
+      const actId = resolveId(beat.actionId);
+      if (actId && actId.startsWith('composite_')) {
         compositeActions.push({
-          id: beat.actionId,
+          id: actId,
           start: Math.max(0, (beat.startMs - s.startMs) / 1000),
           duration: Math.max(0.5, (beat.endMs - beat.startMs) / 1000)
         });
       }
       if (beat.vfxId) {
         vfx.push({
-          type: beat.vfxId,
-          target: beat.target || 'doc'
+          type: resolveId(beat.vfxId),
+          target: resolveId(beat.target || 'doc')
         });
       }
     }
+
+    const rawBgId = s.background?.assetId || s.background?.id || s.backgroundId;
+    const resolvedBgId = resolveId(rawBgId) || 'bg_lab_modern';
 
     const v4Scene = createDefaultScene(s.id, {
       name: s.visualObjective || s.narrationText?.slice(0, 35) || `Cảnh ${i + 1}`,
@@ -90,8 +108,8 @@ export function compileScenePlanToV4(scenePlan = {}, projectContext = {}) {
         text: s.narrationText || ''
       },
       background: {
-        assetId: s.background?.assetId || 'bg_lab_modern',
-        id: s.background?.assetId || 'bg_lab_modern',
+        assetId: resolvedBgId,
+        id: resolvedBgId,
         type: 'library',
         groundY: 570
       },

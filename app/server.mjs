@@ -61,6 +61,25 @@ import {
   ASSET_TYPES,
   ASSET_TYPE_LABELS
 } from "../lib/asset-validator.mjs";
+import {
+  scanScenePlanRequirements,
+  AssetDependencyGraph,
+  resolveAssetRequirement,
+  batchResolveRequirements,
+  deduplicateAssetRequirements,
+  buildAssetGenerationPrompt,
+  exportPromptsMarkdown,
+  exportFilenameMappingCsv,
+  validateImageFile,
+  ANCHOR_PRESETS,
+  matchFilenameToRequirement,
+  processImportedFiles,
+  importZipArchive,
+  AssetBindingRegistry,
+  calculateProjectReadiness,
+  buildSceneBuilderContract,
+  SmartAssetManager
+} from "../thanhhai-2d-studio/engine/v5-smart-asset-manager.js";
 
 const execAsync = promisify(exec);
 const app = express();
@@ -1338,6 +1357,239 @@ app.post("/api/assets/upload-media", (req, res) => {
     fs.writeFileSync(filePath, buf);
     const publicUrl = `/public/assets/${safeType}/${safeId}/${safeFname}`;
     res.json({ success: true, url: publicUrl, filename: safeFname });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// =========================================================================
+// V5 SMART ASSET MANAGER & AUTOMATIC ASSET RESOLUTION API (PHASE 2)
+// =========================================================================
+
+// In-memory or project-persisted manager cache: projectId -> SmartAssetManager
+const smartAssetManagers = new Map();
+
+function getProjectManager(projectId, scenePlan = {}) {
+  const safeId = path.basename(projectId || "default_v5_project").replace(/[^a-zA-Z0-9_-]/g, "");
+  const pDir = path.resolve(projectRoot, "imported_projects", safeId);
+  fs.mkdirSync(pDir, { recursive: true });
+
+  if (!smartAssetManagers.has(safeId)) {
+    const manager = new SmartAssetManager(pDir, scenePlan);
+    smartAssetManagers.set(safeId, manager);
+  }
+  const manager = smartAssetManagers.get(safeId);
+  if (scenePlan && Object.keys(scenePlan).length > 0) {
+    manager.scenePlan = scenePlan;
+  }
+  return manager;
+}
+
+// 1. Quét toàn bộ Scene Plan và tự động tìm kiếm tài nguyên (Scan & Auto-Resolve)
+app.post("/api/v5/smart-assets/scan", (req, res) => {
+  try {
+    const { scenePlan, projectId = "default_v5_project", styleProfileId, protagonist } = req.body;
+    if (!scenePlan || !Array.isArray(scenePlan.scenes)) {
+      return res.status(400).json({ success: false, error: "Dữ liệu Scene Plan JSON không hợp lệ hoặc thiếu mảng scenes." });
+    }
+
+    const manager = getProjectManager(projectId, scenePlan);
+    const result = manager.scanAndResolve({ styleProfileId, protagonist });
+
+    res.json({
+      success: true,
+      projectId,
+      ...result
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Gán / Liên kết thủ công tài nguyên cho một requirement (Bind Asset)
+app.post("/api/v5/smart-assets/bind", (req, res) => {
+  try {
+    const { projectId = "default_v5_project", requirementId, resolvedAssetId, anchor, isSharedAsset, force } = req.body;
+    if (!requirementId || !resolvedAssetId) {
+      return res.status(400).json({ success: false, error: "Thiếu requirementId hoặc resolvedAssetId." });
+    }
+
+    const manager = getProjectManager(projectId);
+    const bindResult = manager.bindingRegistry.bind(requirementId, resolvedAssetId, {
+      anchor,
+      isSharedAsset,
+      force
+    });
+
+    res.json({
+      success: true,
+      ...bindResult
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 3. Hủy liên kết tài nguyên (Unbind Asset)
+app.post("/api/v5/smart-assets/unbind", (req, res) => {
+  try {
+    const { projectId = "default_v5_project", requirementId } = req.body;
+    if (!requirementId) {
+      return res.status(400).json({ success: false, error: "Thiếu requirementId." });
+    }
+
+    const manager = getProjectManager(projectId);
+    const unbindResult = manager.bindingRegistry.unbind(requirementId);
+
+    res.json({
+      success: true,
+      ...unbindResult
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 4. Khôi phục phiên bản tài nguyên cũ (Rollback Version)
+app.post("/api/v5/smart-assets/rollback", (req, res) => {
+  try {
+    const { projectId = "default_v5_project", requirementId, version } = req.body;
+    if (!requirementId || !version) {
+      return res.status(400).json({ success: false, error: "Thiếu requirementId hoặc số phiên bản version." });
+    }
+
+    const manager = getProjectManager(projectId);
+    const rollbackResult = manager.bindingRegistry.rollback(requirementId, parseInt(version, 10));
+
+    res.json({
+      success: true,
+      ...rollbackResult
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// 5. Xuất danh sách Prompt sinh ảnh (Markdown / CSV)
+app.post("/api/v5/smart-assets/export-prompts", (req, res) => {
+  try {
+    const { requirements = [], format = "markdown", styleProfileId, protagonist } = req.body;
+    if (format === "csv") {
+      const csv = exportFilenameMappingCsv(requirements, { styleProfileId, protagonist });
+      res.setHeader("Content-Type", "text/csv; charset=utf-8");
+      res.setHeader("Content-Disposition", 'attachment; filename="filename_mapping.csv"');
+      return res.send(csv);
+    }
+
+    const md = exportPromptsMarkdown(requirements, { styleProfileId, protagonist });
+    res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+    return res.send(md);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6. Xuất Gói Chuẩn Bị Tài Nguyên ZIP (Asset Generation Package)
+app.post("/api/v5/smart-assets/export-package", (req, res) => {
+  try {
+    const { scenePlan, projectId = "default_v5_project", styleProfileId, protagonist } = req.body;
+    const manager = getProjectManager(projectId, scenePlan);
+
+    const safeId = path.basename(projectId).replace(/[^a-zA-Z0-9_-]/g, "");
+    const tempZip = path.resolve(projectRoot, "imported_projects", safeId, "ASSET_GENERATION_PACKAGE.zip");
+    
+    const zipResult = manager.exportGenerationPackageZip(tempZip, { styleProfileId, protagonist });
+    const zipData = fs.readFileSync(tempZip);
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", 'attachment; filename="ASSET_GENERATION_PACKAGE.zip"');
+    res.send(zipData);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 7. Nhập ảnh hàng loạt hoặc file ZIP và tự động liên kết (Bulk Import)
+app.post("/api/v5/smart-assets/bulk-import", (req, res) => {
+  try {
+    const { projectId = "default_v5_project", files = [], zipBase64, activeRequirements = [] } = req.body;
+    const safeId = path.basename(projectId).replace(/[^a-zA-Z0-9_-]/g, "");
+    const targetDir = path.resolve(projectRoot, "imported_projects", safeId, "assets");
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    const manager = getProjectManager(projectId);
+    let importResult;
+
+    if (zipBase64) {
+      const rawBase64 = zipBase64.replace(/^data:application\/[a-zA-Z+.-]+;base64,/, "").replace(/^data:.*?;base64,/, "");
+      const tempZipPath = path.join(targetDir, `temp_import_${Date.now()}.zip`);
+      fs.writeFileSync(tempZipPath, Buffer.from(rawBase64, "base64"));
+      
+      importResult = importZipArchive(tempZipPath, targetDir, activeRequirements, manager.contentHashes);
+      try { fs.unlinkSync(tempZipPath); } catch {}
+    } else {
+      const writtenPaths = [];
+      for (const f of files) {
+        if (!f.fileName || !f.base64) continue;
+        const safeFname = path.basename(f.fileName).replace(/[^a-zA-Z0-9_.-]/g, "");
+        const rawBase64 = f.base64.replace(/^data:.*?;base64,/, "");
+        const filePath = path.join(targetDir, safeFname);
+        fs.writeFileSync(filePath, Buffer.from(rawBase64, "base64"));
+        writtenPaths.push(filePath);
+      }
+      importResult = processImportedFiles(writtenPaths, targetDir, activeRequirements, manager.contentHashes);
+    }
+
+    // Tự động bind các file đã khớp chính xác với requirement ID
+    for (const m of importResult.matched) {
+      manager.bindingRegistry.bind(m.requirementId, m.fileName, {
+        resolutionMethod: m.matchMethod,
+        imagePath: `/imported_projects/${safeId}/assets/${m.fileName}`,
+        anchor: m.recommendedAnchor,
+        dimensions: m.dimensions,
+        status: "READY"
+      });
+    }
+
+    res.json({
+      success: true,
+      projectId,
+      ...importResult,
+      activeBindings: manager.bindingRegistry.getAllBindings()
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 8. Báo cáo mức độ sẵn sàng của dự án (Project Readiness Report)
+app.post("/api/v5/smart-assets/readiness", (req, res) => {
+  try {
+    const { scenePlan, projectId = "default_v5_project" } = req.body;
+    const manager = getProjectManager(projectId, scenePlan);
+    const report = calculateProjectReadiness(manager.scenePlan, manager.dependencyGraph, manager.bindingRegistry);
+
+    res.json({
+      success: true,
+      report
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 9. Hợp đồng tích hợp cho Scene Builder Phase 3 (Scene Builder Integration Contract)
+app.post("/api/v5/smart-assets/compile-contract", (req, res) => {
+  try {
+    const { scenePlan, projectId = "default_v5_project" } = req.body;
+    const manager = getProjectManager(projectId, scenePlan);
+    const readiness = calculateProjectReadiness(manager.scenePlan, manager.dependencyGraph, manager.bindingRegistry);
+    const contract = buildSceneBuilderContract(manager.scenePlan, manager.bindingRegistry, readiness);
+
+    res.json({
+      success: true,
+      contract
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

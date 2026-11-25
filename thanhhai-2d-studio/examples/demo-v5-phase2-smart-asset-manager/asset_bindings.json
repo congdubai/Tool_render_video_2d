@@ -1,0 +1,206 @@
+{
+  "REQ_CHAR_DOC": {
+    "requirementId": "REQ_CHAR_DOC",
+    "resolvedAssetId": "doc",
+    "resolutionMethod": "EXACT_CHARACTER_ID",
+    "status": "READY",
+    "assetVersion": 1,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "imagePath": null,
+    "dimensions": null,
+    "updatedAt": "2026-11-25T10:48:34.328Z"
+  },
+  "REQ_RIG_DOC": {
+    "requirementId": "REQ_RIG_DOC",
+    "resolvedAssetId": "doc",
+    "resolutionMethod": "EXACT_CHARACTER_ID",
+    "status": "READY",
+    "assetVersion": 1,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "imagePath": null,
+    "dimensions": null,
+    "updatedAt": "2026-11-25T10:48:34.329Z"
+  },
+  "REQ_OUTFIT_SCIENTIST_LABCOAT": {
+    "requirementId": "REQ_OUTFIT_SCIENTIST_LABCOAT",
+    "resolvedAssetId": "outfit_scientist_labcoat",
+    "resolutionMethod": "EXACT_ASSET_ID",
+    "status": "READY",
+    "assetVersion": 1,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "imagePath": null,
+    "dimensions": null,
+    "updatedAt": "2026-11-25T10:48:34.329Z"
+  },
+  "REQ_CHAR_JAKE": {
+    "requirementId": "REQ_CHAR_JAKE",
+    "resolvedAssetId": "jake",
+    "resolutionMethod": "EXACT_CHARACTER_ID",
+    "status": "READY",
+    "assetVersion": 1,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "imagePath": null,
+    "dimensions": null,
+    "updatedAt": "2026-11-25T10:48:34.329Z"
+  },
+  "REQ_RIG_JAKE": {
+    "requirementId": "REQ_RIG_JAKE",
+    "resolvedAssetId": "jake",
+    "resolutionMethod": "EXACT_CHARACTER_ID",
+    "status": "READY",
+    "assetVersion": 1,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "imagePath": null,
+    "dimensions": null,
+    "updatedAt": "2026-11-25T10:48:34.329Z"
+  },
+  "REQ_OUTFIT_CASUAL_HOODIE": {
+    "requirementId": "REQ_OUTFIT_CASUAL_HOODIE",
+    "resolvedAssetId": "outfit_casual_hoodie",
+    "resolutionMethod": "EXACT_ASSET_ID",
+    "status": "READY",
+    "assetVersion": 1,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "imagePath": null,
+    "dimensions": null,
+    "updatedAt": "2026-11-25T10:48:34.329Z"
+  },
+  "REQ_PROP_LAPTOP": {
+    "requirementId": "REQ_PROP_LAPTOP",
+    "resolvedAssetId": "prop_laptop_modern",
+    "resolutionMethod": "SEMANTIC_MATCH",
+    "status": "READY",
+    "assetVersion": 1,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "imagePath": null,
+    "dimensions": null,
+    "updatedAt": "2026-11-25T10:48:34.329Z"
+  },
+  "REQ_PROP_COFFEE_MUG": {
+    "requirementId": "REQ_PROP_COFFEE_MUG",
+    "resolvedAssetId": "prop_coffee_cup",
+    "resolutionMethod": "SEMANTIC_MATCH",
+    "status": "READY",
+    "assetVersion": 1,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "imagePath": null,
+    "dimensions": null,
+    "updatedAt": "2026-11-25T10:48:34.329Z"
+  },
+  "REQ_PROP_ENIAC_1": {
+    "requirementId": "REQ_PROP_ENIAC_1",
+    "resolvedAssetId": "REQ_PROP_ENIAC_1.png",
+    "resolutionMethod": "MANUAL_BIND",
+    "status": "READY",
+    "assetVersion": 5,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.98
+    },
+    "imagePath": "/assets/REQ_PROP_ENIAC_1.png",
+    "dimensions": null,
+    "updatedAt": "2026-11-25T11:24:09.757Z"
+  },
+  "REQ_PROP_TRANSISTOR": {
+    "requirementId": "REQ_PROP_TRANSISTOR",
+    "resolvedAssetId": "REQ_PROP_TRANSISTOR.png",
+    "resolutionMethod": "MANUAL_BIND",
+    "status": "READY",
+    "assetVersion": 5,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.85
+    },
+    "imagePath": "/assets/REQ_PROP_TRANSISTOR.png",
+    "dimensions": null,
+    "updatedAt": "2026-11-25T11:24:09.757Z"
+  },
+  "REQ_PROP_MICROPROCESSOR": {
+    "requirementId": "REQ_PROP_MICROPROCESSOR",
+    "resolvedAssetId": "REQ_PROP_MICROPROCESSOR.png",
+    "resolutionMethod": "MANUAL_BIND",
+    "status": "READY",
+    "assetVersion": 5,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.85
+    },
+    "imagePath": "/assets/REQ_PROP_MICROPROCESSOR.png",
+    "dimensions": null,
+    "updatedAt": "2026-11-25T11:24:09.758Z"
+  },
+  "coffee_mug": {
+    "requirementId": "coffee_mug",
+    "resolvedAssetId": "prop_coffee_cup",
+    "resolutionMethod": "MANUAL_BIND",
+    "status": "READY",
+    "assetVersion": 1,
+    "requiredByScenes": [],
+    "isProjectAsset": true,
+    "isSharedAsset": false,
+    "anchor": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "imagePath": null,
+    "dimensions": null,
+    "updatedAt": "2026-11-25T11:24:09.758Z"
+  }
+}

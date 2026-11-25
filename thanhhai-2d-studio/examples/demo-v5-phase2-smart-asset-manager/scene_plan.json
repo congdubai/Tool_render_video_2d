@@ -1,0 +1,213 @@
+{
+  "schemaVersion": "5.1",
+  "project": {
+    "title": "Sự Tiến Hóa Của Máy Tính (1945 - Hiện Đại)",
+    "targetDurationMs": 25000,
+    "fps": 24,
+    "resolution": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "style": {
+    "profileId": "educational_cartoon"
+  },
+  "assetRequirements": [
+    {
+      "id": "REQ_PROP_ENIAC_1",
+      "name": "Máy Tính Khổng Lồ ENIAC (1945)",
+      "type": "prop",
+      "description": "Máy tính điện tử đầu tiên với tủ đèn chân không khổng lồ",
+      "transparentBackground": true,
+      "recommendedDimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "id": "REQ_PROP_TRANSISTOR",
+      "name": "Linh Kiện Transistor Bán Dẫn (1950s)",
+      "type": "prop",
+      "description": "Linh kiện bán dẫn 3 chân thay thế bóng đèn chân không",
+      "transparentBackground": true,
+      "recommendedDimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    },
+    {
+      "id": "REQ_PROP_MICROPROCESSOR",
+      "name": "Vi Xử Lý Silicon Microprocessor (1970s)",
+      "type": "prop",
+      "description": "Chip silicon tích hợp hàng ngàn bóng bán dẫn trên một vi mạch",
+      "transparentBackground": true,
+      "recommendedDimensions": {
+        "width": 1024,
+        "height": 1024
+      }
+    }
+  ],
+  "scenes": [
+    {
+      "id": "s001",
+      "startMs": 0,
+      "endMs": 5000,
+      "visualObjective": "Phòng thí nghiệm năm 1945 và máy tính ENIAC",
+      "narrationText": "Năm 1945, siêu máy tính ENIAC ra đời mở ra kỷ nguyên số.",
+      "background": {
+        "assetId": "bg_historical_computer_lab"
+      },
+      "characters": [
+        {
+          "characterId": "doc",
+          "outfitId": "outfit_scientist_labcoat",
+          "expressionId": "thinking",
+          "position": {
+            "x": 0.35,
+            "y": 0.79
+          },
+          "prop": {
+            "assetId": "REQ_PROP_ENIAC_1",
+            "attachedTo": "right_hand"
+          }
+        }
+      ],
+      "visualBeats": [
+        {
+          "startMs": 0,
+          "endMs": 5000,
+          "actionId": "idle_talk"
+        }
+      ]
+    },
+    {
+      "id": "s002",
+      "startMs": 5000,
+      "endMs": 10000,
+      "visualObjective": "Phát minh bóng bán dẫn transistor",
+      "narrationText": "Sự xuất hiện của transistor đã thu nhỏ kích thước máy tính đi hàng ngàn lần.",
+      "background": {
+        "assetId": "bg_lab_modern"
+      },
+      "characters": [
+        {
+          "characterId": "doc",
+          "outfitId": "outfit_scientist_labcoat",
+          "expressionId": "happy",
+          "position": {
+            "x": 0.5,
+            "y": 0.79
+          },
+          "prop": {
+            "assetId": "REQ_PROP_TRANSISTOR",
+            "attachedTo": "right_hand"
+          }
+        }
+      ],
+      "visualBeats": [
+        {
+          "startMs": 5000,
+          "endMs": 10000,
+          "actionId": "celebrate",
+          "vfxId": "vfx_sparkle"
+        }
+      ]
+    },
+    {
+      "id": "s003",
+      "startMs": 10000,
+      "endMs": 15000,
+      "visualObjective": "So sánh ENIAC với vi xử lý hiện đại",
+      "narrationText": "Từng chiếm trọn cả căn phòng, nay toàn bộ sức mạnh xử lý nằm gọn trên đầu ngón tay.",
+      "background": {
+        "assetId": "bg_historical_computer_lab"
+      },
+      "characters": [
+        {
+          "characterId": "doc",
+          "outfitId": "outfit_scientist_labcoat",
+          "expressionId": "surprised",
+          "position": {
+            "x": 0.4,
+            "y": 0.79
+          },
+          "prop": {
+            "assetId": "REQ_PROP_ENIAC_1",
+            "attachedTo": "left_hand"
+          }
+        }
+      ],
+      "visualBeats": [
+        {
+          "startMs": 10000,
+          "endMs": 15000,
+          "actionId": "idle_talk"
+        }
+      ]
+    },
+    {
+      "id": "s004",
+      "startMs": 15000,
+      "endMs": 20000,
+      "visualObjective": "Thời đại máy tính cá nhân và laptop",
+      "narrationText": "Máy tính cá nhân xuất hiện trên bàn làm việc của mọi gia đình và văn phòng.",
+      "background": {
+        "assetId": "bg_lab_modern"
+      },
+      "characters": [
+        {
+          "characterId": "jake",
+          "outfitId": "outfit_casual_hoodie",
+          "expressionId": "neutral",
+          "position": {
+            "x": 0.6,
+            "y": 0.79
+          },
+          "prop": {
+            "assetId": "prop_laptop",
+            "attachedTo": "right_hand"
+          }
+        }
+      ],
+      "visualBeats": [
+        {
+          "startMs": 15000,
+          "endMs": 20000,
+          "actionId": "idle_talk"
+        }
+      ]
+    },
+    {
+      "id": "s005",
+      "startMs": 20000,
+      "endMs": 25000,
+      "visualObjective": "Thư giãn và uống cà phê trong phòng nghiên cứu",
+      "narrationText": "Công nghệ tiếp tục phát triển không ngừng hướng tới trí tuệ nhân tạo và lượng tử.",
+      "background": {
+        "assetId": "bg_lab_modern"
+      },
+      "characters": [
+        {
+          "characterId": "doc",
+          "outfitId": "outfit_scientist_labcoat",
+          "expressionId": "happy",
+          "position": {
+            "x": 0.5,
+            "y": 0.79
+          },
+          "prop": {
+            "assetId": "coffee_mug",
+            "attachedTo": "right_hand"
+          }
+        }
+      ],
+      "visualBeats": [
+        {
+          "startMs": 20000,
+          "endMs": 25000,
+          "actionId": "drink_coffee"
+        }
+      ]
+    }
+  ]
+}

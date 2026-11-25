@@ -46,16 +46,33 @@ export function validateScenePlan(scenePlan = {}, projectContext = {}) {
   const validPropIds = new Set(caps.props.map(p => p.id));
   const validExprIds = new Set(caps.expressions.map(e => e.id));
   const validActionIds = new Set(caps.compositeActions.map(a => a.id));
-  // Include standard action IDs
-  ['idle_breathe', 'walk_cycle', 'run_cycle', 'sit_down', 'wave_hand', 'raise_arm', 'point_forward', 'scratch_head', 'fall_backward', 'thinking', 'idea_discovery'].forEach(id => validActionIds.add(id));
+  // Include standard action IDs & composite presets
+  ['idle_breathe', 'walk_cycle', 'run_cycle', 'sit_down', 'wave_hand', 'raise_arm', 'point_forward', 'scratch_head', 'fall_backward', 'thinking', 'idea_discovery', 'idle_talk', 'celebrate'].forEach(id => validActionIds.add(id));
+
+  // Resolved bindings from projectContext
+  const bindings = projectContext.bindings || (projectContext.bindingRegistry ? projectContext.bindingRegistry.getAllBindings() : {});
+  for (const [bId, bVal] of Object.entries(bindings)) {
+    if (bVal && bVal.status === 'READY') {
+      validPropIds.add(bId);
+      validBgIds.add(bId);
+      if (bVal.resolvedAssetId) {
+        validPropIds.add(bVal.resolvedAssetId);
+        validBgIds.add(bVal.resolvedAssetId);
+      }
+    }
+  }
 
   // Registered asset requirements
   const declaredRequirements = new Map();
   if (Array.isArray(scenePlan.assetRequirements)) {
     for (const req of scenePlan.assetRequirements) {
-      if (req.requirementId) {
-        declaredRequirements.set(req.requirementId, req);
-        missingRequirements.push(req);
+      const rId = req.id || req.requirementId;
+      if (rId) {
+        declaredRequirements.set(rId, req);
+        // If already bound as READY, do not mark as missing requirement
+        if (!bindings[rId] || bindings[rId].status !== 'READY') {
+          missingRequirements.push(req);
+        }
       }
     }
   }
@@ -176,7 +193,9 @@ export function validateScenePlan(scenePlan = {}, projectContext = {}) {
       // Prop in character
       if (c.prop && c.prop.assetId) {
         const propId = c.prop.assetId;
-        if (!validPropIds.has(propId) && !declaredRequirements.has(propId)) {
+        const normPropReq = propId.startsWith('REQ_') ? propId : `REQ_PROP_${propId.toUpperCase().replace(/^PROP_/, '')}`;
+        const isPropValid = validPropIds.has(propId) || validPropIds.has(normPropReq) || declaredRequirements.has(propId) || declaredRequirements.has(normPropReq);
+        if (!isPropValid) {
           errors.push({
             code: 'MISSING_ASSET_ID',
             level: QA_LEVEL.ERROR,

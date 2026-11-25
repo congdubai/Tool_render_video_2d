@@ -1,0 +1,266 @@
+{
+  "REQ_CHAR_DOC": [
+    {
+      "version": 1,
+      "resolvedAssetId": "doc",
+      "imagePath": null,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "timestamp": "2026-11-25T10:48:34.328Z"
+    }
+  ],
+  "REQ_RIG_DOC": [
+    {
+      "version": 1,
+      "resolvedAssetId": "doc",
+      "imagePath": null,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "timestamp": "2026-11-25T10:48:34.329Z"
+    }
+  ],
+  "REQ_OUTFIT_SCIENTIST_LABCOAT": [
+    {
+      "version": 1,
+      "resolvedAssetId": "outfit_scientist_labcoat",
+      "imagePath": null,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "timestamp": "2026-11-25T10:48:34.329Z"
+    }
+  ],
+  "REQ_CHAR_JAKE": [
+    {
+      "version": 1,
+      "resolvedAssetId": "jake",
+      "imagePath": null,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "timestamp": "2026-11-25T10:48:34.329Z"
+    }
+  ],
+  "REQ_RIG_JAKE": [
+    {
+      "version": 1,
+      "resolvedAssetId": "jake",
+      "imagePath": null,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "timestamp": "2026-11-25T10:48:34.329Z"
+    }
+  ],
+  "REQ_OUTFIT_CASUAL_HOODIE": [
+    {
+      "version": 1,
+      "resolvedAssetId": "outfit_casual_hoodie",
+      "imagePath": null,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "timestamp": "2026-11-25T10:48:34.329Z"
+    }
+  ],
+  "REQ_PROP_LAPTOP": [
+    {
+      "version": 1,
+      "resolvedAssetId": "prop_laptop_modern",
+      "imagePath": null,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "timestamp": "2026-11-25T10:48:34.329Z"
+    }
+  ],
+  "REQ_PROP_COFFEE_MUG": [
+    {
+      "version": 1,
+      "resolvedAssetId": "prop_coffee_cup",
+      "imagePath": null,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "timestamp": "2026-11-25T10:48:34.329Z"
+    }
+  ],
+  "REQ_PROP_ENIAC_1": [
+    {
+      "version": 1,
+      "resolvedAssetId": "REQ_PROP_ENIAC_1.png",
+      "imagePath": "/assets/REQ_PROP_ENIAC_1.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.98
+      },
+      "timestamp": "2026-11-25T10:48:34.329Z"
+    },
+    {
+      "version": 2,
+      "resolvedAssetId": "REQ_PROP_ENIAC_1.png",
+      "imagePath": "/assets/REQ_PROP_ENIAC_1.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.98
+      },
+      "timestamp": "2026-11-25T10:48:54.545Z"
+    },
+    {
+      "version": 3,
+      "resolvedAssetId": "REQ_PROP_ENIAC_1.png",
+      "imagePath": "/assets/REQ_PROP_ENIAC_1.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.98
+      },
+      "timestamp": "2026-11-25T10:49:54.947Z"
+    },
+    {
+      "version": 4,
+      "resolvedAssetId": "REQ_PROP_ENIAC_1.png",
+      "imagePath": "/assets/REQ_PROP_ENIAC_1.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.98
+      },
+      "timestamp": "2026-11-25T10:50:25.264Z"
+    },
+    {
+      "version": 5,
+      "resolvedAssetId": "REQ_PROP_ENIAC_1.png",
+      "imagePath": "/assets/REQ_PROP_ENIAC_1.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.98
+      },
+      "timestamp": "2026-11-25T11:24:09.757Z"
+    }
+  ],
+  "REQ_PROP_TRANSISTOR": [
+    {
+      "version": 1,
+      "resolvedAssetId": "REQ_PROP_TRANSISTOR.png",
+      "imagePath": "/assets/REQ_PROP_TRANSISTOR.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.85
+      },
+      "timestamp": "2026-11-25T10:48:34.330Z"
+    },
+    {
+      "version": 2,
+      "resolvedAssetId": "REQ_PROP_TRANSISTOR.png",
+      "imagePath": "/assets/REQ_PROP_TRANSISTOR.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.85
+      },
+      "timestamp": "2026-11-25T10:48:54.545Z"
+    },
+    {
+      "version": 3,
+      "resolvedAssetId": "REQ_PROP_TRANSISTOR.png",
+      "imagePath": "/assets/REQ_PROP_TRANSISTOR.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.85
+      },
+      "timestamp": "2026-11-25T10:49:54.948Z"
+    },
+    {
+      "version": 4,
+      "resolvedAssetId": "REQ_PROP_TRANSISTOR.png",
+      "imagePath": "/assets/REQ_PROP_TRANSISTOR.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.85
+      },
+      "timestamp": "2026-11-25T10:50:25.265Z"
+    },
+    {
+      "version": 5,
+      "resolvedAssetId": "REQ_PROP_TRANSISTOR.png",
+      "imagePath": "/assets/REQ_PROP_TRANSISTOR.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.85
+      },
+      "timestamp": "2026-11-25T11:24:09.757Z"
+    }
+  ],
+  "REQ_PROP_MICROPROCESSOR": [
+    {
+      "version": 1,
+      "resolvedAssetId": "REQ_PROP_MICROPROCESSOR.png",
+      "imagePath": "/assets/REQ_PROP_MICROPROCESSOR.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.85
+      },
+      "timestamp": "2026-11-25T10:48:34.331Z"
+    },
+    {
+      "version": 2,
+      "resolvedAssetId": "REQ_PROP_MICROPROCESSOR.png",
+      "imagePath": "/assets/REQ_PROP_MICROPROCESSOR.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.85
+      },
+      "timestamp": "2026-11-25T10:48:54.546Z"
+    },
+    {
+      "version": 3,
+      "resolvedAssetId": "REQ_PROP_MICROPROCESSOR.png",
+      "imagePath": "/assets/REQ_PROP_MICROPROCESSOR.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.85
+      },
+      "timestamp": "2026-11-25T10:49:54.949Z"
+    },
+    {
+      "version": 4,
+      "resolvedAssetId": "REQ_PROP_MICROPROCESSOR.png",
+      "imagePath": "/assets/REQ_PROP_MICROPROCESSOR.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.85
+      },
+      "timestamp": "2026-11-25T10:50:25.266Z"
+    },
+    {
+      "version": 5,
+      "resolvedAssetId": "REQ_PROP_MICROPROCESSOR.png",
+      "imagePath": "/assets/REQ_PROP_MICROPROCESSOR.png",
+      "anchor": {
+        "x": 0.5,
+        "y": 0.85
+      },
+      "timestamp": "2026-11-25T11:24:09.758Z"
+    }
+  ],
+  "coffee_mug": [
+    {
+      "version": 1,
+      "resolvedAssetId": "prop_coffee_cup",
+      "imagePath": null,
+      "anchor": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "timestamp": "2026-11-25T11:24:09.758Z"
+    }
+  ]
+}

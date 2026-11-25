@@ -37,6 +37,9 @@
     <button id="tabBtn3" class="tab-btn" onclick="switchTab(3)">
       <span class="tab-num">3</span> 🎭 Nhân Vật & Tài Nguyên V4
     </button>
+    <button id="tabBtn4" class="tab-btn" onclick="switchTab(4)">
+      <span class="tab-num">4</span> 🤖 AI Auto Director V5
+    </button>
   </nav>
 
   <!-- ================= TAB 1: GIỌNG ĐỌC & TIMELINE ================= -->
@@ -1419,6 +1422,196 @@
       </div>
     </section>
   </main>
+
+  <!-- ================= TAB 4: 🤖 AI AUTO DIRECTOR V5 (SMART ASSET MANAGER) ================= -->
+  <main id="tabContent4" class="tab-pane">
+    <!-- Wizard Steps Header -->
+    <div class="card" style="margin-bottom: 20px; background: #0f172a; border-color: #38bdf8;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+        <div>
+          <h2 style="color: #38bdf8; margin: 0; display: flex; align-items: center; gap: 8px;">
+            🤖 AI Auto Director V5 — Quy Trình Sản Xuất Tự Động
+          </h2>
+          <span class="hint">Hệ thống hỗ trợ AI tự động dựng video hoạt hình 2D từ kịch bản, phân cảnh và tài nguyên</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-outline" onclick="loadDefaultAiStoryboardDemo()">🎬 Tải Kịch Bản Demo Máy Tính</button>
+          <button class="btn btn-sm btn-primary" onclick="scanProjectRequirementsUi()">🔄 Làm Mới Dữ Liệu</button>
+        </div>
+      </div>
+
+      <!-- 6 Wizard Steps Indicator -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
+        <div class="wizard-step-pill" id="wStep1" style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
+          <span style="display: block; font-weight: 700; color: #94a3b8;">Bước 1</span>
+          <span style="color: #cbd5e1;">Kịch bản & Style</span>
+        </div>
+        <div class="wizard-step-pill" id="wStep2" style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
+          <span style="display: block; font-weight: 700; color: #94a3b8;">Bước 2</span>
+          <span style="color: #cbd5e1;">Xuất AI Context</span>
+        </div>
+        <div class="wizard-step-pill" id="wStep3" style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
+          <span style="display: block; font-weight: 700; color: #94a3b8;">Bước 3</span>
+          <span style="color: #cbd5e1;">Nhập Scene Plan</span>
+        </div>
+        <div class="wizard-step-pill active" id="wStep4" style="background: #0369a1; border: 1px solid #38bdf8; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);">
+          <span style="display: block; font-weight: 700; color: #fff;">Bước 4 ⭐</span>
+          <span style="color: #fff; font-weight: 700;">Smart Asset Manager</span>
+        </div>
+        <div class="wizard-step-pill" id="wStep5" style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center; opacity: 0.7;">
+          <span style="display: block; font-weight: 700; color: #94a3b8;">Bước 5</span>
+          <span style="color: #cbd5e1;">Dựng Cảnh (Phase 3)</span>
+        </div>
+        <div class="wizard-step-pill" id="wStep6" style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center; opacity: 0.7;">
+          <span style="display: block; font-weight: 700; color: #94a3b8;">Bước 6</span>
+          <span style="color: #cbd5e1;">Preview & Render</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= WIZARD STEP 4: SMART ASSET MANAGER ================= -->
+    <section class="card" id="smartAssetManagerSection">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>📦 Bước 4: Smart Asset Manager & Tự Động Chuẩn Bị Tài Nguyên</h2>
+          <span class="hint">Tự động quét Scene Plan, phát hiện tài nguyên còn thiếu, gộp trùng lặp, xuất prompt và tự động liên kết ảnh import</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span id="smartAssetOverallBadge" class="badge" style="background-color: #eab308; color: #000; font-size: 13px; font-weight: 700; padding: 6px 12px;">Đang quét...</span>
+        </div>
+      </div>
+
+      <div class="card-body" style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- 1. Bảng Thông Số Mức Độ Sẵn Sàng (Metrics Dashboard) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Tổng Số Cảnh</span>
+            <div id="metricTotalScenes" style="font-size: 24px; font-weight: 700; color: #38bdf8;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Tài Nguyên Duy Nhất</span>
+            <div id="metricUniqueAssets" style="font-size: 24px; font-weight: 700; color: #c084fc;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Đã Sẵn Sàng</span>
+            <div id="metricReadyAssets" style="font-size: 24px; font-weight: 700; color: #22c55e;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Còn Thiếu Ảnh</span>
+            <div id="metricMissingAssets" style="font-size: 24px; font-weight: 700; color: #ef4444;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Cần Rig Setup</span>
+            <div id="metricRigSetupAssets" style="font-size: 24px; font-weight: 700; color: #f59e0b;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Chưa Hỗ Trợ</span>
+            <div id="metricMissingCap" style="font-size: 24px; font-weight: 700; color: #dc2626;">0</div>
+          </div>
+        </div>
+
+        <!-- Thanh Tiến Độ Chuẩn Bị Tài Nguyên -->
+        <div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+            <span style="color: #cbd5e1; font-weight: 600;">Tiến Độ Chuẩn Bị Tài Nguyên:</span>
+            <span id="smartAssetProgressRateText" style="color: #38bdf8; font-weight: 700;">0%</span>
+          </div>
+          <div style="width: 100%; height: 10px; background: #1e293b; border-radius: 5px; overflow: hidden; border: 1px solid #334155;">
+            <div id="smartAssetProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #38bdf8, #22c55e); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- 2. Thanh Công Cụ Thao Tác (Action Toolbar) -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; background: #0f172a; padding: 12px; border-radius: 6px; border: 1px solid #334155;">
+          <button class="btn btn-sm btn-primary" onclick="scanProjectRequirementsUi()">🔍 Quét Tài Nguyên</button>
+          <button class="btn btn-sm btn-secondary" onclick="autoResolveAssetsUi()">⚡ Tự Động Tìm Trong Thư Viện</button>
+          <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #f87171;" onclick="filterMissingOnlyUi()">⚠️ Xem Tài Nguyên Còn Thiếu</button>
+          <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="copyAllPromptsUi()">📋 Copy Toàn Bộ Prompt</button>
+          <button class="btn btn-sm btn-outline" style="border-color: #c084fc; color: #c084fc;" onclick="exportRequirementsCsvUi()">📄 Xuất Danh Sách CSV</button>
+          <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; font-weight: 700;" onclick="exportGenerationPackageZipUi()">📦 Xuất Gói Generation ZIP</button>
+          
+          <!-- Nút Import Hàng Loạt & ZIP -->
+          <button class="btn btn-sm btn-success" style="font-weight: 700;" onclick="document.getElementById('smartBulkFileInput').click()">📥 Import Ảnh Hàng Loạt</button>
+          <button class="btn btn-sm btn-success" style="font-weight: 700;" onclick="document.getElementById('smartZipFileInput').click()">📦 Import ZIP</button>
+          
+          <button class="btn btn-sm btn-outline" onclick="checkProjectReadinessUi()">🛡️ Kiểm Tra Tương Thích & Readiness</button>
+          <button class="btn btn-sm btn-primary" style="background: #2563eb; font-weight: 700;" onclick="confirmAssetsAndProceedToSceneBuilder()">🚀 Xác Nhận Tài Nguyên & Sang Dựng Cảnh</button>
+
+          <!-- Hidden inputs for file uploads -->
+          <input type="file" id="smartBulkFileInput" multiple accept="image/png,image/jpeg,image/webp" style="display: none;" onchange="handleSmartBulkFilesSelected(event)" />
+          <input type="file" id="smartZipFileInput" accept=".zip" style="display: none;" onchange="handleSmartZipFileSelected(event)" />
+        </div>
+
+        <!-- 3. Bộ Lọc Danh Mục & Tìm Kiếm -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;">
+            <button class="btn btn-sm btn-secondary active" id="reqFilter_all" onclick="filterRequirementsByCategory('all')">🌟 Tất cả (<span id="catCount_all">0</span>)</button>
+            <button class="btn btn-sm btn-secondary" id="reqFilter_character" onclick="filterRequirementsByCategory('character')">🎭 Nhân vật & Rig (<span id="catCount_character">0</span>)</button>
+            <button class="btn btn-sm btn-secondary" id="reqFilter_background" onclick="filterRequirementsByCategory('background')">🏙️ Bối cảnh (<span id="catCount_background">0</span>)</button>
+            <button class="btn btn-sm btn-secondary" id="reqFilter_prop" onclick="filterRequirementsByCategory('prop')">📦 Đạo cụ (<span id="catCount_prop">0</span>)</button>
+            <button class="btn btn-sm btn-secondary" id="reqFilter_outfit" onclick="filterRequirementsByCategory('outfit')">👕 Trang phục & Biểu cảm (<span id="catCount_outfit">0</span>)</button>
+            <button class="btn btn-sm btn-secondary" id="reqFilter_illustration" onclick="filterRequirementsByCategory('illustration')">📊 Minh họa / Sơ đồ (<span id="catCount_illustration">0</span>)</button>
+            <button class="btn btn-sm btn-secondary" id="reqFilter_vfx" onclick="filterRequirementsByCategory('vfx')">✨ VFX & Thời tiết (<span id="catCount_vfx">0</span>)</button>
+            <button class="btn btn-sm btn-secondary" id="reqFilter_missing_capability" onclick="filterRequirementsByCategory('missing_capability')">⚠️ Chưa hỗ trợ (<span id="catCount_missing_capability">0</span>)</button>
+          </div>
+          <div style="flex: 1; min-width: 200px; max-width: 320px;">
+            <input type="text" id="smartAssetSearchInput" class="text-input" placeholder="🔍 Tìm theo ID, tên hoặc cảnh..." oninput="handleSmartAssetSearch(event)" />
+          </div>
+        </div>
+
+        <!-- 4. Lưới Thẻ Yêu Cầu Tài Nguyên (Requirements Grid) -->
+        <div id="smartAssetRequirementsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; min-height: 200px;">
+          <div class="empty-state">Đang tải danh sách tài nguyên cần chuẩn bị...</div>
+        </div>
+
+        <!-- 5. Khu Vực Ảnh Chưa Xác Định Được Yêu Cầu (Unassigned Assets) -->
+        <div id="smartUnassignedSection" class="hidden" style="margin-top: 10px; background: #0f172a; border: 1px dashed #eab308; border-radius: 6px; padding: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong style="color: #eab308;">⚠️ Ảnh Đã Tải Lên Chưa Xác Định Được Yêu Cầu (Unassigned Assets)</strong>
+            <span class="hint-small">Những ảnh có tên không khớp mã yêu cầu được hiển thị tại đây để bạn gán thủ công</span>
+          </div>
+          <div id="smartUnassignedGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= MODAL THIẾT LẬP ĐIỂM NEO (ANCHOR & PIVOT ASSISTANT) ================= -->
+  <div id="smartAssetAnchorModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="anchorModalTitle">Thiết Lập Điểm Neo (Anchor & Pivot)</h3>
+        <button class="modal-close-btn" onclick="closeSmartAnchorModal()">✕</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+        <p style="font-size: 13px; color: #94a3b8; margin: 0;">
+          Chọn điểm neo (pivot point) chuẩn để đạo cụ gắn khớp tự nhiên vào tay nhân vật hoặc đặt vững chắc trên mặt sàn.
+        </p>
+        
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+          <button class="btn btn-secondary" onclick="applyAnchorPreset('hand_grip')">✋ Điểm Cầm Tay (Hand Grip: 0.5, 0.85)</button>
+          <button class="btn btn-secondary" onclick="applyAnchorPreset('ground_contact')">🏢 Tiếp Xúc Mặt Sàn (0.5, 0.98)</button>
+          <button class="btn btn-secondary" onclick="applyAnchorPreset('center')">🎯 Tâm Giữa (Center: 0.5, 0.5)</button>
+          <button class="btn btn-secondary" onclick="applyAnchorPreset('bottom_center')">⚓ Chân Đế (Bottom: 0.5, 1.0)</button>
+          <button class="btn btn-secondary" onclick="applyAnchorPreset('top_center')">💡 Đỉnh Giữa (Top: 0.5, 0.0)</button>
+          <button class="btn btn-secondary" onclick="applyAnchorPreset('left_center')">⬅️ Mép Trái (Left: 0.0, 0.5)</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center; margin-top: 6px;">
+          <label style="font-size: 13px; color: #cbd5e1;">Tọa độ tùy chỉnh:</label>
+          <input type="number" id="customAnchorX" class="text-input" style="width: 90px;" step="0.05" min="0" max="1" value="0.5" />
+          <input type="number" id="customAnchorY" class="text-input" style="width: 90px;" step="0.05" min="0" max="1" value="0.85" />
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+          <button class="btn btn-secondary" onclick="closeSmartAnchorModal()">Hủy</button>
+          <button class="btn btn-success" onclick="saveCustomAnchorSetting()">💾 Lưu Điểm Neo</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ================= POPUP MODAL: CHARACTER IMPORT WIZARD (MODE B) ================= -->
   <div id="characterImportModal" class="modal-overlay hidden">
