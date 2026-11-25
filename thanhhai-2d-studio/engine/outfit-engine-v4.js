@@ -389,6 +389,7 @@ export function applyOutfitToCharacter(character, outfitOrSpec, variantId = null
     id: identity.id,
     name: identity.name,
     skin: identity.skin,
+    skinColor: identity.skin,
     outline: identity.outline,
     hair: identity.hair,
     hairColor: identity.hairColor,
@@ -396,6 +397,7 @@ export function applyOutfitToCharacter(character, outfitOrSpec, variantId = null
     kid: identity.kid,
     bodyProfile: identity.bodyProfile,
     characterEngine: identity.characterEngine,
+    outfit: outfit.id || outfit.top || 'custom_outfit',
     currentOutfitId: outfit.id || outfit.top || 'custom_outfit'
   };
 

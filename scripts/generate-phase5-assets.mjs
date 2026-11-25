@@ -284,3 +284,4 @@ for (const [accId, spec] of Object.entries(ACCESSORIES_CATALOG)) {
 }
 
 console.log('✅ Phase 5 Outfit & Accessory Asset Generation Finished Successfully!');
+

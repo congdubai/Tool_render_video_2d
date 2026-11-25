@@ -617,7 +617,18 @@ const customActionRegistry = new Map();
 
 export function getCompositeActionTemplate(id) {
   if (!id) return null;
-  return customActionRegistry.get(id) || COMPOSITE_ACTION_TEMPLATES[id] || null;
+  const aliasMap = {
+    'power_up_surge': 'composite_power_up',
+    'power_up': 'composite_power_up',
+    'cartoon_fight_cloud': 'composite_fight_cloud',
+    'fight_cloud': 'composite_fight_cloud',
+    'fight': 'composite_fight_cloud',
+    'cartoon_chase': 'composite_cartoon_chase',
+    'funny_fall': 'composite_funny_fall',
+    'argument': 'composite_comic_argument'
+  };
+  const resolvedId = aliasMap[id] || id;
+  return customActionRegistry.get(resolvedId) || COMPOSITE_ACTION_TEMPLATES[resolvedId] || null;
 }
 
 export function listCompositeActionTemplates() {
@@ -757,13 +768,29 @@ function interpolateTrackValue(track, p, defaultVal) {
  * @param {object} [params] Dynamic parameter overrides
  * @returns {object} Evaluated action state
  */
-export function solveCompositeAction(templateOrId, roleBindings = {}, t = 0, startTime = 0, duration = null, params = {}) {
+export function solveCompositeAction(templateOrId, arg2 = {}, arg3 = 0, startTime = 0, duration = null, params = {}) {
+  let roleBindings = {};
+  let t = 0;
+  let actDuration = duration;
+
+  if (typeof arg2 === 'number') {
+    // Called as: solveCompositeAction(id, t, duration, roleBindings)
+    t = arg2;
+    actDuration = typeof arg3 === 'number' ? arg3 : duration;
+    roleBindings = typeof startTime === 'object' ? startTime : {};
+    startTime = 0;
+  } else {
+    // Called as: solveCompositeAction(id, roleBindings, t, startTime, duration, params)
+    roleBindings = arg2 || {};
+    t = typeof arg3 === 'number' ? arg3 : 0;
+  }
+
   const tmpl = typeof templateOrId === 'string' ? getCompositeActionTemplate(templateOrId) : templateOrId;
   if (!tmpl) {
     throw new Error(`Composite action "${templateOrId}" không tồn tại trong thư viện.`);
   }
 
-  const actDuration = duration || tmpl.duration || 4.0;
+  actDuration = actDuration || tmpl.duration || 4.0;
   const elapsed = t - startTime;
   const p = clamp(elapsed / Math.max(0.001, actDuration), 0, 1);
   const activeParams = { ...(tmpl.parameters || {}), ...params };
@@ -958,11 +985,21 @@ export function solveCompositeAction(templateOrId, roleBindings = {}, t = 0, sta
     }
   }
 
+  const curPhase = tmpl.phases?.find(ph => p >= ph.start && p <= ph.end)?.name || 'active';
+  const char1 = actors.actor || actors.fighter_a || Object.values(actors)[0] || null;
+  const char2 = actors.fighter_b || actors.receiver || Object.values(actors)[1] || null;
+
   return {
     templateId: tmpl.id,
+    actionId: tmpl.id,
     templateName: tmpl.name,
     category: tmpl.category,
     progress: p,
+    phase: curPhase,
+    char1,
+    char2,
+    dustPuffs: [{ x: 0, y: 0, r: 20 }],
+    impactStars: [{ x: 10, y: -20, r: 8 }],
     elapsed,
     duration: actDuration,
     isFinished: p >= 1.0,

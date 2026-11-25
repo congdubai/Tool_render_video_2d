@@ -1,0 +1,62 @@
+{
+  "title": "Sự Tiến Hóa Của Máy Tính — Từ Cỗ Máy Khổng Lồ Đến Thiết Bị Nhỏ Gọn",
+  "duration": 60.0,
+  "shots": [
+    {
+      "id": "s001",
+      "start": 0.0,
+      "end": 7.0,
+      "line": "Bạn có biết? Chiếc điện thoại nhỏ gọn trong túi bạn mạnh hơn hàng triệu lần cỗ máy tính đầu tiên của nhân loại!",
+      "scene": "Scene 1: Hook mở đầu & Bố cục so sánh kích thước thiết bị"
+    },
+    {
+      "id": "s002",
+      "start": 7.0,
+      "end": 15.0,
+      "line": "Năm 1946, cỗ máy tính ENIAC ra đời tại Đại học Pennsylvania, nặng tới 30 tấn và chiếm trọn căn phòng rộng 167 mét vuông.",
+      "scene": "Scene 2: Bối cảnh phòng máy tính lịch sử 1946 & ENIAC"
+    },
+    {
+      "id": "s003",
+      "start": 15.0,
+      "end": 23.0,
+      "line": "ENIAC sử dụng hơn 18,000 bóng đèn chân không, tiêu thụ lượng điện khổng lồ 150 kilowatt và tỏa ra nhiệt lượng cực lớn.",
+      "scene": "Scene 3: Đồ họa giải thích cấu tạo bóng đèn chân không & năng lượng"
+    },
+    {
+      "id": "s004",
+      "start": 23.0,
+      "end": 31.0,
+      "line": "Các nhà khoa học không ngừng nghiên cứu trong phòng thí nghiệm để tìm ra giải pháp thay thế bóng đèn cồng kềnh.",
+      "scene": "Scene 4: Nghiên cứu trong phòng thí nghiệm & Ý tưởng Eureka"
+    },
+    {
+      "id": "s005",
+      "start": 31.0,
+      "end": 39.0,
+      "line": "Hàng trăm lần thử nghiệm thất bại và cháy bóng, nhưng quyết tâm sáng chế chưa từng dừng lại.",
+      "scene": "Scene 5: Thử nghiệm cháy bóng, khói nổ & phản ứng của nhà sáng chế"
+    },
+    {
+      "id": "s006",
+      "start": 39.0,
+      "end": 47.0,
+      "line": "Bước ngoặt lịch sử: Năm 1947, Transistor ra đời, mở đường cho vi xử lý silicon thu nhỏ hàng triệu linh kiện vào một con chip.",
+      "scene": "Scene 6: Phát minh Transistor & Dòng thời gian thu nhỏ linh kiện"
+    },
+    {
+      "id": "s007",
+      "start": 47.0,
+      "end": 54.0,
+      "line": "Từ cỗ máy chiếm cả gian phòng, máy tính thu gọn thành máy tính để bàn, laptop cá nhân và giờ đây nằm gọn trong lòng bàn tay.",
+      "scene": "Scene 7: Camera pan so sánh 4 thế hệ máy tính qua các thời kỳ"
+    },
+    {
+      "id": "s008",
+      "start": 54.0,
+      "end": 60.0,
+      "line": "Đó chính là hành trình kỳ diệu của công nghệ. Cảm ơn bạn đã đồng hành cùng Thanh Hai 2D Studio!",
+      "scene": "Scene 8: Kết luận, studio hiện đại & lời chào tạm biệt"
+    }
+  ]
+}

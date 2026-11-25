@@ -252,6 +252,12 @@
           <button class="btn btn-sm btn-outline" style="border-color: #10b981; color: #34d399; font-weight: 700;" onclick="toggleV4OutfitCompatibilityPanel()">
             👔 Outfits & Compatibility V4
           </button>
+          <button class="btn btn-sm btn-outline" style="border-color: #6366f1; color: #818cf8; font-weight: 700;" onclick="toggleV4SceneManagerPanel()">
+            🎬 Scene Manager V4
+          </button>
+          <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24; font-weight: 700;" onclick="openQaDashboardModal()">
+            🛡️ QA Dashboard
+          </button>
           <div id="previewStatusInfo" class="preview-status-info hidden" style="margin: 0; padding: 4px 10px;">
             <span id="previewStatusText">🎥 Đang phát video thành phẩm</span>
           </div>
@@ -681,6 +687,99 @@
                 <div style="display: flex; gap: 8px;">
                   <button class="btn btn-sm btn-primary" style="background: #10b981; border-color: #059669;" onclick="applyOutfitChangeToTimeline()">
                     ➕ Áp Dụng Đổi Trang Phục vào Timeline
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Khu vực Complete Scene Integration & Scene Manager V4 (Phase 6) -->
+            <div id="v4SceneManagerPanel" class="hidden" style="background: #0f172a; border: 1px solid #6366f1; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="color: #818cf8; font-size: 14px;">🎬 BỘ QUẢN LÝ CẢNH & TÍCH HỢP QUY TRÌNH DỰNG PHIM V4 (SCENE MANAGER)</strong>
+                  <span class="asset-type-badge badge-action" style="position: static; background: #6366f1; color: white;">PHASE 6</span>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24;" onclick="openQaDashboardModal()">🛡️ QA Dashboard</button>
+                  <button class="btn btn-sm btn-secondary" onclick="toggleV4SceneManagerPanel()">Đóng ✕</button>
+                </div>
+              </div>
+              <p class="hint-small" style="color: #94a3b8; margin-bottom: 12px;">
+                Giai đoạn 6 • Unified Scene Model, Multi-Track Master Timeline, Parallax Backgrounds, Camera Cinematography, Scene Transitions & Pre-render Validation.
+              </p>
+
+              <!-- Dải danh sách Thumbnail & Cảnh phim cuộn ngang -->
+              <div style="background: #090d16; border: 1px solid #1e293b; border-radius: 6px; padding: 10px; margin-bottom: 12px; overflow-x: auto;">
+                <div id="v4SceneStrip" style="display: flex; gap: 10px; min-width: 600px;">
+                  <!-- Dynamically rendered via JS -->
+                </div>
+              </div>
+
+              <!-- Hàng điều khiển cấu hình cảnh được chọn -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px;">
+                <div class="setting-item">
+                  <label for="v4SceneBgSelect">Bối Cảnh (Background):</label>
+                  <select id="v4SceneBgSelect" class="select-control" onchange="updateV4SelectedSceneConfig()">
+                    <option value="bg_historical_computer_lab" selected>🏛️ Phòng Máy Tính 1946 (ENIAC)</option>
+                    <option value="bg_lab_modern">🔬 Phòng Thí Nghiệm Hiện Đại</option>
+                    <option value="bg_chalkboard_blueprint">📐 Bản Vẽ Blueprint Kỹ Thuật</option>
+                    <option value="bg_diagram_grid">📊 Lưới Sơ Đồ Công Nghệ</option>
+                    <option value="bg_whiteboard_clean">📋 Bảng Trắng Thuyết Trình</option>
+                    <option value="bg_minimal_studio">🎨 Studio Tối Giản</option>
+                    <option value="bg_city_street_dusk">🌆 Phố Chiều Hoàng Hôn</option>
+                  </select>
+                </div>
+
+                <div class="setting-item">
+                  <label for="v4SceneCameraSelect">Góc Quay Máy Quay (Camera Shot):</label>
+                  <select id="v4SceneCameraSelect" class="select-control" onchange="updateV4SelectedSceneConfig()">
+                    <option value="medium_shot" selected>🎬 Trung Cảnh (Medium Shot 1.15x)</option>
+                    <option value="wide_shot">🌐 Góc Rộng (Wide Shot 1.05x)</option>
+                    <option value="establishing_shot">🏞️ Toàn Cảnh (Establishing 0.95x)</option>
+                    <option value="medium_close">🔍 Trung Cận Cảnh (1.25x)</option>
+                    <option value="close_up">👤 Cận Cảnh Khuôn Mặt (1.45x)</option>
+                    <option value="two_shot">👥 Cảnh Đôi 2 Nhân Vật</option>
+                    <option value="reveal_shot">✨ Góc Tiết Lộ (Reveal Pan)</option>
+                  </select>
+                </div>
+
+                <div class="setting-item">
+                  <label for="v4SceneTransitionSelect">Chuyển Cảnh (Transition Out):</label>
+                  <select id="v4SceneTransitionSelect" class="select-control" onchange="updateV4SelectedSceneConfig()">
+                    <option value="cut" selected>Hard Cut (Cắt trực tiếp)</option>
+                    <option value="fade">Fade / Cross Dissolve</option>
+                    <option value="dip_black">Dip to Black (Nháy đen)</option>
+                    <option value="dip_white">Dip to White (Nháy trắng)</option>
+                    <option value="slide_left">Slide Left (Trượt ngang)</option>
+                    <option value="smoke_puff">Smoke Transition (Khói)</option>
+                  </select>
+                </div>
+
+                <div class="setting-item">
+                  <label for="v4SceneDurationInput">Thời Lượng Cảnh (s):</label>
+                  <input type="number" id="v4SceneDurationInput" class="input-control" min="1" max="60" step="0.5" value="7.0" onchange="updateV4SelectedSceneConfig()" />
+                </div>
+              </div>
+
+              <!-- Thanh thao tác Scene Manager -->
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 1px solid #334155; padding-top: 12px;">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button class="btn btn-sm btn-outline" style="border-color: #6366f1; color: #818cf8;" onclick="addNewScenePrompt()">
+                    ➕ Thêm Cảnh Mới
+                  </button>
+                  <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="duplicateActiveScene()">
+                    📑 Nhân Bản Cảnh
+                  </button>
+                  <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24;" onclick="openSceneTemplateModal()">
+                    📐 Mẫu Cảnh (Template)
+                  </button>
+                  <button class="btn btn-sm btn-outline" style="border-color: #ec4899; color: #f472b6;" onclick="openScenePlanModal()">
+                    🤖 AI Scene Plan (V5)
+                  </button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-sm btn-danger" onclick="deleteActiveScene()">
+                    🗑️ Xóa Cảnh Này
                   </button>
                 </div>
               </div>
@@ -1801,6 +1900,65 @@
 
         <div style="display: flex; justify-content: flex-end; border-top: 1px solid #334155; padding-top: 12px;">
           <button class="btn btn-secondary" onclick="closeUniversalCompatibilityModal()">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Quality Assurance Pre-Render Dashboard (Phase 6) -->
+  <div id="qaDashboardModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 880px; width: 95%;">
+      <div class="modal-header">
+        <h2 style="font-size: 16px; color: #f59e0b; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <span>🛡️</span> Bảng Kiểm Tra Chất Lượng Tiền Render (QA Pre-Render Dashboard)
+        </h2>
+        <button class="modal-close-btn" onclick="closeQaDashboardModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 14px; border-radius: 6px; border: 1px solid #1e293b;">
+          <div>
+            <span style="font-size: 12px; color: #94a3b8;">Trạng thái sẵn sàng kết xuất (Render Readiness):</span>
+            <div id="qaReadinessText" style="font-size: 16px; font-weight: 700; color: #10b981; margin-top: 2px;">
+              READY TO RENDER (0 Lỗi, 0 Cảnh báo)
+            </div>
+          </div>
+          <span id="qaReadinessBadge" class="asset-type-badge badge-action" style="position: static; background: #10b981; color: white; font-size: 12px; font-weight: 700;">PASSED</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; font-size: 13px;">
+          <div style="background: #1e293b; padding: 10px; border-radius: 4px;">Tổng Cảnh: <strong id="qaStatScenes" style="color: #38bdf8;">0</strong></div>
+          <div style="background: #1e293b; padding: 10px; border-radius: 4px;">Tổng Thời Lượng: <strong id="qaStatDuration" style="color: #38bdf8;">0.0s</strong></div>
+          <div style="background: #1e293b; padding: 10px; border-radius: 4px;">Lỗi Chặn Render: <strong id="qaStatErrors" style="color: #ef4444;">0</strong></div>
+          <div style="background: #1e293b; padding: 10px; border-radius: 4px;">Cảnh Báo: <strong id="qaStatWarnings" style="color: #f59e0b;">0</strong></div>
+        </div>
+
+        <div style="max-height: 360px; overflow-y: auto; border: 1px solid #1e293b; border-radius: 6px; background: #090d16; padding: 10px;" id="qaIssueList">
+          <p style="color: #94a3b8; font-size: 12px;">Đang chạy thẩm định toàn diện...</p>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; border-top: 1px solid #334155; padding-top: 12px;">
+          <button class="btn btn-secondary" onclick="closeQaDashboardModal()">Đóng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AI Scene Director V5 Plan (Phase 6G) -->
+  <div id="scenePlanModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width: 780px; width: 90%;">
+      <div class="modal-header">
+        <h2 style="font-size: 16px; color: #ec4899; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <span>🤖</span> AI Scene Director V5 — Kế Hoạch Cảnh Tự Động (Scene Plan)
+        </h2>
+        <button class="modal-close-btn" onclick="closeScenePlanModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+        <p class="hint-small" style="color: #94a3b8;">
+          Cấu trúc dữ liệu chuẩn hóa Scene Plan JSON cho phép AI Scene Director V5 tự động dựng cảnh từ kịch bản lời thoại.
+        </p>
+        <textarea id="scenePlanJsonArea" class="text-input" rows="12" style="font-family: monospace; font-size: 11px; white-space: pre; background: #090d16;" readonly></textarea>
+        <div style="display: flex; justify-content: flex-end; border-top: 1px solid #334155; padding-top: 12px;">
+          <button class="btn btn-secondary" onclick="closeScenePlanModal()">Đóng</button>
         </div>
       </div>
     </div>
