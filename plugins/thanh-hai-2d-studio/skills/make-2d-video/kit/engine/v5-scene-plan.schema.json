@@ -1,0 +1,213 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ThanhHai2DStudio_ScenePlan_Schema_V5",
+  "version": "5.1",
+  "type": "object",
+  "required": ["schemaVersion", "project", "scenes"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "enum": ["5.1", "5.0", "4.0"]
+    },
+    "project": {
+      "type": "object",
+      "required": ["id", "title", "durationMs"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "durationMs": { "type": "integer", "minimum": 500 },
+        "resolution": {
+          "type": "object",
+          "properties": {
+            "width": { "type": "integer", "default": 1280 },
+            "height": { "type": "integer", "default": 720 }
+          }
+        },
+        "fps": { "type": "integer", "default": 24 }
+      }
+    },
+    "styleProfileId": { "type": "string" },
+    "characterBindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["instanceId", "characterId"],
+        "properties": {
+          "instanceId": { "type": "string" },
+          "characterId": { "type": "string" },
+          "role": { "type": "string" }
+        }
+      }
+    },
+    "assetRequirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["requirementId", "type", "name", "generationPrompt"],
+        "properties": {
+          "requirementId": { "type": "string" },
+          "type": { "type": "string", "enum": ["character", "background", "prop", "outfit", "vfx", "illustration", "diagram"] },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "requiredByScenes": { "type": "array", "items": { "type": "string" } },
+          "generationPrompt": { "type": "string" },
+          "assetSpecification": {
+            "type": "object",
+            "properties": {
+              "format": { "type": "string", "default": "png" },
+              "transparentBackground": { "type": "boolean", "default": true },
+              "recommendedWidth": { "type": "integer", "default": 2048 },
+              "recommendedHeight": { "type": "integer", "default": 2048 }
+            }
+          },
+          "suggestedFilename": { "type": "string" }
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "startMs", "endMs"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CHARACTER_ACTING",
+              "CHARACTER_DIALOGUE",
+              "OBJECT_EXPLANATION",
+              "HISTORICAL_REENACTMENT",
+              "DIAGRAM_EXPLANATION",
+              "VISUAL_COMPARISON",
+              "TIMELINE_EXPLANATION",
+              "ENVIRONMENT_SHOT",
+              "OBJECT_CLOSEUP",
+              "COMEDY_ACTION",
+              "SYMBOLIC_ANIMATION",
+              "TEXT_GRAPHIC",
+              "TRANSITION_SCENE"
+            ]
+          },
+          "startMs": { "type": "integer", "minimum": 0 },
+          "endMs": { "type": "integer", "minimum": 1 },
+          "narrationText": { "type": "string" },
+          "visualObjective": { "type": "string" },
+          "background": {
+            "type": "object",
+            "properties": {
+              "assetId": { "type": "string" },
+              "customImage": { "type": "string" },
+              "parallax": { "type": "boolean", "default": true }
+            }
+          },
+          "characters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["characterId"],
+              "properties": {
+                "instanceId": { "type": "string" },
+                "characterId": { "type": "string" },
+                "position": {
+                  "type": "object",
+                  "properties": {
+                    "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "y": { "type": "number", "minimum": 0, "maximum": 1 }
+                  }
+                },
+                "scale": { "type": "number", "default": 1.0 },
+                "facing": { "type": "integer", "enum": [-1, 1], "default": 1 },
+                "outfitId": { "type": "string" },
+                "expressionId": { "type": "string" },
+                "prop": {
+                  "type": "object",
+                  "properties": {
+                    "assetId": { "type": "string" },
+                    "attachedTo": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "props": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "assetId": { "type": "string" },
+                "attachedTo": { "type": "string" },
+                "x": { "type": "number" },
+                "y": { "type": "number" },
+                "scale": { "type": "number", "default": 1.0 }
+              }
+            }
+          },
+          "visualBeats": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["startMs", "endMs"],
+              "properties": {
+                "startMs": { "type": "integer" },
+                "endMs": { "type": "integer" },
+                "target": { "type": "string" },
+                "actionId": { "type": "string" },
+                "expressionId": { "type": "string" },
+                "propAction": { "type": "string" },
+                "vfxId": { "type": "string" }
+              }
+            }
+          },
+          "camera": {
+            "type": "object",
+            "properties": {
+              "preset": { "type": "string" },
+              "zoom": { "type": "number", "minimum": 0.5, "maximum": 2.5 },
+              "target": { "type": "string" },
+              "keyframes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "timeMs": { "type": "integer" },
+                    "zoom": { "type": "number" },
+                    "x": { "type": "number" },
+                    "y": { "type": "number" }
+                  }
+                }
+              }
+            }
+          },
+          "transition": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "durationMs": { "type": "integer", "maximum": 2000 }
+            }
+          },
+          "textGraphics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": { "type": "string", "enum": ["title_card", "callout_box", "comparison_card", "badge"] },
+                "title": { "type": "string" },
+                "subtitle": { "type": "string" },
+                "leftTitle": { "type": "string" },
+                "leftText": { "type": "string" },
+                "rightTitle": { "type": "string" },
+                "rightText": { "type": "string" },
+                "year": { "type": "string" },
+                "eventText": { "type": "string" },
+                "items": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

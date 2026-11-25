@@ -4007,6 +4007,17 @@ function scrollToAssetLibrary() {
   }, 120);
 }
 
+// Cuộn mượt lên khu vực Quản Lý Nhân Vật (Tab 3)
+function scrollToCharacterLibrary() {
+  switchTab(3);
+  setTimeout(() => {
+    const el = document.getElementById('tabContent3');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 100);
+}
+
 // Nạp danh sách toàn bộ tài nguyên từ server
 async function loadUniversalAssetsList() {
   const grid = document.getElementById('universalAssetGrid');

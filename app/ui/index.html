@@ -928,7 +928,7 @@
     <section class="card" style="margin-bottom: 20px;">
       <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h2>🎭 Thư Viện Nhân Vật (Character Library V3)</h2>
+          <h2>🎭 A. Thư Viện Nhân Vật (Character Library V3)</h2>
           <span class="hint">Hỗ trợ 2 chế độ: Mode A (Nhân vật dựng sẵn Chibi / White Cartoon) & Mode B (Import nhân vật tách lớp / PNG ngoài)</span>
         </div>
         <div class="card-actions" style="display: flex; gap: 8px;">
@@ -957,7 +957,7 @@
       <section class="card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
           <div>
-            <h2>🛠️ Hiệu Chỉnh Nhân Vật</h2>
+            <h2>🛠️ B. Hiệu Chỉnh Nhân Vật</h2>
             <span class="hint" id="charEditorModeSubtitle">Chế độ Mode A: Nhân vật tích hợp sẵn (Chibi / White Cartoon)</span>
           </div>
           <div style="display: flex; gap: 6px; align-items: center;">
@@ -1375,10 +1375,11 @@
     <section class="card" id="universalAssetLibrarySection" style="margin-top: 24px;">
       <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
-          <h2>C. Thư Viện Tài Nguyên Dùng Chung (Universal Asset Library V4)</h2>
+          <h2>📦 C. Thư Viện Tài Nguyên Dùng Chung (Universal Asset Library V4)</h2>
           <span class="hint">Kho tài nguyên hoạt hình tái sử dụng: Biểu cảm, Trang phục, Đạo cụ, Hành động, VFX, Thời tiết, Bối cảnh & Composite Actions</span>
         </div>
         <div class="card-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-outline" onclick="scrollToCharacterLibrary()">⬆️ Lên mục Nhân Vật</button>
           <button class="btn btn-sm btn-success" style="font-weight: 700;" onclick="openCreateAssetModal()">➕ Thêm Asset Mới</button>
           <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="openAssetPackImportModal()">📦 Import Gói ZIP</button>
           <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc;" onclick="exportCurrentAssetTypeZip()">⬇️ Xuất Gói ZIP</button>
@@ -1554,7 +1555,6 @@
       </div>
     </div>
   </div>
-  </main>
 
   <!-- MODAL: Xem Chi Tiết / Chỉnh Sửa Asset V4 -->
   <div id="assetDetailModal" class="modal-overlay hidden">
