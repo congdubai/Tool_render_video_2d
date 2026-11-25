@@ -8,6 +8,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { E, S, mood, shade, rng, key, ease, clamp, lerp } from './core.js';
 import { POSES } from './rig2d.js';
+import { retargetPoseToChibi } from './chibi-rig2d.js';
 export { THREE };
 
 let R = null;
@@ -69,9 +70,11 @@ export function pine3D(x, z, s = 1, color = '#1c1626') { const m = cone(0.7 * s,
 // instanced crowd on tiered stands: rows along x, stepping back in z and up in y
 export function crowd3D(o = {}) { const { rows = 12, perRow = 80, width = 60, step = 0.8, rise = 0.5, colors = ['#3a3358', '#4a4068', '#2e2a48', '#5a4a70'], seed = 4, z0 = 0, y0 = 0 } = o; const r = rng(seed); const geo = new THREE.CapsuleGeometry(0.16, 0.45, 3, 6); const mesh = new THREE.InstancedMesh(geo, mat('#ffffff'), rows * perRow); const m4 = new THREE.Matrix4(), col = new THREE.Color(); let i = 0; for (let j = 0; j < rows; j++) for (let k = 0; k < perRow; k++) { m4.makeTranslation(-width / 2 + (k + r() * 0.5) * (width / perRow), y0 + j * rise + 0.5, z0 - j * step); mesh.setMatrixAt(i, m4); mesh.setColorAt(i, col.set(colors[Math.floor(r() * colors.length)])); i++; } mesh.castShadow = false; mesh.receiveShadow = true; const steps = new THREE.Group(); for (let j = 0; j < rows; j++) steps.add(box(width, 0.3, step, mat(shade(colors[0], -0.4)), 0, y0 + j * rise, z0 - j * step)); const g = new THREE.Group(); g.add(mesh, steps); return g; }
 
-// ---------- 3D stick figure (shares POSES with the 2D rig) ----------
+// ---------- 3D stick & Chibi V9 figure (shares POSES with the 2D rig) ----------
 const U = 1 / 140; // 2D rig units -> metres (figure ≈ 1.7 m)
 export function figure3D(outfit = {}, o = {}) {
+  const charEngine = o.character || outfit.character || E.character || E.cfg?.character || 'original';
+  const isChibi = charEngine === 'chibi' || charEngine === 'chibi_v9';
   const st = S(), ink = mat(st.ink, { roughness: 0.75 }), rimC = o.rim || '#ffd39b', out = new THREE.MeshBasicMaterial({ color: C(rimC), side: THREE.BackSide });
   const root = new THREE.Group(), g = new THREE.Group(); root.add(g); g.scale.setScalar((o.s || 1) * (outfit.kid ? 0.72 : 1));
   const cylGeo = new THREE.CylinderGeometry(1, 1, 1, 12), sphGeo = new THREE.SphereGeometry(1, 16, 12);
@@ -79,29 +82,111 @@ export function figure3D(outfit = {}, o = {}) {
   const limbs = [];
   const mk = (a, b, r, m = ink) => { const core = new THREE.Mesh(cylGeo, m), ol = new THREE.Mesh(cylGeo, out); core.castShadow = true; g.add(ol, core); const j = new THREE.Mesh(sphGeo, m), jo = new THREE.Mesh(sphGeo, out); j.castShadow = true; g.add(jo, j); limbs.push({ a, b, r, core, ol, j, jo }); };
   const long = ['hoodie', 'tracksuit', 'labcoat', 'trench', 'suit'].includes(outfit.top);
-  mk('sh', 'hip', clothes ? 0.085 : 0.05, clothes || ink);
-  mk('hip', 'kF', 0.045); mk('kF', 'fF', 0.042, outfit.legs ? mat(outfit.legs) : ink); mk('hip', 'kB', 0.045); mk('kB', 'fB', 0.042, outfit.legs ? mat(outfit.legs) : ink);
-  mk('sh', 'eF', clothes && outfit.top !== 'dress' ? 0.055 : 0.04, clothes && outfit.top !== 'dress' ? clothes : ink); mk('eF', 'hF', long ? 0.05 : 0.038, long ? clothes : ink);
-  mk('sh', 'eB', clothes && outfit.top !== 'dress' ? 0.055 : 0.04, clothes && outfit.top !== 'dress' ? clothes : ink); mk('eB', 'hB', long ? 0.05 : 0.038, long ? clothes : ink);
-  const head = new THREE.Group(); const hs = new THREE.Mesh(sphGeo, ink); hs.scale.setScalar(26 * U); hs.castShadow = true; const ho = new THREE.Mesh(sphGeo, out); ho.scale.setScalar(26 * U * 1.07); head.add(ho, hs);
-  const eyeM = basic(st.feature); for (const z of [-0.06, 0.06]) { const e = new THREE.Mesh(sphGeo, eyeM); e.scale.setScalar(0.022); e.position.set(0.17, 0.02, z); head.add(e); }
+  
+  if (isChibi) {
+    // Chibi V9 proportions in 3D: chunkier body, cute short limbs
+    mk('sh', 'hip', clothes ? 0.11 : 0.08, clothes || ink);
+    mk('hip', 'kF', 0.062); mk('kF', 'fF', 0.058, outfit.legs ? mat(outfit.legs) : ink);
+    mk('hip', 'kB', 0.062); mk('kB', 'fB', 0.058, outfit.legs ? mat(outfit.legs) : ink);
+    mk('sh', 'eF', clothes && outfit.top !== 'dress' ? 0.068 : 0.055, clothes && outfit.top !== 'dress' ? clothes : ink);
+    mk('eF', 'hF', long ? 0.064 : 0.05, long ? clothes : ink);
+    mk('sh', 'eB', clothes && outfit.top !== 'dress' ? 0.068 : 0.055, clothes && outfit.top !== 'dress' ? clothes : ink);
+    mk('eB', 'hB', long ? 0.064 : 0.05, long ? clothes : ink);
+  } else {
+    mk('sh', 'hip', clothes ? 0.085 : 0.05, clothes || ink);
+    mk('hip', 'kF', 0.045); mk('kF', 'fF', 0.042, outfit.legs ? mat(outfit.legs) : ink);
+    mk('hip', 'kB', 0.045); mk('kB', 'fB', 0.042, outfit.legs ? mat(outfit.legs) : ink);
+    mk('sh', 'eF', clothes && outfit.top !== 'dress' ? 0.055 : 0.04, clothes && outfit.top !== 'dress' ? clothes : ink);
+    mk('eF', 'hF', long ? 0.05 : 0.038, long ? clothes : ink);
+    mk('sh', 'eB', clothes && outfit.top !== 'dress' ? 0.055 : 0.04, clothes && outfit.top !== 'dress' ? clothes : ink);
+    mk('eB', 'hB', long ? 0.05 : 0.038, long ? clothes : ink);
+  }
+
+  const head = new THREE.Group();
+  const headR = isChibi ? 40 * U : 26 * U; // Chibi head is much bigger
+  const headMat = isChibi ? mat(outfit.skin || '#ffdfc4', { roughness: 0.65 }) : ink;
+  const hs = new THREE.Mesh(sphGeo, headMat); hs.scale.setScalar(headR); hs.castShadow = true;
+  const ho = new THREE.Mesh(sphGeo, out); ho.scale.setScalar(headR * 1.07); head.add(ho, hs);
+
+  const eyeM = basic(st.feature);
+  if (isChibi) {
+    // Chibi V9 3D Eyes: large oval black eyes with specular white highlights
+    for (const z of [-0.08, 0.08]) {
+      const eGroup = new THREE.Group();
+      const eb = new THREE.Mesh(sphGeo, mat('#111116', { roughness: 0.35 }));
+      eb.scale.set(0.024, 0.052, 0.038);
+      eGroup.add(eb);
+      const sp = new THREE.Mesh(sphGeo, mat('#ffffff', { roughness: 0.1 }));
+      sp.scale.set(0.01, 0.016, 0.012);
+      sp.position.set(0.014, 0.018, 0.008);
+      eGroup.add(sp);
+      eGroup.position.set(headR * 0.92, -0.01, z);
+      head.add(eGroup);
+    }
+  } else {
+    for (const z of [-0.06, 0.06]) {
+      const e = new THREE.Mesh(sphGeo, eyeM); e.scale.setScalar(0.022); e.position.set(0.17, 0.02, z); head.add(e);
+    }
+  }
+
   const hc = outfit.headColor || '#f2c21a', hm = mat(hc, { roughness: 0.5 });
-  if (['cap', 'capBack', 'visor'].includes(outfit.head)) { const dome = new THREE.Mesh(new THREE.SphereGeometry(0.195, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), hm); dome.position.y = 0.03; const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.015, 20, 1, false, -0.9, 1.8), hm); brim.position.set(outfit.head === 'capBack' ? -0.1 : 0.1, 0.04, 0); if (outfit.head === 'capBack') brim.rotation.y = Math.PI; head.add(dome, brim); }
-  if (outfit.head === 'beanie') { const dome = new THREE.Mesh(new THREE.SphereGeometry(0.2, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), hm); dome.scale.y = 1.15; const pom = new THREE.Mesh(sphGeo, mat(shade(hc, 0.3))); pom.scale.setScalar(0.06); pom.position.y = 0.25; head.add(dome, pom); }
-  if (outfit.head === 'fedora') { const fm = mat(hc); const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.33, 0.33, 0.02, 24), fm); brim.position.y = 0.1; const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.17, 20), fm); crown.position.y = 0.19; head.add(brim, crown); }
-  if (outfit.head === 'headband') { const band = new THREE.Mesh(new THREE.TorusGeometry(0.19, 0.022, 8, 24), hm); band.rotation.x = Math.PI / 2; band.position.y = 0.08; head.add(band); }
-  if (outfit.head === 'hood') { const hood = new THREE.Mesh(sphGeo, mat(outfit.headColor || outfit.color || '#d64a33')); hood.scale.setScalar(0.23); hood.position.set(-0.04, 0.01, 0); head.add(hood); }
+  const capR = isChibi ? headR * 1.04 : 0.195;
+  if (['cap', 'capBack', 'visor'].includes(outfit.head)) {
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(capR, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), hm);
+    dome.position.y = isChibi ? 0.06 : 0.03;
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(capR * 1.04, capR * 1.04, 0.018, 20, 1, false, -0.9, 1.8), hm);
+    brim.position.set(outfit.head === 'capBack' ? -headR * 0.5 : headR * 0.5, isChibi ? 0.07 : 0.04, 0);
+    if (outfit.head === 'capBack') brim.rotation.y = Math.PI;
+    head.add(dome, brim);
+  }
+  if (outfit.head === 'beanie') {
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(capR * 1.02, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), hm);
+    dome.scale.y = 1.15;
+    const pom = new THREE.Mesh(sphGeo, mat(shade(hc, 0.3))); pom.scale.setScalar(0.07); pom.position.y = headR * 1.1;
+    head.add(dome, pom);
+  }
+  if (outfit.head === 'fedora') {
+    const fm = mat(hc);
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(headR * 1.5, headR * 1.5, 0.02, 24), fm); brim.position.y = headR * 0.45;
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(headR * 0.75, headR * 0.85, headR * 0.8, 20), fm); crown.position.y = headR * 0.8;
+    head.add(brim, crown);
+  }
+  if (outfit.head === 'headband') {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(headR * 0.98, 0.024, 8, 24), hm);
+    band.rotation.x = Math.PI / 2; band.position.y = 0.08; head.add(band);
+  }
+  if (outfit.head === 'hood') {
+    const hood = new THREE.Mesh(sphGeo, mat(outfit.headColor || outfit.color || '#d64a33'));
+    hood.scale.setScalar(headR * 1.18); hood.position.set(-0.04, 0.01, 0); head.add(hood);
+  }
   g.add(head);
-  let coat = null; if (['labcoat', 'trench', 'dress'].includes(outfit.top)) { coat = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.2, 1, 12, 1, true), clothes); coat.material.side = THREE.DoubleSide; coat.castShadow = true; g.add(coat); }
-  const P3 = (p, k) => { const near = /F$/.test(k) ? 0.1 : /B$/.test(k) ? -0.1 : 0; return new THREE.Vector3(p[0] * U, -p[1] * U, near); };
+
+  let coat = null;
+  if (['labcoat', 'trench', 'dress'].includes(outfit.top)) {
+    coat = new THREE.Mesh(new THREE.CylinderGeometry(isChibi ? 0.15 : 0.11, isChibi ? 0.25 : 0.2, 1, 12, 1, true), clothes);
+    coat.material.side = THREE.DoubleSide; coat.castShadow = true; g.add(coat);
+  }
+
+  const P3 = (p, k) => {
+    const near = /F$/.test(k) ? 0.1 : /B$/.test(k) ? -0.1 : 0;
+    return new THREE.Vector3(p[0] * U, -p[1] * U, near);
+  };
   const up = new THREE.Vector3(0, 1, 0), tmp = new THREE.Vector3();
   root.setPose = (pose) => {
-    const p = typeof pose === 'string' ? POSES[pose] : pose;
-    for (const L of limbs) { const A = P3(p[L.a], L.a), B = P3(p[L.b], L.b); const len = A.distanceTo(B); tmp.copy(B).sub(A).normalize();
+    const rawP = typeof pose === 'string' ? POSES[pose] || POSES.stand : pose;
+    const p = isChibi ? retargetPoseToChibi(rawP) : rawP;
+    for (const L of limbs) {
+      const A = P3(p[L.a], L.a), B = P3(p[L.b], L.b); const len = A.distanceTo(B); tmp.copy(B).sub(A).normalize();
       for (const [m, k] of [[L.core, 1], [L.ol, 1.22]]) { m.position.copy(A).add(B).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(up, tmp); m.scale.set(L.r * k, len, L.r * k); }
-      L.j.position.copy(B); L.j.scale.setScalar(L.r); L.jo.position.copy(B); L.jo.scale.setScalar(L.r * 1.22); }
+      L.j.position.copy(B); L.j.scale.setScalar(L.r); L.jo.position.copy(B); L.jo.scale.setScalar(L.r * 1.22);
+    }
     const H = P3(p.head, 'head'); head.position.copy(H);
-    if (coat) { const S0 = P3(p.sh, 'sh'), Hp = P3(p.hip, 'hip'); const bottom = Hp.clone().add(new THREE.Vector3(0, outfit.top === 'dress' ? -0.3 : -0.42, 0)); coat.position.copy(S0).add(bottom).multiplyScalar(0.5); coat.scale.y = S0.distanceTo(bottom); coat.quaternion.setFromUnitVectors(up, tmp.copy(S0).sub(bottom).normalize()); }
+    if (coat) {
+      const S0 = P3(p.sh, 'sh'), Hp = P3(p.hip, 'hip');
+      const bottom = Hp.clone().add(new THREE.Vector3(0, outfit.top === 'dress' ? -0.28 : -0.38, 0));
+      coat.position.copy(S0).add(bottom).multiplyScalar(0.5); coat.scale.y = S0.distanceTo(bottom);
+      coat.quaternion.setFromUnitVectors(up, tmp.copy(S0).sub(bottom).normalize());
+    }
     return root;
   };
   root.setPose(o.pose || 'stand'); return root;

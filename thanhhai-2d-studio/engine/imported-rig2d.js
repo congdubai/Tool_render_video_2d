@@ -2,6 +2,7 @@
 // Solves hierarchical bone transformations, sprite rendering, expression replacement, and poses.
 
 import { clamp, lerp, ease } from './core.js';
+import { drawHandAttachedProp, drawSceneProp, solvePropTimelineState, normalizePropSpec } from './prop-v4.js';
 
 // Image cache to avoid reloading images on every frame
 const imageCache = new Map();
@@ -261,6 +262,26 @@ export function drawImportedFigure(g, o = {}) {
     }
 
     g.restore();
+  }
+
+  // Đạo cụ gắn vào tay hoặc rơi trong cảnh cho Mode B (Imported Rig)
+  if (o.prop) {
+    const rawProps = Array.isArray(o.prop) ? o.prop : [o.prop];
+    for (const rawP of rawProps) {
+      const pSpec = normalizePropSpec(rawP);
+      const handNode = (pSpec.hand === 'L' || pSpec.hand === 'B') ? (transforms['hand_L'] || transforms['forearm_L']) : (transforms['hand_R'] || transforms['forearm_R']);
+      const hx = handNode ? handNode.x : 20;
+      const hy = handNode ? handNode.y : -40;
+      const worldHand = [x + hx * flipX * s, y + hy * s];
+      const solved = solvePropTimelineState(pSpec, t, worldHand);
+      if (solved.state === 'held') {
+        drawHandAttachedProp(g, solved, [hx, hy], 1, 1);
+      } else {
+        const lx = (solved.x - x) / (flipX * s);
+        const ly = (solved.y - y) / s;
+        drawSceneProp(g, solved, lx, ly, 1.0 / s, solved.rotation);
+      }
+    }
   }
 
   g.restore();

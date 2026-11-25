@@ -44,7 +44,7 @@ async function boot() {
   const scale = +(q.get('scale') || 1);
   const outW = Math.round(((vertical ? short : long) * scale) / 2) * 2, outH = Math.round(((vertical ? long : short) * scale) / 2) * 2;
   const charParam = q.get('character') || cfg.character || 'white_cartoon';
-  Object.assign(E, { vertical, W: vertical ? 1080 : 1920, H: vertical ? 1920 : 1080, fps: cfg.fps || 24, cfg, words: words.words || words, shots: story.shots, outW, outH, character: charParam });
+  Object.assign(E, { vertical, W: vertical ? 1080 : 1920, H: vertical ? 1920 : 1080, fps: cfg.fps || 24, cfg, words: words.words || words, shots: Array.isArray(story) ? story : (story.shots || []), outW, outH, character: charParam });
   E.PX = outW / E.W;
   setStyle(q.get('style') || cfg.style || 'dusk');
   await loadFonts(cfg.lang);

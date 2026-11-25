@@ -1,0 +1,13 @@
+{
+  "title": "Phase 2 Demo - Real Prop Hand-Tracking & Emotional Drop",
+  "aspect": "16:9",
+  "resolution": "720p",
+  "fps": 24,
+  "style": "golden",
+  "character": "white_cartoon",
+  "duration": 6.0,
+  "captions": false,
+  "fadeIn": 0.3,
+  "fadeOut": 0.5
+}
+

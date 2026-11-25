@@ -4,6 +4,8 @@
 // fear secondary tremors, sweat droplets, thought bubbles, and sofa/blanket occlusion.
 
 import { E, S, clamp, lerp, seg, circle, ring, alpha, shade, mix, rr, poly, ease, linGrad, radGrad } from './core.js';
+import { drawFacialExpressionV4, normalizeExpressionName } from './expression-v4.js';
+import { drawHandAttachedProp, drawSceneProp, solvePropTimelineState, normalizePropSpec } from './prop-v4.js';
 
 export const WHITE_CARTOON_STYLE = {
   skin: '#FFFDF8',
@@ -451,427 +453,21 @@ export function drawWhiteCartoonHead(g, hx, hy, HR, o, dir, char, inkCol, t = 0)
     g.restore();
   }
 
-  // 5. Eyes & Eyebrows
-  const look = o.look || [0, 0];
-  const lookDx = clamp(look[0], -1, 1) * 4;
-  const lookDy = clamp(look[1], -1, 1) * 3;
-
-  let eyeX = isFront ? [-15, 15] : isSide ? [14] : [-6, 18];
-  const eyeY = -4;
-
-  if (o.blink) {
-    // Blinking eye slits
-    g.strokeStyle = inkCol;
-    g.lineWidth = 3.6;
-    eyeX.forEach(ex => {
-      g.beginPath();
-      g.arc(ex, eyeY + 2, 7, Math.PI + 0.3, Math.PI * 2 - 0.3);
-      g.stroke();
-    });
-  } else if (isTerrified) {
-    // Terrified wide bulging circular eyes with shrinking trembling pupils
-    eyeX.forEach(ex => {
-      // Outer white sclera
-      g.fillStyle = '#ffffff';
-      g.strokeStyle = inkCol;
-      g.lineWidth = 3.4;
-      g.beginPath();
-      g.arc(ex + lookDx * 0.5, eyeY + lookDy * 0.5, 11, 0, Math.PI * 2);
-      g.fill();
-      g.stroke();
-
-      // Pinprick trembling pupil
-      const pupilJitter = Math.sin(t * 36) * 0.8;
-      g.fillStyle = inkCol;
-      g.beginPath();
-      g.arc(ex + lookDx + pupilJitter, eyeY + lookDy + pupilJitter, 3.2, 0, Math.PI * 2);
-      g.fill();
-
-      // Stress lines under eyes (mí mắt dưới co giật)
-      g.strokeStyle = inkCol;
-      g.lineWidth = 1.8;
-      g.beginPath();
-      g.arc(ex, eyeY + 14, 8, Math.PI * 0.15, Math.PI * 0.85);
-      g.stroke();
-    });
-  } else if (isScared) {
-    // Scared / Worried large expressive eyes
-    eyeX.forEach(ex => {
-      g.fillStyle = '#ffffff';
-      g.strokeStyle = inkCol;
-      g.lineWidth = 3.2;
-      g.beginPath();
-      g.ellipse(ex + lookDx * 0.6, eyeY + lookDy * 0.6, 9.5, 11, 0, 0, Math.PI * 2);
-      g.fill();
-      g.stroke();
-
-      // Dark pupil with specular highlight
-      g.fillStyle = inkCol;
-      g.beginPath();
-      g.arc(ex + lookDx, eyeY + lookDy, 5.2, 0, Math.PI * 2);
-      g.fill();
-
-      g.fillStyle = '#ffffff';
-      g.beginPath();
-      g.arc(ex + lookDx + 1.8, eyeY + lookDy - 2.0, 2.2, 0, Math.PI * 2);
-      g.fill();
-    });
-  } else if (expr === 'determined') {
-    // Ánh mắt tập trung cao độ, sắc bén
-    eyeX.forEach(ex => {
-      g.fillStyle = '#ffffff';
-      g.strokeStyle = inkCol;
-      g.lineWidth = 3.0;
-      g.beginPath();
-      g.arc(ex + lookDx * 0.35, eyeY + lookDy * 0.35, 8.5, 0, Math.PI * 2);
-      g.fill();
-      g.stroke();
-
-      g.fillStyle = inkCol;
-      g.beginPath();
-      g.arc(ex + lookDx * 0.9, eyeY + lookDy * 0.9, 5.0, 0, Math.PI * 2);
-      g.fill();
-
-      g.fillStyle = '#ffffff';
-      g.beginPath();
-      g.arc(ex + lookDx * 0.9 + 1.8, eyeY + lookDy * 0.9 - 1.8, 2.0, 0, Math.PI * 2);
-      g.fill();
-    });
-  } else if (expr === 'happy' || expr === 'relief') {
-    // Peaceful / Joyful crescent curve eyes
-    g.strokeStyle = inkCol;
-    g.lineWidth = 3.6;
-    eyeX.forEach(ex => {
-      g.beginPath();
-      g.arc(ex, eyeY + 1, 8, Math.PI * 1.15, Math.PI * 1.85);
-      g.stroke();
-    });
-  } else {
-    // Standard cartoon eyes
-    eyeX.forEach(ex => {
-      g.fillStyle = inkCol;
-      g.beginPath();
-      g.ellipse(ex + lookDx, eyeY + lookDy, 6.2, 8.5, 0, 0, Math.PI * 2);
-      g.fill();
-
-      g.fillStyle = '#ffffff';
-      g.beginPath();
-      g.arc(ex + lookDx + 1.8, eyeY + lookDy - 2.2, 2.5, 0, Math.PI * 2);
-      g.fill();
-    });
-  }
+  // 5. Ngũ quan & Biểu cảm hoạt hình Universal Rig V4
+  drawFacialExpressionV4(g, 0, 0, HR, expr, o, dir, inkCol, t);
 
   // Kính Doc
   if (char.face === 'glasses') {
-    g.strokeStyle = inkCol;
+    const c = inkCol;
+    g.strokeStyle = c;
     g.lineWidth = 2.4;
-    eyeX.forEach(ex => {
+    for (const dx of [-6.5, 10]) {
       g.beginPath();
-      g.arc(ex, eyeY + 1, 10.5, 0, Math.PI * 2);
-      g.fillStyle = 'rgba(255, 255, 255, 0.2)';
-      g.fill();
-      g.stroke();
-    });
-    if (eyeX.length > 1) {
-      g.beginPath();
-      g.moveTo(eyeX[0] + 10.5, eyeY + 1);
-      g.lineTo(eyeX[1] - 10.5, eyeY + 1);
+      g.arc(dx, -4, 7, 0, Math.PI * 2);
       g.stroke();
     }
+    seg(g, [[-0.5, -4], [3.5, -4]], 2, c);
   }
-
-  // Eyebrows
-  g.strokeStyle = inkCol;
-  g.lineWidth = 3.2;
-  eyeX.forEach((ex, i) => {
-    g.beginPath();
-    if (isTerrified) {
-      // Arched high, trembling wavy brows
-      const browWave = Math.sin(t * 30 + i * 2) * 1.5;
-      g.moveTo(ex - 7, eyeY - 14 + browWave);
-      g.quadraticCurveTo(ex, eyeY - 20 + browWave, ex + 7, eyeY - 15 - browWave);
-    } else if (isScared || expr === 'worried') {
-      // Slanted high in center, worried
-      g.moveTo(ex - 7, eyeY - 14);
-      g.quadraticCurveTo(ex, eyeY - 18, ex + 7, eyeY - 13);
-    } else if (expr === 'determined') {
-      // Lông mày sắc bén chúc vào trong: \   /
-      const sign = i === 0 ? 1 : -1;
-      g.moveTo(ex - 7, eyeY - 13 - sign * 3);
-      g.lineTo(ex + 7, eyeY - 13 + sign * 3);
-    } else if (expr === 'surprised' || expr === 'shocked') {
-      // Nhướng cao ngạc nhiên
-      g.arc(ex, eyeY - 15, 7, Math.PI * 1.15, Math.PI * 1.85);
-    } else if (expr === 'angry') {
-      // Furrowed down
-      g.moveTo(ex - 7, eyeY - 11);
-      g.quadraticCurveTo(ex, eyeY - 15, ex + 7, eyeY - 17);
-    } else {
-      // Normal soft arch
-      g.moveTo(ex - 6, eyeY - 13);
-      g.quadraticCurveTo(ex, eyeY - 16, ex + 6, eyeY - 13);
-    }
-    g.stroke();
-  });
-
-  // 6. Mouth Animation
-  const mouthX = isFront ? 0 : isSide ? 12 : 6;
-  const mouthY = eyeY + 18;
-  const talk = o.talk || 0;
-
-  if (isTerrified) {
-    // Miệng há to hét lên kinh hãi (Hình học bo tròn hữu cơ)
-    const screamH = 14 + Math.sin(t * 38) * 2;
-    g.save();
-    // Ruột miệng khoang tối đỏ
-    g.fillStyle = '#6b1124';
-    g.strokeStyle = inkCol;
-    g.lineWidth = 3.4;
-    g.beginPath();
-    g.ellipse(mouthX, mouthY + 3, 11, screamH, 0, 0, Math.PI * 2);
-    g.fill();
-    g.stroke();
-
-    // Răng trên bo cong mềm mại bên trong (Clipped inside, không có khung viền đen cứng)
-    g.beginPath();
-    g.ellipse(mouthX, mouthY + 3, 11, screamH, 0, 0, Math.PI * 2);
-    g.clip();
-
-    g.fillStyle = '#ffffff';
-    g.beginPath();
-    g.ellipse(mouthX, mouthY - screamH * 0.45 + 3, 9.5, 5.0, 0, 0, Math.PI * 2);
-    g.fill();
-
-    // Lưỡi hồng tròn xinh ở đáy miệng
-    g.fillStyle = '#fb7185';
-    g.beginPath();
-    g.arc(mouthX, mouthY + screamH + 1, 7.5, 0, Math.PI);
-    g.fill();
-    g.restore();
-  } else if (isScared) {
-    // Miệng ngậm răng run lẩy bẩy
-    const jitterM = Math.sin(t * 40) * 1.5;
-    g.fillStyle = '#ffffff';
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.8;
-    rr(g, mouthX - 9, mouthY - 4 + jitterM, 18, 9, 4);
-    g.fill();
-    g.stroke();
-
-    // Các kẽ răng mờ thanh mảnh
-    g.strokeStyle = '#cbd5e1';
-    g.lineWidth = 1.6;
-    for (let dx = -4; dx <= 4; dx += 4) {
-      g.beginPath();
-      g.moveTo(mouthX + dx, mouthY - 3 + jitterM);
-      g.lineTo(mouthX + dx, mouthY + 4 + jitterM);
-      g.stroke();
-    }
-  } else if (expr === 'laughing') {
-    // Cười to sảng khoái há miệng rộng
-    g.save();
-    g.fillStyle = '#581c24';
-    g.strokeStyle = inkCol;
-    g.lineWidth = 3.0;
-    g.beginPath();
-    g.arc(mouthX, mouthY - 3, 10, 0.2, Math.PI - 0.2);
-    g.closePath();
-    g.fill();
-    g.stroke();
-    g.clip();
-
-    // Lưỡi hồng tươi
-    g.fillStyle = '#fb7185';
-    g.beginPath();
-    g.arc(mouthX, mouthY + 4, 6.5, 0, Math.PI);
-    g.fill();
-    g.restore();
-
-    // Má hồng
-    g.fillStyle = 'rgba(251, 113, 133, 0.45)';
-    circle(g, mouthX - 16, mouthY - 3, 4.5);
-    circle(g, mouthX + 16, mouthY - 3, 4.5);
-  } else if (expr === 'sad') {
-    // Miệng mếu máo buồn
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.8;
-    g.beginPath();
-    g.arc(mouthX, mouthY + 7, 7, Math.PI * 1.25, Math.PI * 1.75);
-    g.stroke();
-  } else if (expr === 'confused') {
-    // Miệng lượn sóng khó hiểu
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.8;
-    g.beginPath();
-    g.moveTo(mouthX - 7, mouthY + 1);
-    g.quadraticCurveTo(mouthX - 2, mouthY - 2, mouthX + 2, mouthY + 1);
-    g.quadraticCurveTo(mouthX + 6, mouthY + 4, mouthX + 8, mouthY - 1);
-    g.stroke();
-  } else if (talk > 0.08) {
-    // Talking open mouth (Gọn gàng, sạch sẽ, có răng và lưỡi clip bên trong)
-    const openH = 4 + talk * 8;
-    g.save();
-    g.fillStyle = '#581c24';
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.8;
-    g.beginPath();
-    g.ellipse(mouthX, mouthY, 7.5, openH, 0, 0, Math.PI * 2);
-    g.fill();
-    g.stroke();
-    g.clip();
-
-    // Răng trên
-    g.fillStyle = '#ffffff';
-    g.beginPath();
-    g.ellipse(mouthX, mouthY - openH * 0.5, 5.5, openH * 0.4, 0, 0, Math.PI * 2);
-    g.fill();
-
-    // Lưỡi hồng
-    g.fillStyle = '#fb7185';
-    g.beginPath();
-    g.arc(mouthX, mouthY + openH * 0.4, 5, 0, Math.PI);
-    g.fill();
-    g.restore();
-  } else if (expr === 'determined') {
-    // Miệng mím tự tin kiên định
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.8;
-    g.beginPath();
-    g.moveTo(mouthX - 7, mouthY);
-    g.quadraticCurveTo(mouthX, mouthY + 1, mouthX + 8, mouthY - 1);
-    g.stroke();
-  } else if (expr === 'surprised') {
-    // Miệng chữ 'O' nhỏ
-    g.fillStyle = '#4c0519';
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.6;
-    g.beginPath();
-    g.ellipse(mouthX, mouthY, 4.5, 6, 0, 0, Math.PI * 2);
-    g.fill();
-    g.stroke();
-  } else if (expr === 'shocked') {
-    // Miệng ngạc nhiên chữ 'O' lớn hơn
-    g.fillStyle = '#4c0519';
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.8;
-    g.beginPath();
-    g.ellipse(mouthX, mouthY, 7, 9, 0, 0, Math.PI * 2);
-    g.fill();
-    g.stroke();
-    g.fillStyle = '#fb7185';
-    g.beginPath();
-    g.arc(mouthX, mouthY + 4, 4.5, 0, Math.PI);
-    g.fill();
-  } else if (expr === 'smirk') {
-    // Cười nhếch mép
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.8;
-    g.beginPath();
-    g.moveTo(mouthX - 5, mouthY);
-    g.quadraticCurveTo(mouthX, mouthY + 2, mouthX + 7, mouthY - 3);
-    g.stroke();
-  } else if (expr === 'happy' || expr === 'smile') {
-    // Cười vui tươi
-    g.save();
-    g.fillStyle = '#581c24';
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.8;
-    g.beginPath();
-    g.arc(mouthX, mouthY - 2, 8, 0.2, Math.PI - 0.2);
-    g.closePath();
-    g.fill();
-    g.stroke();
-    g.clip();
-    g.fillStyle = '#fb7185';
-    g.beginPath();
-    g.arc(mouthX, mouthY + 4, 5.5, 0, Math.PI);
-    g.fill();
-    g.restore();
-  } else if (expr === 'relief') {
-    // Thở phào nhẹ nhõm
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.6;
-    g.beginPath();
-    g.arc(mouthX, mouthY - 1, 6, 0.2, Math.PI - 0.2);
-    g.stroke();
-    // Làn hơi thở phào "phù"
-    g.strokeStyle = 'rgba(255,255,255,0.7)';
-    g.lineWidth = 1.8;
-    g.beginPath();
-    g.arc(mouthX + 14, mouthY - 2, 4, -0.6, 1.2);
-    g.stroke();
-  } else {
-    // Cute subtle smile
-    g.strokeStyle = inkCol;
-    g.lineWidth = 2.8;
-    g.beginPath();
-    g.arc(mouthX, mouthY - 2, 7, 0.3, Math.PI - 0.3);
-    g.stroke();
-  }
-
-  // 7. Secondary Fear FX: Sweat Drops, Vibration Lines & Shock Sparks (CHỈ KHI SỢ)
-  if (isScared || isTerrified) {
-    // Flying sweat teardrops
-    const sweatCols = ['#e0f2fe', '#bae6fd'];
-    const drops = isTerrified
-      ? [
-          { x: -HR - 8, y: -10, r: 4.5, vx: -6, vy: -4 },
-          { x: -HR - 4, y: 12, r: 3.8, vx: -5, vy: 6 },
-          { x: HR + 6, y: -14, r: 4.2, vx: 5, vy: -5 },
-          { x: HR + 4, y: 16, r: 3.5, vx: 4, vy: 5 },
-        ]
-      : [
-          { x: -HR - 5, y: -6, r: 3.6, vx: -3, vy: -2 },
-          { x: HR + 5, y: -8, r: 3.6, vx: 3, vy: -2 },
-        ];
-
-    drops.forEach((d, idx) => {
-      const dropTime = (t * 4 + idx * 0.5) % 1;
-      const curX = d.x + d.vx * dropTime;
-      const curY = d.y + d.vy * dropTime;
-      g.save();
-      g.fillStyle = sweatCols[idx % sweatCols.length];
-      g.strokeStyle = inkCol;
-      g.lineWidth = 1.8;
-      g.beginPath();
-      g.arc(curX, curY, d.r, 0, Math.PI * 2);
-      g.fill();
-      g.stroke();
-      g.restore();
-    });
-
-    // Comic vibration lines around the head (shivering effect)
-    g.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-    g.lineWidth = 2.4;
-    [-HR - 12, HR + 12].forEach((vx, i) => {
-      const sign = i === 0 ? -1 : 1;
-      for (let k = -1; k <= 1; k++) {
-        const vy = k * 18 + Math.sin(t * 35 + k) * 3;
-        g.beginPath();
-        g.arc(vx, vy, 10, sign > 0 ? Math.PI * 0.8 : -Math.PI * 0.2, sign > 0 ? Math.PI * 1.2 : Math.PI * 0.2);
-        g.stroke();
-      }
-    });
-
-    // Comic Shock / Alert Spark above head
-    if (isTerrified) {
-      g.save();
-      g.translate(0, -HR - 18);
-      g.strokeStyle = '#fde047';
-      g.fillStyle = '#fde047';
-      g.lineWidth = 2.4;
-      for (let a = 0; a < Math.PI * 2; a += Math.PI / 3) {
-        const r1 = 6;
-        const r2 = 14 + Math.sin(t * 25 + a) * 3;
-        g.beginPath();
-        g.moveTo(Math.cos(a) * r1, Math.sin(a) * r1);
-        g.lineTo(Math.cos(a) * r2, Math.sin(a) * r2);
-        g.stroke();
-      }
-      g.restore();
-    }
-  }
-
   g.restore();
 }
 
@@ -1314,7 +910,10 @@ export function drawWhiteCartoonLeg(g, hip, knee, foot, inkCol, char, isFar = fa
 /**
  * Đạo cụ White Cartoon
  */
-function drawWhiteCartoonProp(g, prop, hand, inkCol, facing) {
+export function drawWhiteCartoonProp(g, prop, hand, inkCol, facing) {
+  drawHandAttachedProp(g, prop, hand, facing, 1.0);
+  return;
+
   const t = typeof prop === 'string' ? { type: prop } : prop;
   g.save();
   g.translate(hand[0], hand[1]);
@@ -1368,9 +967,30 @@ export function drawWhiteCartoonFigure(g, o) {
     g.translate(-p.hip[0], -p.hip[1]);
   }
 
+  // Xử lý động học và trạng thái của đạo cụ (Held / Dropped / Placed)
+  let solvedNearProp = null;
+  let solvedFarProp = null;
+  let sceneDropProps = [];
+  if (o.prop) {
+    const rawProps = Array.isArray(o.prop) ? o.prop : [o.prop];
+    for (const rawP of rawProps) {
+      const pSpec = normalizePropSpec(rawP);
+      const isFar = pSpec.hand === 'B';
+      const handPos = isFar ? p.hB : p.hF;
+      const handWorld = [o.x + handPos[0] * facing * s, o.y + handPos[1] * s];
+      const solved = solvePropTimelineState(pSpec, t, handWorld);
+      if (solved.state === 'held') {
+        if (isFar) solvedFarProp = solved;
+        else solvedNearProp = solved;
+      } else {
+        sceneDropProps.push(solved);
+      }
+    }
+  }
+
   // 1. Far Limbs (Phía xa, có đổ bóng nhẹ isFar = true)
   drawWhiteCartoonLeg(g, p.hip, p.kB, p.fB, inkCol, char, true);
-  drawWhiteCartoonArm(g, p.sh, p.eB, p.hB, inkCol, char, o.prop?.hand === 'B' ? o.prop : null, facing, o.poseMode || 'normal', t, true);
+  drawWhiteCartoonArm(g, p.sh, p.eB, p.hB, inkCol, char, solvedFarProp, facing, o.poseMode || 'normal', t, true);
 
   // 2. Neck
   const neckH = 10;
@@ -1381,7 +1001,14 @@ export function drawWhiteCartoonFigure(g, o) {
 
   // 4. Near Limbs (Phía gần, màu sắc rõ nét isFar = false)
   drawWhiteCartoonLeg(g, p.hip, p.kF, p.fF, inkCol, char, false);
-  drawWhiteCartoonArm(g, p.sh, p.eF, p.hF, inkCol, char, o.prop?.hand !== 'B' ? o.prop : null, facing, o.poseMode || 'normal', t, false);
+  drawWhiteCartoonArm(g, p.sh, p.eF, p.hF, inkCol, char, solvedNearProp, facing, o.poseMode || 'normal', t, false);
+
+  // Đạo cụ đã thả / đặt (vẽ trong không gian local của nhân vật)
+  for (const dp of sceneDropProps) {
+    const lx = (dp.x - o.x) / (facing * s);
+    const ly = (dp.y - o.y) / s;
+    drawSceneProp(g, dp, lx, ly, 1.0 / s, dp.rotation);
+  }
 
   // 5. Head & Facial Expressions
   drawWhiteCartoonHead(g, p.head[0], p.head[1], HR, o, dir, char, inkCol, t);

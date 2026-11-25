@@ -240,6 +240,9 @@
           <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24;" onclick="toggleChibiTestPanel()">
             🎭 Chibi Animation Test
           </button>
+          <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; font-weight: 700;" onclick="toggleV4ExpressionsPropsPanel()">
+            📦 Expressions & Props V4 Test
+          </button>
           <div id="previewStatusInfo" class="preview-status-info hidden" style="margin: 0; padding: 4px 10px;">
             <span id="previewStatusText">🎥 Đang phát video thành phẩm</span>
           </div>
@@ -295,6 +298,86 @@
                 <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="selectChibiDemoProject()">
                   🎬 Mở Dự Án Mẫu Chibi
                 </button>
+              </div>
+            </div>
+
+            <!-- Khu vực Expressions & Props V4 Test (Có thể bật/tắt) -->
+            <div id="v4ExpressionsPropsPanel" class="hidden" style="background: #0f172a; border: 1px solid #38bdf8; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <strong style="color: #38bdf8; font-size: 14px;">📦 BỘ ĐIỀU KHIỂN BIỂU CẢM & ĐẠO CỤ V4 (EXPRESSIONS & PROPS V4)</strong>
+                <span class="hint-small" style="color: #94a3b8;">Giai đoạn 2 • Universal Expression & Hand-Tracking Prop Engine</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 10px;">
+                <div class="setting-item">
+                  <label for="v4TestCharSelect">Nhân vật:</label>
+                  <select id="v4TestCharSelect" class="select-control" onchange="updateV4TestPreview()">
+                    <option value="max" selected>Max (Hoodie Đỏ)</option>
+                    <option value="jake">Jake (Áo Xanh, Mũ Vàng)</option>
+                    <option value="doc">Doc (Áo Labcoat Trắng)</option>
+                    <option value="nam">Nam (Áo Khoác Xanh Lá)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="v4TestExprSelect">Biểu cảm (Expression):</label>
+                  <select id="v4TestExprSelect" class="select-control" onchange="updateV4TestPreview()">
+                    <option value="neutral">Bình thường (Neutral)</option>
+                    <option value="happy">Vui vẻ (Happy)</option>
+                    <option value="sad">Buồn bã (Sad)</option>
+                    <option value="crying">Khóc lóc (Crying / Tears)</option>
+                    <option value="angry">Tức giận (Angry / Vein Mark)</option>
+                    <option value="laughing">Cười lớn (Laughing)</option>
+                    <option value="surprised" selected>Ngạc nhiên (Surprised)</option>
+                    <option value="shocked">Bàng hoàng (Shocked)</option>
+                    <option value="scared">Sợ hãi (Scared / Cold Sweat)</option>
+                    <option value="thinking">Suy nghĩ (Thinking / ?)</option>
+                    <option value="dizzy">Chóng mặt (Dizzy / Stars)</option>
+                    <option value="talking">Nói chuyện (Talking)</option>
+                    <option value="love_eyes">Mắt trái tim (Love Eyes)</option>
+                    <option value="determined">Kiên định (Determined)</option>
+                    <option value="relief">Thở phào (Relief)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="v4TestPropSelect">Đạo cụ (Prop):</label>
+                  <select id="v4TestPropSelect" class="select-control" onchange="updateV4TestPreview()">
+                    <option value="coffee_cup" selected>☕ Cốc cà phê (Coffee Cup)</option>
+                    <option value="laptop_modern">💻 Laptop hiện đại (Laptop)</option>
+                    <option value="phone_smart">📱 Điện thoại thông minh (Phone)</option>
+                    <option value="book_magic">📖 Sách thần kỳ (Magic Book)</option>
+                    <option value="broom_stick">🧹 Cây chổi quét (Broom)</option>
+                    <option value="pen_tool">✒️ Cây bút (Pen)</option>
+                    <option value="desk_wood">🪵 Bàn gỗ (Desk)</option>
+                    <option value="chair_cafe">🪑 Ghế cafe (Chair)</option>
+                    <option value="none">❌ Không mang đạo cụ</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="v4TestPropHandSelect">Tay cầm đạo cụ:</label>
+                  <select id="v4TestPropHandSelect" class="select-control" onchange="updateV4TestPreview()">
+                    <option value="F" selected>✋ Tay gần (Near Hand F)</option>
+                    <option value="B">🤚 Tay xa (Far Hand B)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="v4TestPropStateSelect">Hành động Đạo Cụ:</label>
+                  <select id="v4TestPropStateSelect" class="select-control" onchange="updateV4TestPreview()">
+                    <option value="held" selected>✊ Cầm trên tay (Held)</option>
+                    <option value="dropped">⬇️ Thả rơi xuống sàn (Dropped)</option>
+                    <option value="placed">🪑 Đặt cố định trong cảnh (Placed)</option>
+                  </select>
+                </div>
+                <div class="setting-item">
+                  <label for="v4TestDropTime">Thời điểm thả (Drop Time s):</label>
+                  <input type="number" id="v4TestDropTime" class="text-input" value="2.5" step="0.5" min="0" max="10" oninput="updateV4TestPreview()" />
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <span style="font-size: 12px; color: #94a3b8;">✨ Khi tay cử động (Walk, Wave), đồ vật tự động bám theo khớp bàn tay. Bấm Thả để đồ vật tách khỏi tay!</span>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="runV4PropInteractiveDemo()">
+                    ▶️ Xem Diễn Hoạt Cầm & Thả Cốc (Demo 3s)
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -824,10 +907,17 @@
                   <option value="happy">Vui vẻ (Happy)</option>
                   <option value="laughing">Cười lớn (Laughing)</option>
                   <option value="sad">Buồn bã (Sad)</option>
-                  <option value="angry">Giận dữ (Angry)</option>
+                  <option value="crying">Khóc lóc (Crying / Tears)</option>
+                  <option value="angry">Giận dữ (Angry / Vein Cross)</option>
                   <option value="surprised">Ngạc nhiên (Surprised)</option>
-                  <option value="thinking">Suy nghĩ (Thinking)</option>
-                  <option value="worried">Lo lắng (Worried)</option>
+                  <option value="shocked">Bàng hoàng / Sốc (Shocked)</option>
+                  <option value="scared">Sợ hãi (Scared / Cold Sweat)</option>
+                  <option value="thinking">Suy nghĩ (Thinking / ?)</option>
+                  <option value="dizzy">Chóng mặt / Hoa mắt (Dizzy / Stars)</option>
+                  <option value="talking">Đang nói chuyện (Talking)</option>
+                  <option value="love_eyes">Mắt trái tim (Love Eyes)</option>
+                  <option value="determined">Kiên định / Quyết tâm (Determined)</option>
+                  <option value="relief">Thở phào nhẹ nhõm (Relief)</option>
                 </select>
               </div>
             </div>

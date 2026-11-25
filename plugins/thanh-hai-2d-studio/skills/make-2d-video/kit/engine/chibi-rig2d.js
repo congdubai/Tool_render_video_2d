@@ -710,21 +710,14 @@ function drawChibiShoe(g, x, y, shoeType, shoeColor, inkCol, isFront, isLeftFoot
  */
 function drawChibiLeg(g, hip, knee, foot, pantsCol, inkCol, isPants, char) {
   const legAnkleY = foot[1] - 8;
-  const col = isPants ? pantsCol : (char.skin || '#ffdfc4');
+  const col = isPants ? pantsCol : (char.skin || '#FFFDF8');
   g.save();
   g.lineCap = 'round';
   g.lineJoin = 'round';
 
-  // 1. Đùi (Thigh: Hông -> Đầu gối)
-  seg(g, [hip, knee], 18, inkCol);
-  seg(g, [hip, knee], 13.5, col);
-
-  // 2. Khớp gối bo tròn mịn màng
-  circle(g, knee[0], knee[1], 6.7, col);
-
-  // 3. Cẳng chân (Shin: Đầu gối -> Cổ chân)
-  seg(g, [knee, [foot[0], legAnkleY]], 16, inkCol);
-  seg(g, [knee, [foot[0], legAnkleY]], 11.5, col);
+  // Chân liền mạch từ hông qua khớp gối tới cổ chân
+  seg(g, [hip, knee, [foot[0], legAnkleY]], 18, inkCol);
+  seg(g, [hip, knee, [foot[0], legAnkleY]], 13.5, col);
 
   if (isPants) {
     g.strokeStyle = inkCol;
@@ -746,29 +739,25 @@ function drawChibiArm(g, sh, elbow, hand, topCol, inkCol, char, prop, facing) {
   g.lineJoin = 'round';
 
   const isShortSleeve = char.top === 'tshirt' || char.top === 'dress';
-  const foreCol = isShortSleeve ? (char.skin || '#ffdfc4') : topCol;
+  const foreCol = isShortSleeve ? (char.skin || '#FFFDF8') : topCol;
 
-  // 1. Bắp tay (Shoulder -> Elbow)
-  seg(g, [sh, elbow], 17, inkCol);
-  seg(g, [sh, elbow], 12.5, topCol);
-
-  // 2. Khớp khuỷu tay
-  circle(g, elbow[0], elbow[1], 6.3, topCol);
-
-  // 3. Cẳng tay (Elbow -> Hand)
-  seg(g, [elbow, hand], 15, inkCol);
-  seg(g, [elbow, hand], 10.5, foreCol);
+  // Cánh tay liền mạch từ vai qua khuỷu tới cổ tay
+  seg(g, [sh, elbow, hand], 17, inkCol);
+  seg(g, [sh, elbow, hand], 12.5, isShortSleeve ? foreCol : topCol);
 
   if (isShortSleeve) {
+    // Áo cộc tay phủ bắp tay
+    seg(g, [sh, elbow], 17, inkCol);
+    seg(g, [sh, elbow], 12.5, topCol);
     g.strokeStyle = inkCol;
-    g.lineWidth = 1.8;
+    g.lineWidth = 2.0;
     g.beginPath();
     g.arc(elbow[0], elbow[1], 6.3, 0, Math.PI * 2);
     g.stroke();
   }
 
   // 4. Bàn tay Chibi bo tròn dễ thương
-  const skin = char.skin || '#ffdfc4';
+  const skin = char.skin || '#FFFDF8';
   circle(g, hand[0], hand[1], 7.5, skin);
   g.strokeStyle = inkCol;
   g.lineWidth = 2.2;

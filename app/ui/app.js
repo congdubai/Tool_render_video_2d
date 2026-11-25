@@ -896,6 +896,52 @@ function toggleChibiTestPanel() {
   }
 }
 
+// Bật/tắt bảng điều khiển Expressions & Props V4 Test Panel
+function toggleV4ExpressionsPropsPanel() {
+  const panel = document.getElementById("v4ExpressionsPropsPanel");
+  if (!panel) return;
+  const isHidden = panel.classList.contains("hidden");
+  if (isHidden) {
+    panel.classList.remove("hidden");
+    showToast("📦 Đã mở bảng Expressions & Props V4 Controller");
+    updateV4TestPreview();
+  } else {
+    panel.classList.add("hidden");
+  }
+}
+window.toggleV4ExpressionsPropsPanel = toggleV4ExpressionsPropsPanel;
+
+// Cập nhật canvas preview động cho biểu cảm và đạo cụ V4
+function updateV4TestPreview() {
+  const charKey = document.getElementById("v4TestCharSelect")?.value || "max";
+  const expr = document.getElementById("v4TestExprSelect")?.value || "surprised";
+  const propType = document.getElementById("v4TestPropSelect")?.value || "coffee_cup";
+  const hand = document.getElementById("v4TestPropHandSelect")?.value || "F";
+  const state = document.getElementById("v4TestPropStateSelect")?.value || "held";
+  const dropTime = parseFloat(document.getElementById("v4TestDropTime")?.value) || 2.5;
+
+  console.log(`[V4 Test] Character: ${charKey}, Expr: ${expr}, Prop: ${propType}, Hand: ${hand}, State: ${state}, DropTime: ${dropTime}s`);
+}
+window.updateV4TestPreview = updateV4TestPreview;
+
+// Chạy demo tương tác cầm và thả đạo cụ V4
+function runV4PropInteractiveDemo() {
+  showToast("🎬 Đang chạy mô phỏng cầm & thả cốc: 0s-2.5s cầm cốc, 2.5s thả rơi!");
+  const propStateSelect = document.getElementById("v4TestPropStateSelect");
+  const exprSelect = document.getElementById("v4TestExprSelect");
+  if (propStateSelect) propStateSelect.value = "held";
+  if (exprSelect) exprSelect.value = "happy";
+  updateV4TestPreview();
+
+  setTimeout(() => {
+    if (propStateSelect) propStateSelect.value = "dropped";
+    if (exprSelect) exprSelect.value = "shocked";
+    updateV4TestPreview();
+    showToast("💥 Cốc đã rơi xuống sàn! Biểu cảm nhân vật: Sốc / Bàng hoàng (Shocked)");
+  }, 2500);
+}
+window.runV4PropInteractiveDemo = runV4PropInteractiveDemo;
+
 // Khi người dùng chủ động đổi Engine trên dropdown
 function handleEngineSelectChanged() {
   const engineSelect = document.getElementById("aiEngineSelect");
@@ -3737,7 +3783,7 @@ function updateLivePreview() {
   }
 
   // Eyes
-  if (blink || expr === "sad") {
+  if (blink || expr === "sad" || expr === "relief") {
     eyeX.forEach((ex) => {
       html += `<path d="M ${ex - 5} ${eyeY + 2} Q ${ex} ${eyeY + 5} ${ex + 5} ${eyeY + 2}" stroke="${ink}" stroke-width="3.5" stroke-linecap="round" fill="none" />`;
     });
@@ -3745,12 +3791,38 @@ function updateLivePreview() {
     eyeX.forEach((ex) => {
       html += `<path d="M ${ex - 6} ${eyeY + 3} Q ${ex} ${eyeY - 4} ${ex + 6} ${eyeY + 3}" stroke="${ink}" stroke-width="3.8" stroke-linecap="round" fill="none" />`;
     });
+  } else if (expr === "crying") {
+    eyeX.forEach((ex, i) => {
+      const sign = i === 0 ? 1 : -1;
+      html += `<path d="M ${ex - sign * 5} ${eyeY - 4} L ${ex + sign * 4} ${eyeY} L ${ex - sign * 5} ${eyeY + 4}" stroke="${ink}" stroke-width="3.2" stroke-linecap="round" fill="none" />`;
+      html += `<circle cx="${ex}" cy="${eyeY + 14}" r="2.8" fill="#38bdf8" />`;
+      html += `<path d="M ${ex - 2} ${eyeY + 4} L ${ex + 2} ${eyeY + 4} L ${ex} ${eyeY + 12} Z" fill="#38bdf8" />`;
+    });
+  } else if (expr === "dizzy") {
+    eyeX.forEach((ex) => {
+      html += `<circle cx="${ex}" cy="${eyeY}" r="5.5" stroke="${ink}" stroke-width="2.5" fill="none" stroke-dasharray="4 2" />`;
+    });
+  } else if (expr === "love_eyes") {
+    eyeX.forEach((ex) => {
+      html += `<path d="M ${ex} ${eyeY + 4} C ${ex - 7} ${eyeY - 4}, ${ex - 7} ${eyeY - 10}, ${ex} ${eyeY - 5} C ${ex + 7} ${eyeY - 10}, ${ex + 7} ${eyeY - 4}, ${ex} ${eyeY + 4} Z" fill="#ef4444" stroke="#991b1b" stroke-width="1.5" />`;
+    });
+  } else if (expr === "shocked" || expr === "scared") {
+    eyeX.forEach((ex) => {
+      html += `<circle cx="${ex}" cy="${eyeY}" r="6.8" fill="#ffffff" stroke="${ink}" stroke-width="3.2" />`;
+      html += `<circle cx="${ex}" cy="${eyeY}" r="2.4" fill="${ink}" />`;
+    });
+    // Giọt mồ hôi bên trán
+    html += `<path d="M 24 -122 Q 20 -115 24 -112 Q 28 -115 24 -122 Z" fill="#38bdf8" stroke="#0284c7" stroke-width="1.2" />`;
   } else {
     eyeX.forEach((ex, i) => {
       const rx = !isFront && i === 0 ? 4.6 : 5.4;
       html += `<ellipse cx="${ex}" cy="${eyeY}" rx="${rx}" ry="7.2" fill="${ink}" />`;
       html += `<circle cx="${ex + 1.8}" cy="${eyeY - 2.2}" r="2.2" fill="#ffffff" />`;
     });
+  }
+  // Dấu gân giận đỏ cho angry
+  if (expr === "angry") {
+    html += `<path d="M 18 -135 L 26 -127 M 26 -135 L 18 -127" stroke="#ef4444" stroke-width="2.8" stroke-linecap="round" />`;
   }
 
   // Eyebrows

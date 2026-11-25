@@ -1,0 +1,13 @@
+{
+  "title": "Phase 2 Demo - Real Prop Hand-Tracking & Emotional Drop",
+  "duration": 6.0,
+  "shots": [
+    {
+      "id": "s001",
+      "start": 0,
+      "end": 6.0,
+      "line": "Max holds the coffee cup, then drops it with emotional shock.",
+      "scene": "Cafe: Max holds cup, hand moves, drops cup at 2.5s, shocked reaction."
+    }
+  ]
+}

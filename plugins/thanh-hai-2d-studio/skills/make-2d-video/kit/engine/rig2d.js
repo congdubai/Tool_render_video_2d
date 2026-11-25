@@ -4,9 +4,39 @@
 //         kF/fF = near knee/foot, kB/fB = far knee/foot.
 import { E, S, clamp, lerp, mixVal, seg, circle, ring, alpha, shade, mix, rr, poly, ease } from './core.js';
 import { drawChibiFigure, drawChibiBigFace } from './chibi-rig2d.js';
-import { drawWhiteCartoonFigure, drawWhiteCartoonBigFace, drawSpookyGhostThoughtBubble } from './white-cartoon-rig2d.js';
+import { drawImportedFigure } from './imported-rig2d.js';
+import { drawHandAttachedProp, drawSceneProp, solvePropTimelineState, normalizePropSpec } from './prop-v4.js';
+import { drawFacialExpressionV4, normalizeExpressionName } from './expression-v4.js';
+import {
+  drawWhiteCartoonFigure,
+  drawWhiteCartoonBigFace,
+  drawSpookyGhostThoughtBubble,
+  blendExpression,
+  solveWalkCycle,
+  solveRunCycle,
+  solveSneakWalkCycle,
+  solveFallBackwardAction,
+  solveScaredReactionAction,
+  drawBroom,
+  drawBlackCat
+} from './white-cartoon-rig2d.js';
 
-export { drawChibiFigure, drawChibiBigFace, drawWhiteCartoonFigure, drawWhiteCartoonBigFace, drawSpookyGhostThoughtBubble };
+export {
+  drawChibiFigure,
+  drawChibiBigFace,
+  drawImportedFigure,
+  drawWhiteCartoonFigure,
+  drawWhiteCartoonBigFace,
+  drawSpookyGhostThoughtBubble,
+  blendExpression,
+  solveWalkCycle,
+  solveRunCycle,
+  solveSneakWalkCycle,
+  solveFallBackwardAction,
+  solveScaredReactionAction,
+  drawBroom,
+  drawBlackCat
+};
 
 const P = (o) => o;
 export const POSES = {
@@ -195,7 +225,10 @@ function sleeveColor(o, far) { const c = o.top === 'labcoat' ? '#f3f0f6' : o.top
 // ---------- main draw ----------
 // drawFigure(g, { x, y, s, facing, pose, rot, outfit, expr, talk, blink, look, rim:{dir:[x,y], color, w}, dim, alpha, prop, shadow })
 export function drawFigure(g, o) {
-  const charEngine = o?.character || o?.outfit?.character || E.character || E.cfg?.character || 'original';
+  const charEngine = o?.character || o?.outfit?.character || o?.outfit?.type || E.character || E.cfg?.character || 'white_cartoon';
+  if (charEngine === 'imported' || o?.outfit?.parts || o?.parts) {
+    return drawImportedFigure(g, o);
+  }
   if (charEngine === 'white_cartoon' || charEngine === 'white-cartoon' || charEngine === 'white-cartoon-2d' || charEngine === 'white_cartoon_2d') {
     return drawWhiteCartoonFigure(g, o);
   }
@@ -220,10 +253,19 @@ function body(g, o, p, s, f, of, ink, far, rim, flat) {
 }
 function parts(g, o, p, of, ink, far, pass, grow = 0) {
   const sil = pass === 'sil', L = 12.5 + grow, A = 11 + grow, T = 15 + grow, HR = 26 + grow * 0.6;
+  const skin = of.skin || of.skinColor || '#FFFDF8';
+  const outLine = of.outline || of.outlineColor || '#20202A';
   const sl = sleeve(of);
   // far leg + far arm
-  seg(g, [p.hip, p.kB, p.fB, [p.fB[0] + 12, p.fB[1]]], L - 1, sil ? ink : of.legs ? shade(of.legs, -0.35) : far);
-  seg(g, [p.sh, p.eB, p.hB], A - 1, sil ? ink : far);
+  if (sil) {
+    seg(g, [p.hip, p.kB, p.fB, [p.fB[0] + 12, p.fB[1]]], L - 1, ink);
+    seg(g, [p.sh, p.eB, p.hB], A - 1, ink);
+  } else {
+    seg(g, [p.hip, p.kB, p.fB, [p.fB[0] + 12, p.fB[1]]], L + 4, outLine);
+    seg(g, [p.hip, p.kB, p.fB, [p.fB[0] + 12, p.fB[1]]], L - 1, of.legs ? shade(of.legs, -0.35) : skin);
+    seg(g, [p.sh, p.eB, p.hB], A + 4, outLine);
+    seg(g, [p.sh, p.eB, p.hB], A - 1, skin);
+  }
   if (!sil && sl) seg(g, sl === 'long' ? [p.sh, p.eB, [lerp(p.eB[0], p.hB[0], 0.7), lerp(p.eB[1], p.hB[1], 0.7)]] : [p.sh, [lerp(p.sh[0], p.eB[0], 0.75), lerp(p.sh[1], p.eB[1], 0.75)]], 16, sleeveColor(of, true));
   if (of.gloves) circle(g, p.hB[0], p.hB[1], 8.5 + grow, sil ? ink : shade(of.gloves, -0.2));
   // hair / hood behind head
@@ -231,17 +273,37 @@ function parts(g, o, p, of, ink, far, pass, grow = 0) {
   if (of.head === 'hood') { const c = of.headColor || of.color || '#d64a33'; circle(g, p.head[0] - 6, p.head[1] + 2, HR * 1.22, sil ? ink : shade(c, -0.12)); }
   if (['ponytail', 'bun'].includes(of.head)) drawHeadwear(g, of, p.head[0], p.head[1], HR, pass);
   // torso
-  seg(g, [p.sh, p.hip], T, ink);
+  if (sil) {
+    seg(g, [p.sh, p.hip], T, ink);
+  } else {
+    seg(g, [p.sh, p.hip], T + 5, outLine);
+    seg(g, [p.sh, p.hip], T, skin);
+  }
   if (of.top && of.top !== 'none') torsoWear(g, of, p, pass);
   // near leg
-  seg(g, [p.hip, p.kF, p.fF, [p.fF[0] + 13, p.fF[1]]], L, sil ? ink : of.legs || ink);
+  if (sil) {
+    seg(g, [p.hip, p.kF, p.fF, [p.fF[0] + 13, p.fF[1]]], L, ink);
+  } else {
+    seg(g, [p.hip, p.kF, p.fF, [p.fF[0] + 13, p.fF[1]]], L + 4, outLine);
+    seg(g, [p.hip, p.kF, p.fF, [p.fF[0] + 13, p.fF[1]]], L, of.legs || skin);
+  }
   if (!sil && ['labcoat', 'trench'].includes(of.top)) { const c = of.top === 'labcoat' ? '#ebe7f0' : of.color || '#2c2833'; poly(g, [[p.sh[0] - 4, p.sh[1] + 40], [p.hip[0] + 25, p.hip[1] + 44], [p.hip[0] - 23, p.hip[1] + 44]], c); }
   // near arm
-  seg(g, [p.sh, p.eF, p.hF], A, ink);
+  if (sil) {
+    seg(g, [p.sh, p.eF, p.hF], A, ink);
+  } else {
+    seg(g, [p.sh, p.eF, p.hF], A + 4, outLine);
+    seg(g, [p.sh, p.eF, p.hF], A, skin);
+  }
   if (!sil && sl) seg(g, sl === 'long' ? [p.sh, p.eF, [lerp(p.eF[0], p.hF[0], 0.72), lerp(p.eF[1], p.hF[1], 0.72)]] : [p.sh, [lerp(p.sh[0], p.eF[0], 0.75), lerp(p.sh[1], p.eF[1], 0.75)]], 16.5, sleeveColor(of, false));
   if (of.gloves) circle(g, p.hF[0], p.hF[1], 9 + grow, sil ? ink : of.gloves);
   // head
-  circle(g, p.head[0], p.head[1], HR, ink);
+  if (sil) {
+    circle(g, p.head[0], p.head[1], HR, ink);
+  } else {
+    circle(g, p.head[0], p.head[1], HR, skin);
+    ring(g, p.head[0], p.head[1], HR, 3.8, outLine);
+  }
   if (!['ponytail', 'bun', 'hood', 'none', undefined].includes(of.head)) drawHeadwear(g, of, p.head[0], p.head[1], HR, pass);
   if (sil) return;
   face(g, p.head[0], p.head[1], HR, { expr: o.expr, talk: o.talk, blink: o.blink, look: o.look, override: o.face });
@@ -257,7 +319,13 @@ export function soccerBall(g, x, y, r, rot = 0, light = '#f2efe8') {
   g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.arc(r * 0.15, r * 0.15, r, 0, Math.PI * 2); g.arc(0, 0, r, 0, Math.PI * 2, true); g.fill(); g.restore();
 }
 function drawProp(g, prop, p, ink) {
-  const t = typeof prop === 'string' ? { type: prop } : prop; const h = t.hand === 'B' ? p.hB : p.hF;
+  const t = typeof prop === 'string' ? { type: prop } : prop;
+  const h = t.hand === 'B' ? p.hB : p.hF;
+  // If prop matches V4 library props, render using V4 hand-attached prop system
+  if (t.imageUrl || t.image || ['coffee_cup', 'cup', 'laptop', 'laptop_modern', 'phone', 'phone_smart', 'book', 'book_magic', 'broom', 'broom_stick', 'desk', 'desk_wood', 'chair', 'chair_cafe', 'pen', 'pen_tool'].includes(t.type)) {
+    drawHandAttachedProp(g, prop, h, 1, 1);
+    return;
+  }
   switch (t.type) {
     case 'phone': rr(g, h[0] - 2, h[1] - 22, 14, 24, 3); g.fillStyle = ink; g.fill(); g.fillStyle = t.glow || '#9fd8ff'; g.fillRect(h[0], h[1] - 20, 10, 18); break;
     case 'ball': soccerBall(g, h[0] + 10, h[1] - 6, 14, t.rot || 0); break;
@@ -275,7 +343,7 @@ export function headPos(o) { const p = o.pose || POSES.stand, s = (o.s ?? 1) * (
 // ---------- giant close-up head (fills the frame) ----------
 // bigFace(g, cx, cy, r, { outfit, expr, talk, blink, look, rimColor, rimSide:-1|1, tilt })
 export function bigFace(g, cx, cy, r, o = {}) {
-  const charEngine = o?.character || o?.outfit?.character || E.character || E.cfg?.character || 'original';
+  const charEngine = o?.character || o?.outfit?.character || E.character || E.cfg?.character || 'white_cartoon';
   if (charEngine === 'white_cartoon' || charEngine === 'white-cartoon' || charEngine === 'white-cartoon-2d' || charEngine === 'white_cartoon_2d') {
     return drawWhiteCartoonBigFace(g, cx, cy, r, o);
   }

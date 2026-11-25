@@ -24,8 +24,16 @@ function listScenes(dir, base) { let out = []; if (!fs.existsSync(dir)) return o
 const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/__manifest') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(listScenes(path.join(PROJECT, 'scenes'), '/project/scenes'))); }
-  const p = url.startsWith('/project/') ? path.join(PROJECT, url.slice(9)) : path.join(ROOT, url);
-  if (!(p.startsWith(ROOT) || p.startsWith(PROJECT)) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { res.writeHead(404); return res.end(); }
+  const projectRoot = path.dirname(ROOT);
+  let p;
+  if (url.startsWith('/project/')) {
+    p = path.join(PROJECT, url.slice(9));
+  } else if (url.startsWith('/public/')) {
+    p = path.join(projectRoot, url);
+  } else {
+    p = path.join(ROOT, url);
+  }
+  if (!(p.startsWith(ROOT) || p.startsWith(PROJECT) || p.startsWith(projectRoot)) || !fs.existsSync(p) || fs.statSync(p).isDirectory()) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(p)] || 'application/octet-stream', 'Cache-Control': 'no-store' }); fs.createReadStream(p).pipe(res);
 }).listen(0);
 const PORT = server.address().port;
