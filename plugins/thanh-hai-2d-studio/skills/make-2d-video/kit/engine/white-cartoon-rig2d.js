@@ -936,7 +936,7 @@ export function drawWhiteCartoonProp(g, prop, hand, inkCol, facing) {
  */
 export function drawWhiteCartoonFigure(g, o) {
   const st = S();
-  const inkCol = o.ink || st.ink || '#111827';
+  const inkCol = o.ink || (st && st.ink) || '#111827';
   const char = { ...WHITE_CARTOON_PRESETS.character_A, ...(o.outfit || {}) };
 
   const facing = o.facing ?? 1;
@@ -1061,7 +1061,7 @@ export function drawWhiteCartoonFigure(g, o) {
  */
 export function drawWhiteCartoonBigFace(g, cx, cy, r, o = {}) {
   const st = S();
-  const inkCol = st.ink || '#111827';
+  const inkCol = (st && st.ink) || '#111827';
   const char = { ...WHITE_CARTOON_PRESETS.character_A, ...(o.outfit || {}) };
   const skin = char.skin || '#fbfbfe';
   const t = o.t ?? 0;

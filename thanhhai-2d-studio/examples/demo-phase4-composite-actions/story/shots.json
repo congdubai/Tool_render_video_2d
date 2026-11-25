@@ -1,0 +1,14 @@
+{
+  "title": "Phase 4 Demo - Composite Actions",
+  "duration": 30.0,
+  "shots": [
+    {
+      "id": "s001",
+      "start": 0,
+      "end": 30.0,
+      "line": "7-Stage Cartoon Motion: Walk & Talk -> Argument -> Fight Cloud with Head Pop-outs -> Dizzy Aftermath -> Power Up Surge -> Cartoon Chase -> Funny Slip Fall.",
+      "scene": "City street 5-layer illustration with multi-track composite actions"
+    }
+  ]
+}
+

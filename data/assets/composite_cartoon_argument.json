@@ -1,0 +1,54 @@
+{
+  "id": "composite_cartoon_argument",
+  "name": "Khẩu Chiến Hoạt Hình (Cartoon Argument)",
+  "type": "composite_action",
+  "category": "dialogue",
+  "description": "Hai nhân vật tranh cãi nảy lửa: A chỉ tay quát mắng nhả khói tức giận, B khoanh tay lườm nguýt; sau đó B phản công gay gắt, hai bên cụng trán nổ tia lửa rồi giận dỗi quay lưng.",
+  "duration": 4.2,
+  "participants": 2,
+  "roles": [
+    {
+      "id": "debater_a",
+      "label": "Người tranh luận A (Debater A)",
+      "requiredRigType": "any",
+      "defaultPos": [
+        -70,
+        0
+      ],
+      "defaultFacing": 1
+    },
+    {
+      "id": "debater_b",
+      "label": "Người tranh luận B (Debater B)",
+      "requiredRigType": "any",
+      "defaultPos": [
+        70,
+        0
+      ],
+      "defaultFacing": -1
+    }
+  ],
+  "parameters": {
+    "steamFrequency": 2,
+    "argumentTension": 1.2
+  },
+  "tracks": [
+    {
+      "target": "participants",
+      "type": "composite_motion",
+      "start": 0,
+      "end": 4.2
+    }
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/composite_action/composite_cartoon_argument/thumb.png",
+  "filePath": "/public/assets/composite_action/composite_cartoon_argument/action.png",
+  "createdAt": "2026-11-25T06:06:31.324Z",
+  "updatedAt": "2026-11-25T06:06:31.324Z"
+}

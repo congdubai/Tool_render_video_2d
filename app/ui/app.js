@@ -4768,3 +4768,314 @@ async function saveCustomSpriteSheetAsset() {
     showToast('Lỗi kết nối máy chủ: ' + err.message);
   }
 }
+
+// ============================================================================
+// PHASE 4: COMPOSITE ACTION ENGINE & UNIVERSAL MOTION LIBRARY UI CONTROLLER
+// ============================================================================
+
+const v4CompositeActionState = {
+  activeTemplateId: 'composite_fight_cloud',
+  char1: 'character_A',
+  char2: 'character_B',
+  duration: 4.5,
+  shake: 1.0,
+  scale: 1.25,
+  currentTime: 0.0,
+  isPlayingDemo: false,
+  demoTimer: null
+};
+
+// Bật / tắt bảng điều khiển Composite Action Engine V4
+function toggleV4CompositeActionsPanel() {
+  const panel = document.getElementById('v4CompositeActionsPanel');
+  if (!panel) return;
+
+  const isHidden = panel.classList.contains('hidden');
+  if (isHidden) {
+    panel.classList.remove('hidden');
+    // Đóng các panel khác để màn hình gọn gàng
+    document.getElementById('chibiTestPanel')?.classList.add('hidden');
+    document.getElementById('v4ExpressionsPropsPanel')?.classList.add('hidden');
+    document.getElementById('v4VfxWeatherPanel')?.classList.add('hidden');
+    updateV4CompositeActionOptions();
+    updateV4CompositeLivePreview();
+  } else {
+    panel.classList.add('hidden');
+    if (v4CompositeActionState.demoTimer) {
+      clearInterval(v4CompositeActionState.demoTimer);
+      v4CompositeActionState.demoTimer = null;
+    }
+  }
+}
+
+// Cập nhật nhãn và trường nhập tùy theo hành động được chọn
+function updateV4CompositeActionOptions() {
+  const actSelect = document.getElementById('v4CompositeActionSelect');
+  if (!actSelect) return;
+  const actId = actSelect.value;
+  v4CompositeActionState.activeTemplateId = actId;
+
+  const role1Wrap = document.getElementById('v4Role1Wrap');
+  const role2Wrap = document.getElementById('v4Role2Wrap');
+  const role1Label = document.getElementById('v4Role1Label');
+  const role2Label = document.getElementById('v4Role2Label');
+  const durationInput = document.getElementById('v4ActionDuration');
+  const durationVal = document.getElementById('v4ActionDurationVal');
+
+  if (actId === 'composite_fight_cloud') {
+    if (role1Wrap) role1Wrap.style.display = 'block';
+    if (role2Wrap) role2Wrap.style.display = 'block';
+    if (role1Label) role1Label.textContent = 'Võ sĩ 1 (Fighter A):';
+    if (role2Label) role2Label.textContent = 'Võ sĩ 2 (Fighter B):';
+    if (durationInput) durationInput.value = '4.5';
+    if (durationVal) durationVal.textContent = '4.5s';
+    v4CompositeActionState.duration = 4.5;
+  } else if (actId === 'composite_chase') {
+    if (role1Wrap) role1Wrap.style.display = 'block';
+    if (role2Wrap) role2Wrap.style.display = 'block';
+    if (role1Label) role1Label.textContent = 'Người chạy trước (Runner):';
+    if (role2Label) role2Label.textContent = 'Người đuổi theo (Chaser):';
+    if (durationInput) durationInput.value = '3.5';
+    if (durationVal) durationVal.textContent = '3.5s';
+    v4CompositeActionState.duration = 3.5;
+  } else if (actId === 'composite_cartoon_argument') {
+    if (role1Wrap) role1Wrap.style.display = 'block';
+    if (role2Wrap) role2Wrap.style.display = 'block';
+    if (role1Label) role1Label.textContent = 'Tranh luận A (Debater A):';
+    if (role2Label) role2Label.textContent = 'Tranh luận B (Debater B):';
+    if (durationInput) durationInput.value = '4.2';
+    if (durationVal) durationVal.textContent = '4.2s';
+    v4CompositeActionState.duration = 4.2;
+  } else if (actId === 'composite_object_interaction') {
+    if (role1Wrap) role1Wrap.style.display = 'block';
+    if (role2Wrap) role2Wrap.style.display = 'block';
+    if (role1Label) role1Label.textContent = 'Người trao đồ (Giver):';
+    if (role2Label) role2Label.textContent = 'Người nhận đồ (Receiver):';
+    if (durationInput) durationInput.value = '3.6';
+    if (durationVal) durationVal.textContent = '3.6s';
+    v4CompositeActionState.duration = 3.6;
+  } else {
+    // Single character actions (Power Up, Funny Fall, Shock Reaction, Storytelling)
+    if (role1Wrap) role1Wrap.style.display = 'block';
+    if (role2Wrap) role2Wrap.style.display = 'none';
+    if (role1Label) role1Label.textContent = 'Nhân vật chính (Actor):';
+    const d = actId === 'composite_power_up' ? 3.2 : actId === 'composite_funny_fall' ? 3.2 : actId === 'composite_shock_reaction' ? 2.6 : 4.0;
+    if (durationInput) durationInput.value = String(d);
+    if (durationVal) durationVal.textContent = d + 's';
+    v4CompositeActionState.duration = d;
+  }
+
+  updateV4CompositeLivePreview();
+}
+
+// Cập nhật giá trị hiển thị và kích hoạt vẽ lại preview
+function updateV4CompositeLivePreview() {
+  const char1 = document.getElementById('v4RoleChar1')?.value || 'character_A';
+  const char2 = document.getElementById('v4RoleChar2')?.value || 'character_B';
+  const dur = parseFloat(document.getElementById('v4ActionDuration')?.value || '4.5');
+  const shake = parseFloat(document.getElementById('v4ActionShake')?.value || '1.0');
+  const scale = parseFloat(document.getElementById('v4ActionScale')?.value || '1.25');
+
+  v4CompositeActionState.char1 = char1;
+  v4CompositeActionState.char2 = char2;
+  v4CompositeActionState.duration = dur;
+  v4CompositeActionState.shake = shake;
+  v4CompositeActionState.scale = scale;
+
+  const durVal = document.getElementById('v4ActionDurationVal');
+  if (durVal) durVal.textContent = dur.toFixed(1) + 's';
+  const shakeVal = document.getElementById('v4ActionShakeVal');
+  if (shakeVal) shakeVal.textContent = shake.toFixed(1) + 'x';
+  const scaleVal = document.getElementById('v4ActionScaleVal');
+  if (scaleVal) scaleVal.textContent = scale.toFixed(2) + 'x';
+
+  handleV4ActionScrub(document.getElementById('v4ActionScrub')?.value || 0);
+}
+
+// Xử lý kéo thanh trượt tua thời gian hành động
+function handleV4ActionScrub(scrubPercent) {
+  const p = parseFloat(scrubPercent) / 100.0;
+  v4CompositeActionState.currentTime = p * v4CompositeActionState.duration;
+
+  const textEl = document.getElementById('v4ScrubTimeText');
+  if (textEl) {
+    textEl.textContent = `${v4CompositeActionState.currentTime.toFixed(2)}s / ${v4CompositeActionState.duration.toFixed(2)}s (${Math.round(p * 100)}%)`;
+  }
+
+  // Trigger render frame in active scene preview if available
+  if (typeof renderCurrentSceneFrame === 'function') {
+    renderCurrentSceneFrame(v4CompositeActionState.currentTime);
+  }
+}
+
+// Chạy demo chuyển động hoạt hình tương tác theo thời gian thực
+function runV4CompositeActionInteractiveDemo(actionId) {
+  if (actionId) {
+    const sel = document.getElementById('v4CompositeActionSelect');
+    if (sel) {
+      sel.value = actionId;
+      updateV4CompositeActionOptions();
+    }
+  }
+
+  if (v4CompositeActionState.demoTimer) {
+    clearInterval(v4CompositeActionState.demoTimer);
+    v4CompositeActionState.demoTimer = null;
+  }
+
+  const dur = v4CompositeActionState.duration;
+  let elapsed = 0;
+  const fps = 30;
+  const dt = 1.0 / fps;
+
+  showToast(`🎬 Đang phát thử "${v4CompositeActionState.activeTemplateId}" (${dur}s)...`);
+
+  v4CompositeActionState.demoTimer = setInterval(() => {
+    elapsed += dt;
+    if (elapsed > dur) {
+      clearInterval(v4CompositeActionState.demoTimer);
+      v4CompositeActionState.demoTimer = null;
+      handleV4ActionScrub(100);
+      showToast('✨ Hoàn thành phát thử hành động!');
+      return;
+    }
+
+    const p = (elapsed / dur) * 100;
+    const scrubEl = document.getElementById('v4ActionScrub');
+    if (scrubEl) scrubEl.value = Math.round(p);
+    handleV4ActionScrub(p);
+  }, 1000 / fps);
+}
+
+// Áp dụng hành động phức hợp vào timeline cảnh hiện tại
+function applyCompositeActionToTimeline() {
+  const actId = v4CompositeActionState.activeTemplateId;
+  const actionSpec = {
+    id: actId,
+    startTime: 0.0,
+    duration: v4CompositeActionState.duration,
+    roles: {
+      actor: v4CompositeActionState.char1,
+      fighter_a: v4CompositeActionState.char1,
+      fighter_b: v4CompositeActionState.char2,
+      runner: v4CompositeActionState.char1,
+      chaser: v4CompositeActionState.char2,
+      giver: v4CompositeActionState.char1,
+      receiver: v4CompositeActionState.char2,
+      debater_a: v4CompositeActionState.char1,
+      debater_b: v4CompositeActionState.char2
+    },
+    parameters: {
+      smokeScale: v4CompositeActionState.scale,
+      shakeIntensity: v4CompositeActionState.shake
+    }
+  };
+
+  showToast(`✅ Đã thêm hành động "${actId}" vào timeline cảnh hiện tại!`);
+}
+
+// Action Template Editor Modal Controls
+function openActionTemplateEditor() {
+  const modal = document.getElementById('actionTemplateModal');
+  if (!modal) return;
+  loadSelectedTemplateIntoEditor();
+  modal.classList.remove('hidden');
+}
+
+function closeActionTemplateEditor() {
+  const modal = document.getElementById('actionTemplateModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function loadSelectedTemplateIntoEditor() {
+  const actId = v4CompositeActionState.activeTemplateId;
+  document.getElementById('templateEditId').value = actId;
+  document.getElementById('templateEditName').value = `Mẫu: ${actId}`;
+  document.getElementById('templateEditDuration').value = v4CompositeActionState.duration;
+  document.getElementById('templateTracksJson').value = JSON.stringify({
+    roles: [
+      { id: 'fighter_a', label: 'Võ sĩ A', defaultPos: [-180, 0] },
+      { id: 'fighter_b', label: 'Võ sĩ B', defaultPos: [180, 0] }
+    ],
+    tracks: {
+      fighter_a: [
+        { type: 'pose', start: 0.0, end: 0.25, value: 'angry_stand' },
+        { type: 'visibility', start: 0.30, end: 0.80, hideBody: true }
+      ]
+    },
+    globalTracks: {
+      camera: [{ start: 0.25, end: 0.80, shake: 12 }],
+      vfx: [{ start: 0.30, end: 0.84, vfxType: 'vfx_fight_smoke' }]
+    }
+  }, null, 2);
+}
+
+function duplicateCurrentActionTemplate() {
+  const idInput = document.getElementById('templateEditId');
+  if (idInput) {
+    idInput.value = idInput.value + '_copy';
+  }
+  const nameInput = document.getElementById('templateEditName');
+  if (nameInput) {
+    nameInput.value = nameInput.value + ' (Bản sao)';
+  }
+  showToast('📑 Đã nhân bản cấu hình mẫu hành động!');
+}
+
+async function exportActionTemplateAsZip() {
+  const actId = document.getElementById('templateEditId')?.value || v4CompositeActionState.activeTemplateId;
+  window.open(`/api/assets/${encodeURIComponent(actId)}/export`, '_blank');
+}
+
+async function saveCustomActionTemplate() {
+  const id = document.getElementById('templateEditId')?.value.trim();
+  const name = document.getElementById('templateEditName')?.value.trim();
+  const category = document.getElementById('templateEditCategory')?.value || 'comic_fight';
+  const duration = parseFloat(document.getElementById('templateEditDuration')?.value || '4.0');
+  const desc = document.getElementById('templateEditDesc')?.value.trim();
+
+  let tracksData = {};
+  try {
+    tracksData = JSON.parse(document.getElementById('templateTracksJson')?.value || '{}');
+  } catch (err) {
+    showToast('❌ Cú pháp JSON trong ô cấu hình không hợp lệ: ' + err.message);
+    return;
+  }
+
+  if (!id || !name) {
+    showToast('❌ Vui lòng nhập đầy đủ Mã ID và Tên hiển thị.');
+    return;
+  }
+
+  const assetPayload = {
+    id,
+    name,
+    type: 'composite_action',
+    category,
+    description: desc || 'Mẫu hành động tự định nghĩa',
+    duration,
+    roles: tracksData.roles || [{ id: 'actor', label: 'Nhân vật chính' }],
+    parameters: tracksData.parameters || {},
+    tracks: tracksData.tracks || [],
+    globalTracks: tracksData.globalTracks || {},
+    compatibility: { bodyProfile: ['all'] }
+  };
+
+  try {
+    const res = await fetch('/api/assets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(assetPayload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`🎉 Đã lưu thành công mẫu hành động "${name}" vào thư viện!`);
+      closeActionTemplateEditor();
+      loadUniversalAssetsList();
+    } else {
+      showToast('❌ Lỗi lưu mẫu: ' + (data.error || ''));
+    }
+  } catch (err) {
+    showToast('Lỗi kết nối máy chủ: ' + err.message);
+  }
+}

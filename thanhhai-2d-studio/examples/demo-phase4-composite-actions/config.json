@@ -1,0 +1,13 @@
+{
+  "title": "Phase 4 Demo - Composite Action Engine & Universal Motion Library",
+  "aspect": "16:9",
+  "resolution": "720p",
+  "fps": 24,
+  "style": "dusk",
+  "character": "white_cartoon",
+  "duration": 30.0,
+  "captions": false,
+  "fadeIn": 0.3,
+  "fadeOut": 0.5
+}
+

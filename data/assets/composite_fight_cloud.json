@@ -3,75 +3,43 @@
   "name": "Đám Khói Đánh Nhau Hoạt Hình (Fight Cloud)",
   "type": "composite_action",
   "category": "comic_fight",
-  "tags": [
-    "fight",
-    "smoke",
-    "brawl",
-    "funny"
-  ],
-  "description": "Hành động 2 nhân vật lao vào nhau, bọc kín trong đám khói hoạt hình quay tít, thò đầu/chân/sao và kết thúc choáng váng.",
-  "duration": 4,
+  "description": "Hành động 2 nhân vật lao vào nhau ẩu đả, bọc kín trong đám khói hoạt hình quay tít, thò đầu (giữ nguyên đầu nhân vật), vung nắm đấm/chân và kết thúc văng ra choáng váng sao bay quanh đầu.",
+  "duration": 4.5,
   "participants": 2,
+  "roles": [
+    {
+      "id": "fighter_a",
+      "label": "Võ sĩ A (Fighter A)",
+      "requiredRigType": "any",
+      "defaultPos": [
+        -180,
+        0
+      ],
+      "defaultFacing": 1
+    },
+    {
+      "id": "fighter_b",
+      "label": "Võ sĩ B (Fighter B)",
+      "requiredRigType": "any",
+      "defaultPos": [
+        180,
+        0
+      ],
+      "defaultFacing": -1
+    }
+  ],
   "parameters": {
-    "smokeScale": 1.2,
-    "shakeIntensity": 0.7,
-    "rotationSpeed": 1.5,
-    "popOutRate": 3
+    "smokeScale": 1.25,
+    "shakeIntensity": 0.8,
+    "popOutRate": 1,
+    "knockbackDistance": 170
   },
   "tracks": [
     {
       "target": "participants",
-      "type": "approach",
+      "type": "composite_motion",
       "start": 0,
-      "end": 0.6
-    },
-    {
-      "target": "participants",
-      "type": "collision_impact",
-      "start": 0.6,
-      "end": 0.8
-    },
-    {
-      "target": "participants",
-      "type": "visibility",
-      "start": 0.8,
-      "end": 3.5,
-      "value": false
-    },
-    {
-      "target": "effect",
-      "type": "vfx",
-      "asset": "vfx_dust_cloud",
-      "start": 0.8,
-      "end": 3.5
-    },
-    {
-      "target": "camera",
-      "type": "shake",
-      "start": 0.8,
-      "end": 3.5,
-      "intensity": 0.7
-    },
-    {
-      "target": "popouts",
-      "type": "character_limbs",
-      "start": 1,
-      "end": 3.2,
-      "frequency": 0.4
-    },
-    {
-      "target": "participants",
-      "type": "visibility",
-      "start": 3.5,
-      "end": 4,
-      "value": true
-    },
-    {
-      "target": "participants",
-      "type": "expression",
-      "start": 3.5,
-      "end": 4,
-      "value": "dizzy"
+      "end": 4.5
     }
   ],
   "compatibility": {
@@ -82,6 +50,7 @@
   "isBuiltin": true,
   "version": 1,
   "thumbnail": "/public/assets/composite_action/composite_fight_cloud/thumb.png",
-  "createdAt": "2026-11-23T13:04:15.081Z",
-  "updatedAt": "2026-11-23T13:04:15.081Z"
+  "filePath": "/public/assets/composite_action/composite_fight_cloud/action.png",
+  "createdAt": "2026-11-25T06:06:31.284Z",
+  "updatedAt": "2026-11-25T06:06:31.284Z"
 }

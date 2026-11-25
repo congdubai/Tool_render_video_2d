@@ -3,40 +3,32 @@
   "name": "Bùng Nổ Sức Mạnh (Power Up Surge)",
   "type": "composite_action",
   "category": "energy",
-  "tags": [
-    "power",
-    "shout",
-    "surge",
-    "glow"
-  ],
-  "description": "Nhân vật gồng mình, mặt đất rung chuyển, hào quang vàng bùng phát và năng lượng cuộn trào.",
-  "duration": 3,
+  "description": "Nhân vật khom người tụ khí, mặt đất rung chuyển, hào quang vàng bùng phát kèm tia sét cuộn trào, rồi bộc phát sóng xung kích cực đại.",
+  "duration": 3.2,
   "participants": 1,
+  "roles": [
+    {
+      "id": "actor",
+      "label": "Nhân vật chính (Actor)",
+      "requiredRigType": "any",
+      "defaultPos": [
+        0,
+        0
+      ],
+      "defaultFacing": 1
+    }
+  ],
   "parameters": {
     "auraColor": "#f59e0b",
-    "pulseRate": 2
+    "pulseIntensity": 1.3,
+    "shakeMax": 15
   },
   "tracks": [
     {
-      "target": "character",
-      "type": "expression",
-      "asset": "expr_angry",
+      "target": "participants",
+      "type": "composite_motion",
       "start": 0,
-      "end": 3
-    },
-    {
-      "target": "character",
-      "type": "vfx",
-      "asset": "vfx_golden_aura",
-      "start": 0.5,
-      "end": 3
-    },
-    {
-      "target": "camera",
-      "type": "shake",
-      "start": 0.8,
-      "end": 2.8,
-      "intensity": 0.8
+      "end": 3.2
     }
   ],
   "compatibility": {
@@ -47,6 +39,7 @@
   "isBuiltin": true,
   "version": 1,
   "thumbnail": "/public/assets/composite_action/composite_power_up/thumb.png",
-  "createdAt": "2026-11-23T13:04:15.081Z",
-  "updatedAt": "2026-11-23T13:04:15.081Z"
+  "filePath": "/public/assets/composite_action/composite_power_up/action.png",
+  "createdAt": "2026-11-25T06:06:31.314Z",
+  "updatedAt": "2026-11-25T06:06:31.314Z"
 }

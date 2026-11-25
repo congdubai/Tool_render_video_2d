@@ -246,6 +246,9 @@
           <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; font-weight: 700;" onclick="toggleV4VfxWeatherPanel()">
             ✨ VFX & Weather Engine V4
           </button>
+          <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #f87171; font-weight: 700;" onclick="toggleV4CompositeActionsPanel()">
+            🎬 Composite Actions V4
+          </button>
           <div id="previewStatusInfo" class="preview-status-info hidden" style="margin: 0; padding: 4px 10px;">
             <span id="previewStatusText">🎥 Đang phát video thành phẩm</span>
           </div>
@@ -481,6 +484,107 @@
                 <div style="display: flex; gap: 8px;">
                   <button class="btn btn-sm btn-primary" onclick="applyVfxToCurrentShot()">
                     ➕ Thêm VFX vào Cảnh Hiện Tại
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Khu vực Composite Action Engine V4 (Phase 4) -->
+            <div id="v4CompositeActionsPanel" class="hidden" style="background: #0f172a; border: 1px solid #ef4444; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="color: #f87171; font-size: 14px;">🎬 BỘ ĐIỀU KHIỂN HÀNH ĐỘNG PHỨC HỢP V4 (COMPOSITE ACTION ENGINE)</strong>
+                  <span class="asset-type-badge badge-action" style="position: static; background: #ef4444; color: white;">PHASE 4</span>
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="toggleV4CompositeActionsPanel()">Đóng ✕</button>
+              </div>
+              <p class="hint-small" style="color: #94a3b8; margin-bottom: 12px;">
+                Giai đoạn 4 • Universal Motion Library & Multi-Track Action Coordinator. Tự động điều phối cử động xương IK/FK, biểu cảm, đạo cụ, camera shake, đám khói ẩu đả (bọc kín nhân vật, thò đầu chuẩn diện mạo) & VFX.
+              </p>
+
+              <!-- Grid cấu hình Composite Action -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 14px;">
+                <div class="setting-item">
+                  <label for="v4CompositeActionSelect">Mẫu Hành Động (Action Template):</label>
+                  <select id="v4CompositeActionSelect" class="select-control" onchange="updateV4CompositeActionOptions()">
+                    <option value="composite_fight_cloud" selected>🥊 1. Đám Khói Đánh Nhau (Fight Cloud)</option>
+                    <option value="composite_chase">🏃 2. Cuộc Đuổi Bắt Hoạt Hình (Cartoon Chase)</option>
+                    <option value="composite_power_up">⚡ 3. Bùng Nổ Sức Mạnh (Power Up Surge)</option>
+                    <option value="composite_funny_fall">🍌 4. Ngã Trượt Vỏ Chuối (Funny Fall)</option>
+                    <option value="composite_shock_reaction">😱 5. Giật Mình Kinh Ngạc (Shock Reaction)</option>
+                    <option value="composite_cartoon_argument">🗣️ 6. Khẩu Chiến Tranh Luận (Cartoon Argument)</option>
+                    <option value="composite_object_interaction">📦 7. Trao & Nhận Đạo Cụ (Object Interaction)</option>
+                    <option value="composite_storytelling">💡 8. Kể Chuyện & Eureka (Storytelling)</option>
+                  </select>
+                </div>
+
+                <div class="setting-item" id="v4Role1Wrap">
+                  <label for="v4RoleChar1" id="v4Role1Label">Nhân vật 1 (Fighter A):</label>
+                  <select id="v4RoleChar1" class="select-control" onchange="updateV4CompositeLivePreview()">
+                    <option value="character_A" selected>Alex (Hoodie đỏ)</option>
+                    <option value="character_B">Ben (T-Shirt xanh, Mũ vàng)</option>
+                    <option value="nam">Nam (Jacket xanh lá)</option>
+                    <option value="doc">Doc (Áo blouse, Kính cận)</option>
+                  </select>
+                </div>
+
+                <div class="setting-item" id="v4Role2Wrap">
+                  <label for="v4RoleChar2" id="v4Role2Label">Nhân vật 2 (Fighter B):</label>
+                  <select id="v4RoleChar2" class="select-control" onchange="updateV4CompositeLivePreview()">
+                    <option value="character_B" selected>Ben / Jake (Mũ vàng)</option>
+                    <option value="character_A">Alex (Hoodie đỏ)</option>
+                    <option value="nam">Nam (Jacket xanh lá)</option>
+                    <option value="doc">Doc (Áo blouse, Kính cận)</option>
+                  </select>
+                </div>
+
+                <div class="setting-item">
+                  <label for="v4ActionDuration">Thời lượng: <span id="v4ActionDurationVal" style="color: #f87171;">4.5s</span></label>
+                  <input type="range" id="v4ActionDuration" min="1.0" max="8.0" step="0.2" value="4.5" oninput="updateV4CompositeLivePreview()" />
+                </div>
+
+                <div class="setting-item">
+                  <label for="v4ActionShake">Cường độ Rung Camera: <span id="v4ActionShakeVal" style="color: #f87171;">1.0x</span></label>
+                  <input type="range" id="v4ActionShake" min="0.0" max="2.0" step="0.1" value="1.0" oninput="updateV4CompositeLivePreview()" />
+                </div>
+
+                <div class="setting-item">
+                  <label for="v4ActionScale">Kích thước Khói / Tốc độ: <span id="v4ActionScaleVal" style="color: #f87171;">1.25x</span></label>
+                  <input type="range" id="v4ActionScale" min="0.5" max="2.0" step="0.05" value="1.25" oninput="updateV4CompositeLivePreview()" />
+                </div>
+              </div>
+
+              <!-- Thanh trượt điều khiển & Phát thử tương tác -->
+              <div style="background: #1e293b; border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 12px; color: #cbd5e1; font-weight: 600;">🎞️ Tua Chuyển Động Trực Tiếp (Action Timeline Scrub):</span>
+                  <span id="v4ScrubTimeText" style="font-family: monospace; font-size: 13px; color: #f87171; font-weight: 700;">0.00s / 4.50s (0%)</span>
+                </div>
+                <input type="range" id="v4ActionScrub" min="0" max="100" value="0" style="width: 100%; accent-color: #ef4444;" oninput="handleV4ActionScrub(this.value)" />
+              </div>
+
+              <!-- Nút Thao tác & Quick Demos -->
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 1px solid #334155; padding-top: 12px;">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <button class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #f87171;" onclick="runV4CompositeActionInteractiveDemo('composite_fight_cloud')">
+                    🥊 Thử Fight Cloud
+                  </button>
+                  <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="runV4CompositeActionInteractiveDemo('composite_chase')">
+                    🏃 Thử Chase
+                  </button>
+                  <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24;" onclick="runV4CompositeActionInteractiveDemo('composite_power_up')">
+                    ⚡ Thử Power Up
+                  </button>
+                  <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc;" onclick="runV4CompositeActionInteractiveDemo('composite_funny_fall')">
+                    🍌 Thử Funny Fall
+                  </button>
+                  <button class="btn btn-sm btn-outline" style="border-color: #94a3b8; color: #cbd5e1;" onclick="openActionTemplateEditor()">
+                    ⚙️ Template Editor
+                  </button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-sm btn-primary" style="background: #ef4444; border-color: #dc2626;" onclick="applyCompositeActionToTimeline()">
+                    ➕ Thêm Hành Động vào Timeline Cảnh
                   </button>
                 </div>
               </div>
@@ -1418,6 +1522,73 @@
         <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #334155; padding-top: 12px;">
           <button class="btn btn-secondary" onclick="closeSpriteSheetImportModal()">Hủy</button>
           <button id="btnSaveSpriteSheetAsset" class="btn btn-success" style="font-weight: 700;" onclick="saveCustomSpriteSheetAsset()" disabled>💾 Lưu Vào Thư Viện Tài Nguyên</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Bộ Soạn Thảo Mẫu Hành Động Phức Hợp (Action Template Editor V4) -->
+  <div id="actionTemplateModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 720px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h3 style="color: #f87171;">⚙️ Bộ Soạn Thảo Mẫu Hành Động Phức Hợp (Action Template Editor)</h3>
+        <button class="modal-close-btn" onclick="closeActionTemplateEditor()">✕</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="setting-item">
+            <label for="templateEditId">Mã ID Mẫu (Template ID):</label>
+            <input type="text" id="templateEditId" class="text-input" placeholder="composite_custom_action" />
+          </div>
+          <div class="setting-item">
+            <label for="templateEditName">Tên hiển thị:</label>
+            <input type="text" id="templateEditName" class="text-input" placeholder="Hành động mới" />
+          </div>
+          <div class="setting-item">
+            <label for="templateEditCategory">Nhóm danh mục:</label>
+            <select id="templateEditCategory" class="select-control">
+              <option value="comic_fight">Ẩu đả hoạt hình (Comic Fight)</option>
+              <option value="chase">Đuổi bắt (Chase)</option>
+              <option value="energy">Năng lượng / Tụ khí (Energy Surge)</option>
+              <option value="physical_comedy">Hài hước vật lý (Physical Comedy)</option>
+              <option value="reaction">Phản ứng (Reaction)</option>
+              <option value="dialogue">Đối thoại / Tranh cãi (Dialogue)</option>
+              <option value="interaction">Tương tác đạo cụ (Interaction)</option>
+              <option value="storytelling">Kể chuyện / Ý tưởng (Storytelling)</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label for="templateEditDuration">Thời lượng mặc định (s):</label>
+            <input type="number" id="templateEditDuration" class="text-input" value="4.0" min="0.5" max="15.0" step="0.5" />
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label for="templateEditDesc">Mô tả hành động:</label>
+          <textarea id="templateEditDesc" class="text-input" rows="2" placeholder="Mô tả chi tiết kịch bản diễn hoạt của các nhân vật và hiệu ứng..."></textarea>
+        </div>
+
+        <div class="setting-item">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="templateTracksJson">Cấu hình Đa Track (Tracks & Keyframes JSON):</label>
+            <button class="btn btn-sm btn-secondary" onclick="loadSelectedTemplateIntoEditor()">📥 Nạp Mẫu Hiện Tại</button>
+          </div>
+          <textarea id="templateTracksJson" class="text-input" rows="8" style="font-family: monospace; font-size: 11px; white-space: pre; background: #090d16;" placeholder="{ ...tracks... }"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 12px;">
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #fbbf24;" onclick="duplicateCurrentActionTemplate()">
+              📑 Nhân Bản (Duplicate)
+            </button>
+            <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="exportActionTemplateAsZip()">
+              📦 Xuất ZIP
+            </button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" onclick="closeActionTemplateEditor()">Hủy</button>
+            <button class="btn btn-success" style="font-weight: 700;" onclick="saveCustomActionTemplate()">💾 Lưu Mẫu Hành Động</button>
+          </div>
         </div>
       </div>
     </div>

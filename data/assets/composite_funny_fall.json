@@ -1,0 +1,44 @@
+{
+  "id": "composite_funny_fall",
+  "name": "Ngã Trượt Vỏ Chuối Hài Hước (Funny Fall)",
+  "type": "composite_action",
+  "category": "physical_comedy",
+  "description": "Nhân vật đang bước đi vui vẻ thì trượt chân, hai chân bắn lên trời, lơ lửng một nhịp rồi rơi đập mông xuống sàn nảy tưng và choáng váng.",
+  "duration": 3.2,
+  "participants": 1,
+  "roles": [
+    {
+      "id": "actor",
+      "label": "Nhân vật (Actor)",
+      "requiredRigType": "any",
+      "defaultPos": [
+        0,
+        0
+      ],
+      "defaultFacing": 1
+    }
+  ],
+  "parameters": {
+    "slipVelocity": 1.2,
+    "bounceDamping": 0.7
+  },
+  "tracks": [
+    {
+      "target": "participants",
+      "type": "composite_motion",
+      "start": 0,
+      "end": 3.2
+    }
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/composite_action/composite_funny_fall/thumb.png",
+  "filePath": "/public/assets/composite_action/composite_funny_fall/action.png",
+  "createdAt": "2026-11-25T06:06:31.317Z",
+  "updatedAt": "2026-11-25T06:06:31.317Z"
+}

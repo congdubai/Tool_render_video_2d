@@ -1,0 +1,54 @@
+{
+  "id": "composite_object_interaction",
+  "name": "Tương Tác Chuyển Giao Đạo Cụ (Object Interaction)",
+  "type": "composite_action",
+  "category": "interaction",
+  "description": "Nhân vật A cầm đạo cụ bước tới trao cho nhân vật B, nhân vật B nhận lấy đạo cụ an toàn và đặt xuống bàn mà không bị nhân đôi hay mất mát đồ vật.",
+  "duration": 3.6,
+  "participants": 2,
+  "roles": [
+    {
+      "id": "giver",
+      "label": "Người trao (Giver)",
+      "requiredRigType": "any",
+      "defaultPos": [
+        -70,
+        0
+      ],
+      "defaultFacing": 1
+    },
+    {
+      "id": "receiver",
+      "label": "Người nhận (Receiver)",
+      "requiredRigType": "any",
+      "defaultPos": [
+        70,
+        0
+      ],
+      "defaultFacing": -1
+    }
+  ],
+  "parameters": {
+    "propId": "prop_coffee_cup",
+    "handoffTime": 0.52
+  },
+  "tracks": [
+    {
+      "target": "participants",
+      "type": "composite_motion",
+      "start": 0,
+      "end": 3.6
+    }
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/composite_action/composite_object_interaction/thumb.png",
+  "filePath": "/public/assets/composite_action/composite_object_interaction/action.png",
+  "createdAt": "2026-11-25T06:06:31.327Z",
+  "updatedAt": "2026-11-25T06:06:31.327Z"
+}

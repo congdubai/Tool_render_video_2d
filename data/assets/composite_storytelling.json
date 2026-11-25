@@ -1,0 +1,44 @@
+{
+  "id": "composite_storytelling",
+  "name": "Kể Chuyện & Nảy Ra Ý Tưởng (Storytelling & Eureka)",
+  "type": "composite_action",
+  "category": "storytelling",
+  "description": "Nhân vật trầm ngâm suy nghĩ với dấu hỏi xoay quanh, đột nhiên nảy ra sáng kiến với bóng đèn bật sáng, hào hứng diễn giải sinh động rồi ăn mừng rạng rỡ.",
+  "duration": 4,
+  "participants": 1,
+  "roles": [
+    {
+      "id": "actor",
+      "label": "Người kể chuyện (Actor)",
+      "requiredRigType": "any",
+      "defaultPos": [
+        0,
+        0
+      ],
+      "defaultFacing": 1
+    }
+  ],
+  "parameters": {
+    "eurekaSound": "ding_bright",
+    "gestureIntensity": 1.1
+  },
+  "tracks": [
+    {
+      "target": "participants",
+      "type": "composite_motion",
+      "start": 0,
+      "end": 4
+    }
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/composite_action/composite_storytelling/thumb.png",
+  "filePath": "/public/assets/composite_action/composite_storytelling/action.png",
+  "createdAt": "2026-11-25T06:06:31.331Z",
+  "updatedAt": "2026-11-25T06:06:31.331Z"
+}

@@ -1,0 +1,44 @@
+{
+  "id": "composite_shock_reaction",
+  "name": "Giật Bắn Mình Kinh Ngạc (Shock Reaction)",
+  "type": "composite_action",
+  "category": "reaction",
+  "description": "Nhân vật đang đứng yên thì giật bắn mình vọt lên cao 70px, dựng đứng người, mắt trợn tròn, tia sốc và mồ hôi bắn tung tóe, rơi xuống run rẩy.",
+  "duration": 2.6,
+  "participants": 1,
+  "roles": [
+    {
+      "id": "actor",
+      "label": "Nhân vật (Actor)",
+      "requiredRigType": "any",
+      "defaultPos": [
+        0,
+        0
+      ],
+      "defaultFacing": 1
+    }
+  ],
+  "parameters": {
+    "jumpHeight": 65,
+    "shiverSpeed": 45
+  },
+  "tracks": [
+    {
+      "target": "participants",
+      "type": "composite_motion",
+      "start": 0,
+      "end": 2.6
+    }
+  ],
+  "compatibility": {
+    "bodyProfile": [
+      "all"
+    ]
+  },
+  "isBuiltin": true,
+  "version": 1,
+  "thumbnail": "/public/assets/composite_action/composite_shock_reaction/thumb.png",
+  "filePath": "/public/assets/composite_action/composite_shock_reaction/action.png",
+  "createdAt": "2026-11-25T06:06:31.321Z",
+  "updatedAt": "2026-11-25T06:06:31.321Z"
+}
