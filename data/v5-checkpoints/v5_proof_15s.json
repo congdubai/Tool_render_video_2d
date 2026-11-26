@@ -1,0 +1,48 @@
+{
+  "projectId": "v5_proof_15s",
+  "state": "WAITING_FOR_ASSETS",
+  "checkpointName": "waiting_for_assets",
+  "timestamp": "2026-11-26T01:10:40.046Z",
+  "history": [
+    "DRAFT",
+    "PLAN_IMPORTED",
+    "VALIDATING",
+    "WAITING_FOR_ASSETS"
+  ],
+  "data": {
+    "missingAssets": [
+      {
+        "requirementId": "REQ_CHAR_DOC",
+        "resolvedAssetId": "doc",
+        "resolutionMethod": "EXACT_CHARACTER_ID",
+        "matchScore": 100,
+        "confidence": "EXACT_MATCH",
+        "status": "READY",
+        "reasons": [
+          "Khớp chính xác nhân vật tích hợp \"doc\" (Mode A)"
+        ],
+        "asset": {
+          "id": "doc",
+          "type": "character",
+          "mode": "built_in"
+        }
+      },
+      {
+        "requirementId": "REQ_RIG_DOC",
+        "resolvedAssetId": "doc",
+        "resolutionMethod": "EXACT_CHARACTER_ID",
+        "matchScore": 100,
+        "confidence": "EXACT_MATCH",
+        "status": "READY",
+        "reasons": [
+          "Khớp chính xác nhân vật tích hợp \"doc\" (Mode A)"
+        ],
+        "asset": {
+          "id": "doc",
+          "type": "character",
+          "mode": "built_in"
+        }
+      }
+    ]
+  }
+}

@@ -310,3 +310,4 @@ function registerRequirement(map, reqId, data) {
   map.set(reqId, record);
   return record;
 }
+

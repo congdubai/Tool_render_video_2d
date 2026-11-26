@@ -1,0 +1,25 @@
+{
+  "id": "proj_1795655031267_neq8r",
+  "name": "Dự án Autosave",
+  "revision": "1.0",
+  "createdAt": "2026-11-26T01:03:51.267Z",
+  "updatedAt": "2026-11-26T01:03:51.267Z",
+  "scriptText": "",
+  "styleProfile": "vietnamese_cartoon",
+  "audio": null,
+  "timeline": null,
+  "scenePlan": {
+    "scenes": []
+  },
+  "compiledScenes": [],
+  "animationTracks": {},
+  "lockedSceneIds": [],
+  "renderSettings": {
+    "resolution": "1920x1080",
+    "fps": 30,
+    "encoder": "libx264",
+    "quality": "Standard"
+  },
+  "userOverrides": {},
+  "revisions": []
+}

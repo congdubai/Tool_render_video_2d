@@ -1,0 +1,25 @@
+{
+  "id": "proj_1795655031271_r6i2h",
+  "name": "Dự án Revision",
+  "revision": "1.1",
+  "createdAt": "2026-11-26T01:03:51.271Z",
+  "updatedAt": "2026-11-26T01:03:51.271Z",
+  "scriptText": "",
+  "styleProfile": "vietnamese_cartoon",
+  "audio": null,
+  "timeline": null,
+  "scenePlan": {
+    "scenes": []
+  },
+  "compiledScenes": [],
+  "animationTracks": {},
+  "lockedSceneIds": [],
+  "renderSettings": {
+    "resolution": "1920x1080",
+    "fps": 30,
+    "encoder": "libx264",
+    "quality": "Standard"
+  },
+  "userOverrides": {},
+  "revisions": []
+}

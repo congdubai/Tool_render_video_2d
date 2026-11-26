@@ -132,3 +132,4 @@ export function calculateCameraFraming(targets = [], options = {}) {
     followTarget: options.followTarget || null
   };
 }
+

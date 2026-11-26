@@ -144,3 +144,4 @@ export function computeSceneComposition(sceneDescriptor = {}, projectContext = {
     textGraphics: layoutResult.textGraphics || sceneDescriptor.textGraphics || []
   };
 }
+

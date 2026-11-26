@@ -408,3 +408,27 @@ export class BatchSceneBuilder {
     return result;
   }
 }
+
+export function buildBatchScenes(scenesOrPlan, options = {}) {
+  const plan = Array.isArray(scenesOrPlan) ? { scenes: scenesOrPlan } : (scenesOrPlan || {});
+  const builder = new BatchSceneBuilder(options);
+  const scenes = Array.isArray(plan.scenes) ? plan.scenes : [];
+  const compiledScenes = [];
+  const failedScenes = [];
+
+  for (const s of scenes) {
+    const res = builder.buildSingleScene(s);
+    if (res.success && res.compiledScene) {
+      compiledScenes.push(res.compiledScene);
+    } else {
+      failedScenes.push({ sceneId: s.id, error: res.error });
+    }
+  }
+
+  return {
+    success: failedScenes.length === 0,
+    compiledScenes,
+    failedScenes
+  };
+}
+

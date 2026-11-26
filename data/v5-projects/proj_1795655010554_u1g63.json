@@ -1,0 +1,25 @@
+{
+  "id": "proj_1795655010554_u1g63",
+  "name": "Dự án Portable",
+  "revision": "1.0",
+  "createdAt": "2026-11-26T01:03:30.554Z",
+  "updatedAt": "2026-11-26T01:03:30.554Z",
+  "scriptText": "",
+  "styleProfile": "vietnamese_cartoon",
+  "audio": null,
+  "timeline": null,
+  "scenePlan": {
+    "scenes": []
+  },
+  "compiledScenes": [],
+  "animationTracks": {},
+  "lockedSceneIds": [],
+  "renderSettings": {
+    "resolution": "1920x1080",
+    "fps": 30,
+    "encoder": "libx264",
+    "quality": "Standard"
+  },
+  "userOverrides": {},
+  "revisions": []
+}

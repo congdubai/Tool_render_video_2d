@@ -1,0 +1,29 @@
+{
+  "jobId": "job_1795655010546_4kmc1",
+  "projectId": "proj_pause",
+  "projectRevision": "1.0",
+  "mode": "MODE_B_FULL_AUTO",
+  "status": "Paused",
+  "stage": "Initialized",
+  "progressPercent": 0,
+  "createdAt": "2026-11-26T01:03:30.546Z",
+  "startedAt": null,
+  "completedAt": null,
+  "checkpoints": [
+    {
+      "name": "SCENES_BUILT",
+      "timestamp": "2026-11-26T01:03:30.547Z",
+      "data": {
+        "count": 3
+      }
+    }
+  ],
+  "logs": [
+    "[08:03:30] Checkpoint lưu thành công: \"SCENES_BUILT\".",
+    "[08:03:30] Job đã được tạm dừng tại checkpoint an toàn."
+  ],
+  "errorDetails": null,
+  "retryCount": 0,
+  "options": {},
+  "snapshot": null
+}

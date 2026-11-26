@@ -1,0 +1,36 @@
+{
+  "name": "V5 Phase 5 Minimum Proof Demo (15s)",
+  "version": "5.0",
+  "fps": 30,
+  "duration": 15,
+  "width": 1280,
+  "height": 720,
+  "aspectRatio": "16:9",
+  "timeline": {
+    "fps": 30,
+    "duration": 15,
+    "shots": [
+      {
+        "id": "s001",
+        "name": "Doc bước đi",
+        "start": 0,
+        "end": 5,
+        "duration": 5
+      },
+      {
+        "id": "s002",
+        "name": "Suy nghĩ & Bất ngờ",
+        "start": 5,
+        "end": 10,
+        "duration": 5
+      },
+      {
+        "id": "s003",
+        "name": "Tương tác & Ăn mừng",
+        "start": 10,
+        "end": 15,
+        "duration": 5
+      }
+    ]
+  }
+}

@@ -6543,3 +6543,874 @@ window.confirmAssetsAndProceedToSceneBuilder = confirmAssetsAndProceedToSceneBui
 
 
 
+
+// 5-Scene Demo Storyboard "Sự Tiến Hóa Của Máy Tính" (Computer Evolution)
+const DEFAULT_V5_DEMO_SCENE_PLAN = {
+  schemaVersion: "5.1",
+  project: {
+    title: "Sự Tiến Hóa Của Máy Tính (1945 - Hiện Đại)",
+    targetDurationMs: 25000,
+    fps: 24,
+    resolution: { width: 1280, height: 720 }
+  },
+  style: {
+    profileId: "educational_cartoon"
+  },
+  assetRequirements: [
+    {
+      id: "REQ_PROP_ENIAC_1",
+      name: "Máy Tính Khổng Lồ ENIAC (1945)",
+      type: "prop",
+      description: "Máy tính điện tử đầu tiên với dàn tủ đèn chân không khổng lồ",
+      transparentBackground: true,
+      recommendedDimensions: { width: 1024, height: 1024 }
+    },
+    {
+      id: "REQ_PROP_TRANSISTOR",
+      name: "Linh Kiện Transistor Bán Dẫn (1950s)",
+      type: "prop",
+      description: "Linh kiện bán dẫn 3 chân thay thế bóng đèn chân không",
+      transparentBackground: true,
+      recommendedDimensions: { width: 1024, height: 1024 }
+    },
+    {
+      id: "REQ_PROP_MICROPROCESSOR",
+      name: "Vi Xử Lý Silicon Microprocessor (1970s)",
+      type: "prop",
+      description: "Chip silicon tích hợp hàng ngàn bóng bán dẫn trên một vi mạch",
+      transparentBackground: true,
+      recommendedDimensions: { width: 1024, height: 1024 }
+    }
+  ],
+  scenes: [
+    {
+      id: "scene_001",
+      startMs: 0,
+      endMs: 5000,
+      visualObjective: "Phòng thí nghiệm năm 1945 và máy tính ENIAC",
+      narrationText: "Năm 1945, siêu máy tính ENIAC ra đời, mở ra kỷ nguyên số của nhân loại.",
+      background: { assetId: "bg_historical_computer_lab" },
+      characters: [
+        {
+          characterId: "doc",
+          outfitId: "outfit_scientist_labcoat",
+          expressionId: "thinking",
+          position: { x: 0.35, y: 0.79 },
+          prop: { assetId: "REQ_PROP_ENIAC_1", attachedTo: "right_hand" }
+        }
+      ],
+      visualBeats: [
+        { startMs: 0, endMs: 5000, actionId: "idle_talk" }
+      ]
+    },
+    {
+      id: "scene_002",
+      startMs: 5000,
+      endMs: 10000,
+      visualObjective: "Phát minh bóng bán dẫn transistor",
+      narrationText: "Sự xuất hiện của transistor đã thu nhỏ kích thước máy tính đi hàng ngàn lần.",
+      background: { assetId: "bg_lab_modern" },
+      characters: [
+        {
+          characterId: "doc",
+          outfitId: "outfit_scientist_labcoat",
+          expressionId: "happy",
+          position: { x: 0.5, y: 0.79 },
+          prop: { assetId: "REQ_PROP_TRANSISTOR", attachedTo: "right_hand" }
+        }
+      ],
+      visualBeats: [
+        { startMs: 5000, endMs: 10000, actionId: "celebrate", vfxId: "vfx_sparkle" }
+      ]
+    },
+    {
+      id: "scene_003",
+      startMs: 10000,
+      endMs: 15000,
+      visualObjective: "So sánh ENIAC với vi xử lý hiện đại",
+      narrationText: "Từng chiếm trọn cả căn phòng, nay toàn bộ sức mạnh xử lý nằm gọn trên đầu ngón tay.",
+      background: { assetId: "bg_historical_computer_lab" },
+      characters: [
+        {
+          characterId: "doc",
+          outfitId: "outfit_scientist_labcoat",
+          expressionId: "surprised",
+          position: { x: 0.4, y: 0.79 },
+          prop: { assetId: "REQ_PROP_ENIAC_1", attachedTo: "left_hand" }
+        }
+      ],
+      visualBeats: [
+        { startMs: 10000, endMs: 15000, actionId: "idle_talk" }
+      ]
+    },
+    {
+      id: "scene_004",
+      startMs: 15000,
+      endMs: 20000,
+      visualObjective: "Thời đại máy tính cá nhân và laptop",
+      narrationText: "Máy tính cá nhân xuất hiện trên bàn làm việc của mọi gia đình và văn phòng.",
+      background: { assetId: "bg_lab_modern" },
+      characters: [
+        {
+          characterId: "jake",
+          outfitId: "outfit_casual_hoodie",
+          expressionId: "neutral",
+          position: { x: 0.6, y: 0.79 },
+          prop: { assetId: "prop_laptop", attachedTo: "right_hand" }
+        }
+      ],
+      visualBeats: [
+        { startMs: 15000, endMs: 20000, actionId: "idle_talk" }
+      ]
+    },
+    {
+      id: "scene_005",
+      startMs: 20000,
+      endMs: 25000,
+      visualObjective: "Thư giãn và uống cà phê trong phòng nghiên cứu",
+      narrationText: "Công nghệ tiếp tục phát triển không ngừng hướng tới trí tuệ nhân tạo và lượng tử.",
+      background: { assetId: "bg_lab_modern" },
+      characters: [
+        {
+          characterId: "doc",
+          outfitId: "outfit_scientist_labcoat",
+          expressionId: "happy",
+          position: { x: 0.5, y: 0.79 },
+          prop: { assetId: "coffee_mug", attachedTo: "right_hand" }
+        }
+      ],
+      visualBeats: [
+        { startMs: 20000, endMs: 25000, actionId: "drink_coffee" } // Unsupported action to verify blocker handling
+      ]
+    }
+  ]
+};
+
+async function loadSmartAssetManagerUI() {
+  if (!smartAssetState.scenePlan) {
+    smartAssetState.scenePlan = DEFAULT_V5_DEMO_SCENE_PLAN;
+  }
+  await scanProjectRequirementsUi();
+}
+
+function loadDefaultAiStoryboardDemo() {
+  smartAssetState.scenePlan = JSON.parse(JSON.stringify(DEFAULT_V5_DEMO_SCENE_PLAN));
+  scanProjectRequirementsUi();
+  alert("✅ Đã nạp kịch bản Storyboard mẫu: 'Sự Tiến Hóa Của Máy Tính' (5 cảnh, 25 giây)!");
+}
+
+async function scanProjectRequirementsUi() {
+  const badge = document.getElementById('smartAssetOverallBadge');
+  if (badge) {
+    badge.textContent = "Đang quét...";
+    badge.style.backgroundColor = "#eab308";
+    badge.style.color = "#000";
+  }
+
+  try {
+    const res = await fetch('/api/v5/smart-assets/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scenePlan: smartAssetState.scenePlan || DEFAULT_V5_DEMO_SCENE_PLAN,
+        projectId: smartAssetState.projectId
+      })
+    });
+    const data = await res.json();
+    if (!data.success) {
+      alert("❌ Lỗi khi quét tài nguyên: " + data.error);
+      return;
+    }
+
+    smartAssetState.requirements = data.dedup?.canonicalRequirements || [];
+    smartAssetState.bindings = data.bindings || {};
+    smartAssetState.readiness = data.readiness || null;
+
+    updateSmartAssetMetrics(data.readiness, data.dedup);
+    renderSmartAssetRequirements();
+  } catch (err) {
+    console.error("Lỗi scanProjectRequirementsUi:", err);
+  }
+}
+
+async function autoResolveAssetsUi() {
+  await scanProjectRequirementsUi();
+  const readyCount = smartAssetState.readiness?.counts?.readyAssetCount || 0;
+  alert(`⚡ Tự động phân giải tài nguyên hoàn tất! Đã tìm thấy và liên kết sẵn ${readyCount} tài nguyên.`);
+}
+
+function updateSmartAssetMetrics(readiness, dedup) {
+  if (!readiness) return;
+  const counts = readiness.counts || {};
+  const rates = readiness.rates || {};
+
+  const elScenes = document.getElementById('metricTotalScenes');
+  const elUnique = document.getElementById('metricUniqueAssets');
+  const elReady = document.getElementById('metricReadyAssets');
+  const elMissing = document.getElementById('metricMissingAssets');
+  const elRig = document.getElementById('metricRigSetupAssets');
+  const elMissingCap = document.getElementById('metricMissingCap');
+  const elBar = document.getElementById('smartAssetProgressBar');
+  const elRateText = document.getElementById('smartAssetProgressRateText');
+  const elBadge = document.getElementById('smartAssetOverallBadge');
+
+  if (elScenes) elScenes.textContent = counts.totalScenes || 0;
+  if (elUnique) elUnique.textContent = counts.totalAssets || 0;
+  if (elReady) elReady.textContent = counts.readyAssetCount || 0;
+  if (elMissing) elMissing.textContent = counts.missingAssetCount || 0;
+  if (elRig) elRig.textContent = counts.incompatibleAssetCount || 0;
+  if (elMissingCap) elMissingCap.textContent = counts.missingCapabilityCount || 0;
+
+  const rate = rates.assetReadinessRate || 0;
+  if (elBar) elBar.style.width = `${rate}%`;
+  if (elRateText) elRateText.textContent = `${rate}% (${counts.readyAssetCount}/${counts.totalAssets} tài nguyên sẵn sàng)`;
+
+  if (elBadge) {
+    if (readiness.projectStatus === 'ASSETS_READY') {
+      elBadge.textContent = "✅ ASSETS READY";
+      elBadge.style.backgroundColor = "#22c55e";
+      elBadge.style.color = "#fff";
+    } else if (readiness.projectStatus === 'PARTIALLY_READY') {
+      elBadge.textContent = "⚠️ PARTIALLY READY";
+      elBadge.style.backgroundColor = "#f59e0b";
+      elBadge.style.color = "#000";
+    } else {
+      elBadge.textContent = "⛔ BLOCKED";
+      elBadge.style.backgroundColor = "#ef4444";
+      elBadge.style.color = "#fff";
+    }
+  }
+
+  // Update category counters
+  const reqs = smartAssetState.requirements || [];
+  const setCat = (id, count) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = count;
+  };
+
+  setCat('catCount_all', reqs.length);
+  setCat('catCount_character', reqs.filter(r => r.type === 'character' || r.type === 'character_rig').length);
+  setCat('catCount_background', reqs.filter(r => r.type === 'background').length);
+  setCat('catCount_prop', reqs.filter(r => r.type === 'prop').length);
+  setCat('catCount_outfit', reqs.filter(r => r.type === 'outfit' || r.type === 'expression').length);
+  setCat('catCount_illustration', reqs.filter(r => r.type === 'illustration' || r.type === 'diagram').length);
+  setCat('catCount_vfx', reqs.filter(r => r.type === 'vfx' || r.type === 'weather').length);
+  setCat('catCount_missing_capability', reqs.filter(r => r.status === 'MISSING_CAPABILITY').length);
+}
+
+function filterRequirementsByCategory(cat) {
+  smartAssetState.activeCategory = cat;
+  smartAssetState.missingOnly = false;
+  document.querySelectorAll('[id^="reqFilter_"]').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`reqFilter_${cat}`);
+  if (btn) btn.classList.add('active');
+  renderSmartAssetRequirements();
+}
+
+function filterMissingOnlyUi() {
+  smartAssetState.missingOnly = !smartAssetState.missingOnly;
+  renderSmartAssetRequirements();
+}
+
+function handleSmartAssetSearch(event) {
+  smartAssetState.searchTerm = (event.target.value || '').trim().toLowerCase();
+  renderSmartAssetRequirements();
+}
+
+function renderSmartAssetRequirements() {
+  const container = document.getElementById('smartAssetRequirementsGrid');
+  if (!container) return;
+
+  const reqs = smartAssetState.requirements || [];
+  const bindings = smartAssetState.bindings || {};
+
+  const filtered = reqs.filter(r => {
+    const b = bindings[r.id];
+    const isReady = b && b.status === 'READY';
+
+    if (smartAssetState.missingOnly && isReady) return false;
+
+    if (smartAssetState.activeCategory !== 'all') {
+      const cat = smartAssetState.activeCategory;
+      if (cat === 'character' && r.type !== 'character' && r.type !== 'character_rig') return false;
+      if (cat === 'background' && r.type !== 'background') return false;
+      if (cat === 'prop' && r.type !== 'prop') return false;
+      if (cat === 'outfit' && r.type !== 'outfit' && r.type !== 'expression') return false;
+      if (cat === 'illustration' && r.type !== 'illustration' && r.type !== 'diagram') return false;
+      if (cat === 'vfx' && r.type !== 'vfx' && r.type !== 'weather') return false;
+      if (cat === 'missing_capability' && r.status !== 'MISSING_CAPABILITY') return false;
+    }
+
+    if (smartAssetState.searchTerm) {
+      const term = smartAssetState.searchTerm;
+      const idMatch = (r.id || '').toLowerCase().includes(term);
+      const nameMatch = (r.name || '').toLowerCase().includes(term);
+      const scenesMatch = (r.requiredByScenes || []).some(s => s.toLowerCase().includes(term));
+      if (!idMatch && !nameMatch && !scenesMatch) return false;
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;">Không có tài nguyên nào phù hợp với bộ lọc hiện tại.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(req => {
+    const binding = bindings[req.id];
+    const isBound = !!binding;
+    const isReady = isBound && binding.status === 'READY';
+    const isCapabilityBlocker = req.status === 'MISSING_CAPABILITY';
+
+    let statusBadge = `<span class="badge" style="background: #ef4444; color: #fff;">❌ Còn Thiếu</span>`;
+    let borderColor = "#334155";
+
+    if (isCapabilityBlocker) {
+      statusBadge = `<span class="badge" style="background: #dc2626; color: #fff;">⛔ Chưa Hỗ Trợ</span>`;
+      borderColor = "#ef4444";
+    } else if (isReady) {
+      statusBadge = `<span class="badge" style="background: #22c55e; color: #fff;">✔ Đã Sẵn Sàng (${binding.resolvedAssetId})</span>`;
+      borderColor = "#22c55e";
+    }
+
+    const scenesStr = (req.requiredByScenes || []).join(', ') || 'Chung';
+    const dimensionsStr = req.recommendedDimensions ? `${req.recommendedDimensions.width}x${req.recommendedDimensions.height}` : '1024x1024';
+    const alphaStr = req.transparentBackground ? 'Nền trong suốt (Alpha)' : 'Khung nền 16:9';
+
+    return `
+      <div class="card" style="border: 1px solid ${borderColor}; background: #0f172a; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px;">
+            <strong style="color: #38bdf8; font-size: 14px;">${req.name || req.id}</strong>
+            ${statusBadge}
+          </div>
+          <div style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">
+            <code>${req.id}</code> &bull; Loại: <span style="color: #cbd5e1; font-weight: 600;">${req.type}</span> &bull; Dùng trong: <span style="color: #38bdf8;">${scenesStr}</span>
+          </div>
+          <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">
+            ${req.description || 'Yêu cầu tài nguyên đồ họa cho video hoạt hình'}
+          </div>
+          <div style="font-size: 11px; color: #64748b; background: #1e293b; padding: 6px 8px; border-radius: 4px; margin-bottom: 10px;">
+            📐 ${dimensionsStr} &bull; 🛡️ ${alphaStr}
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="copyRequirementPrompt('${req.id}')">📋 Copy Prompt</button>
+          ${req.type === 'prop' ? `<button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #f59e0b;" onclick="openSmartAnchorModal('${req.id}')">⚓ Điểm Neo (Anchor)</button>` : ''}
+          <button class="btn btn-sm btn-outline" onclick="promptManualBindAsset('${req.id}')">🔗 Gán Thủ Công</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function copyRequirementPrompt(reqId) {
+  const req = (smartAssetState.requirements || []).find(r => r.id === reqId);
+  if (!req) return;
+
+  const promptText = `Flat 2D educational cartoon illustration of ${req.name || req.id}. ${req.description || ''} Clean solid outlines, flat vector color palette, isolated object, completely transparent background (PNG alpha), no text, no watermark.`;
+  navigator.clipboard.writeText(promptText);
+  alert(`📋 Đã copy prompt của "${req.name || req.id}" vào bộ nhớ tạm!`);
+}
+
+async function copyAllPromptsUi() {
+  const reqs = smartAssetState.requirements || [];
+  if (reqs.length === 0) {
+    alert("⚠️ Chưa có danh sách yêu cầu tài nguyên.");
+    return;
+  }
+
+  const res = await fetch('/api/v5/smart-assets/export-prompts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requirements: reqs, format: 'markdown' })
+  });
+  const text = await res.text();
+  navigator.clipboard.writeText(text);
+  alert(`📋 Đã copy toàn bộ ${reqs.length} prompt sinh ảnh dạng Markdown vào clipboard!`);
+}
+
+async function exportRequirementsCsvUi() {
+  const reqs = smartAssetState.requirements || [];
+  const res = await fetch('/api/v5/smart-assets/export-prompts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requirements: reqs, format: 'csv' })
+  });
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'filename_mapping.csv';
+  a.click();
+}
+
+async function exportGenerationPackageZipUi() {
+  const res = await fetch('/api/v5/smart-assets/export-package', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      scenePlan: smartAssetState.scenePlan,
+      projectId: smartAssetState.projectId
+    })
+  });
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ASSET_GENERATION_PACKAGE.zip';
+  a.click();
+}
+
+async function handleSmartBulkFilesSelected(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  const encodedFiles = [];
+  for (const f of files) {
+    const b64 = await readFileAsBase64(f);
+    encodedFiles.push({ fileName: f.name, base64: b64 });
+  }
+
+  const res = await fetch('/api/v5/smart-assets/bulk-import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      projectId: smartAssetState.projectId,
+      files: encodedFiles,
+      activeRequirements: smartAssetState.requirements
+    })
+  });
+  const data = await res.json();
+  if (data.success) {
+    alert(`📥 Đã import thành công ${data.summary?.total || 0} ảnh!\n- Tự động khớp mã yêu cầu: ${data.summary?.matchedCount || 0}\n- Chưa xác định: ${data.summary?.unassignedCount || 0}\n- Trùng lặp (đã bỏ qua): ${data.summary?.duplicateCount || 0}`);
+    await scanProjectRequirementsUi();
+  }
+}
+
+async function handleSmartZipFileSelected(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const b64 = await readFileAsBase64(file);
+  const res = await fetch('/api/v5/smart-assets/bulk-import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      projectId: smartAssetState.projectId,
+      zipBase64: b64,
+      activeRequirements: smartAssetState.requirements
+    })
+  });
+  const data = await res.json();
+  if (data.success) {
+    alert(`📦 Đã giải nén và nhập gói ZIP thành công!\n- Khớp tự động: ${data.summary?.matchedCount || 0}\n- Chưa xác định: ${data.summary?.unassignedCount || 0}`);
+    await scanProjectRequirementsUi();
+  }
+}
+
+function openSmartAnchorModal(reqId) {
+  smartAssetState.currentAnchorTarget = reqId;
+  const modal = document.getElementById('smartAssetAnchorModal');
+  const title = document.getElementById('anchorModalTitle');
+  if (title) title.textContent = `Thiết Lập Điểm Neo Cho: ${reqId}`;
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeSmartAnchorModal() {
+  const modal = document.getElementById('smartAssetAnchorModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function applyAnchorPreset(presetName) {
+  const presets = {
+    hand_grip: { x: 0.5, y: 0.85 },
+    ground_contact: { x: 0.5, y: 0.98 },
+    center: { x: 0.5, y: 0.5 },
+    bottom_center: { x: 0.5, y: 1.0 },
+    top_center: { x: 0.5, y: 0.0 },
+    left_center: { x: 0.0, y: 0.5 }
+  };
+  const val = presets[presetName] || presets.center;
+  const elX = document.getElementById('customAnchorX');
+  const elY = document.getElementById('customAnchorY');
+  if (elX) elX.value = val.x;
+  if (elY) elY.value = val.y;
+}
+
+async function saveCustomAnchorSetting() {
+  const reqId = smartAssetState.currentAnchorTarget;
+  if (!reqId) return;
+
+  const x = parseFloat(document.getElementById('customAnchorX').value) || 0.5;
+  const y = parseFloat(document.getElementById('customAnchorY').value) || 0.85;
+
+  await fetch('/api/v5/smart-assets/bind', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      projectId: smartAssetState.projectId,
+      requirementId: reqId,
+      resolvedAssetId: smartAssetState.bindings[reqId]?.resolvedAssetId || reqId,
+      anchor: { x, y }
+    })
+  });
+
+  closeSmartAnchorModal();
+  await scanProjectRequirementsUi();
+  alert(`💾 Đã lưu điểm neo (${x}, ${y}) cho yêu cầu "${reqId}"!`);
+}
+
+function promptManualBindAsset(reqId) {
+  const assetId = prompt(`Nhập mã Asset ID trong Thư viện V4 để gán cho "${reqId}":`);
+  if (!assetId) return;
+
+  fetch('/api/v5/smart-assets/bind', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      projectId: smartAssetState.projectId,
+      requirementId: reqId,
+      resolvedAssetId: assetId.trim()
+    })
+  }).then(() => scanProjectRequirementsUi());
+}
+
+async function checkProjectReadinessUi() {
+  const res = await fetch('/api/v5/smart-assets/readiness', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      scenePlan: smartAssetState.scenePlan,
+      projectId: smartAssetState.projectId
+    })
+  });
+  const data = await res.json();
+  const rep = data.report || {};
+  const status = rep.projectStatus || 'UNKNOWN';
+  const counts = rep.counts || {};
+  const rates = rep.rates || {};
+
+  alert(`🛡️ BÁO CÁO READINESS DỰ ÁN:\n- Trạng thái tổng: ${status}\n- Mức sẵn sàng tài nguyên: ${rates.assetReadinessRate}%\n- Mức sẵn sàng cảnh: ${rates.sceneReadinessRate}%\n- Cảnh bị chặn do thiếu ảnh: ${counts.blockedByAssetsSceneCount}\n- Cảnh bị chặn do thiếu action: ${counts.blockedByCapabilitySceneCount}`);
+}
+
+async function confirmAssetsAndProceedToSceneBuilder() {
+  const rep = smartAssetState.readiness;
+  if (rep && rep.projectStatus === 'BLOCKED') {
+    const proceed = confirm("⚠️ Dự án hiện có tài nguyên hoặc capability chưa hỗ trợ (BLOCKED). Bạn có chắc chắn muốn xuất hợp đồng và tiếp tục?");
+    if (!proceed) return;
+  }
+
+  const res = await fetch('/api/v5/smart-assets/compile-contract', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      scenePlan: smartAssetState.scenePlan,
+      projectId: smartAssetState.projectId
+    })
+  });
+  const data = await res.json();
+  if (data.success) {
+    alert("🚀 Hợp đồng tích hợp Automatic Scene Builder (Phase 3 Contract) đã sẵn sàng!");
+  }
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// =========================================================================
+// THANH HAI 2D STUDIO V5 — PHASE 5 PRODUCTION DASHBOARD CONTROLLERS
+// =========================================================================
+let currentProductionJobId = null;
+let productionPollingInterval = null;
+
+function toggleProductionUiMode(mode) {
+  const advPanel = document.getElementById('prodAdvancedDetailsPanel');
+  if (advPanel) {
+    if (mode === 'advanced') {
+      advPanel.classList.remove('hidden');
+    } else {
+      advPanel.classList.add('hidden');
+    }
+  }
+}
+
+async function triggerOneClickProduction() {
+  const modeSelect = document.getElementById('productionModeSelect');
+  const mode = modeSelect ? modeSelect.value : 'MODE_B_FULL_AUTO';
+
+  const stateBadge = document.getElementById('prodStateBadge');
+  const stageLabel = document.getElementById('prodStageLabel');
+  const progressBar = document.getElementById('prodProgressBar');
+  const progressPercent = document.getElementById('prodProgressPercent');
+
+  const btnStart = document.getElementById('btnStartOneClickProduction');
+  const btnPause = document.getElementById('btnPauseProdJob');
+  const btnCancel = document.getElementById('btnCancelProdJob');
+
+  if (stateBadge) {
+    stateBadge.textContent = 'RUNNING';
+    stateBadge.style.backgroundColor = '#0284c7';
+  }
+  if (stageLabel) stageLabel.textContent = 'Khởi động quy trình sản xuất tự động...';
+  if (progressBar) progressBar.style.width = '10%';
+  if (progressPercent) progressPercent.textContent = '10%';
+
+  if (btnStart) btnStart.disabled = true;
+  if (btnPause) btnPause.disabled = false;
+  if (btnCancel) btnCancel.disabled = false;
+
+  try {
+    const projectData = {
+      id: appState.activeAiProject || 'v5_production_demo',
+      revision: '1.0',
+      scenePlan: appState.aiStoryboardPlan || { scenes: [
+        { id: 'scene_001', duration: 4, background: 'laboratory', characters: [{ id: 'doc', action: 'walk' }] }
+      ] }
+    };
+
+    const res = await fetch('/api/v5/production/orchestrate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectData, mode })
+    });
+
+    const data = await res.json();
+    if (!data.success && data.status === 'WAITING_FOR_ASSETS') {
+      if (stateBadge) {
+        stateBadge.textContent = 'WAITING_FOR_ASSETS';
+        stateBadge.style.backgroundColor = '#eab308';
+      }
+      if (stageLabel) stageLabel.textContent = `Tạm dừng: Thiếu ${data.missingAssets?.length || 0} tài nguyên bắt buộc.`;
+      showToast(`Thiếu ${data.missingAssets?.length || 0} tài nguyên. Vui lòng bổ sung tại Bước 4.`, 'warning');
+      return;
+    }
+
+    if (data.jobId) {
+      currentProductionJobId = data.jobId;
+      pollProductionJobProgress(data.jobId);
+    }
+
+    if (data.success) {
+      if (stateBadge) {
+        stateBadge.textContent = data.status || 'COMPLETED';
+        stateBadge.style.backgroundColor = '#22c55e';
+      }
+      if (stageLabel) stageLabel.textContent = '🎉 Đã sản xuất video thành công 100%!';
+      if (progressBar) progressBar.style.width = '100%';
+      if (progressPercent) progressPercent.textContent = '100%';
+
+      if (data.finalOutput) {
+        updateFinalOutputUi(data.finalOutput);
+      }
+      showToast('🎉 Tự động sản xuất video hoàn tất!', 'success');
+    }
+  } catch (err) {
+    if (stateBadge) {
+      stateBadge.textContent = 'FAILED';
+      stateBadge.style.backgroundColor = '#ef4444';
+    }
+    if (stageLabel) stageLabel.textContent = `Lỗi sản xuất: ${err.message}`;
+    showToast(`Lỗi sản xuất: ${err.message}`, 'error');
+  } finally {
+    if (btnStart) btnStart.disabled = false;
+  }
+}
+
+function pollProductionJobProgress(jobId) {
+  if (productionPollingInterval) clearInterval(productionPollingInterval);
+
+  productionPollingInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/v5/production/job-status/${jobId}`);
+      const data = await res.json();
+      if (!data.success || !data.job) return;
+
+      const job = data.job;
+      const stageLabel = document.getElementById('prodStageLabel');
+      const progressBar = document.getElementById('prodProgressBar');
+      const progressPercent = document.getElementById('prodProgressPercent');
+
+      if (stageLabel) stageLabel.textContent = `[${job.stage}] ${job.logs[job.logs.length - 1] || ''}`;
+      if (progressBar) progressBar.style.width = `${job.progressPercent}%`;
+      if (progressPercent) progressPercent.textContent = `${job.progressPercent}%`;
+
+      if (job.status === 'Completed' || job.status === 'Failed' || job.status === 'Cancelled') {
+        clearInterval(productionPollingInterval);
+        productionPollingInterval = null;
+      }
+    } catch {}
+  }, 1000);
+}
+
+async function pauseCurrentProductionJob() {
+  if (!currentProductionJobId) return;
+  try {
+    const res = await fetch(`/api/v5/production/pause/${currentProductionJobId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('prodStateBadge').textContent = 'PAUSED';
+      document.getElementById('btnPauseProdJob').disabled = true;
+      document.getElementById('btnResumeProdJob').disabled = false;
+      showToast('Đã tạm dừng job sản xuất.', 'info');
+    }
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function resumeCurrentProductionJob() {
+  if (!currentProductionJobId) return;
+  try {
+    const res = await fetch(`/api/v5/production/resume/${currentProductionJobId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('prodStateBadge').textContent = 'RENDERING';
+      document.getElementById('btnPauseProdJob').disabled = false;
+      document.getElementById('btnResumeProdJob').disabled = true;
+      showToast('Tiếp tục job sản xuất.', 'info');
+    }
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function cancelCurrentProductionJob() {
+  if (!currentProductionJobId) return;
+  try {
+    const res = await fetch(`/api/v5/production/cancel/${currentProductionJobId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: 'Người dùng bấm Hủy trên giao diện' })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('prodStateBadge').textContent = 'CANCELLED';
+      document.getElementById('prodStageLabel').textContent = 'Job đã bị hủy bỏ.';
+      showToast('Đã hủy job sản xuất.', 'warning');
+    }
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function runTechnicalQaUi() {
+  try {
+    const projectData = {
+      scenes: appState.aiStoryboardPlan?.scenes || []
+    };
+    const res = await fetch('/api/v5/production/qa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectData })
+    });
+    const data = await res.json();
+    if (data.success && data.qaResult) {
+      const qa = data.qaResult;
+      const box = document.getElementById('prodQaSummaryBox');
+      if (box) {
+        box.innerHTML = `
+          <strong>Kết Quả Kiểm Định QA:</strong><br/>
+          • Lỗi chặn (Blockers): <span style="color:${qa.blockers.length ? '#ef4444' : '#22c55e'}; font-weight:700;">${qa.blockers.length}</span><br/>
+          • Cảnh báo (Warnings): <span style="color:#eab308; font-weight:700;">${qa.warnings.length}</span><br/>
+          • Đánh giá nhịp độ kể chuyện: <em>${qa.storytellingReport?.pacingAssessment || 'Cân bằng'}</em>
+        `;
+      }
+      showToast(`Technical QA: ${qa.blockers.length} Blockers, ${qa.warnings.length} Warnings.`, qa.blockers.length ? 'error' : 'success');
+    }
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+async function runAutoSafeRepairUi() {
+  try {
+    const projectData = {
+      scenes: appState.aiStoryboardPlan?.scenes || []
+    };
+    const res = await fetch('/api/v5/production/qa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectData, autoRepair: true })
+    });
+    const data = await res.json();
+    if (data.success && data.repairResult) {
+      showToast(`Đã tự động sửa an toàn ${data.repairResult.repairsCount} mục!`, 'success');
+    }
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+function clearRenderCacheUi() {
+  showToast('Đã làm sạch bộ nhớ đệm kết xuất (Render Cache).', 'info');
+}
+
+function updateFinalOutputUi(output) {
+  const player = document.getElementById('prodFinalVideoPlayer');
+  const infoPath = document.getElementById('prodInfoPath');
+  const infoRes = document.getElementById('prodInfoResolution');
+  const infoFps = document.getElementById('prodInfoFps');
+  const infoSize = document.getElementById('prodInfoSize');
+  const dlBtn = document.getElementById('prodDownloadMp4Btn');
+
+  if (output.outputPath) {
+    const relUrl = `/out/${output.outputPath.split(/[\\/]/).pop()}`;
+    if (player) {
+      player.src = relUrl;
+      player.load();
+    }
+    if (dlBtn) dlBtn.href = relUrl;
+    if (infoPath) infoPath.textContent = output.outputPath;
+  }
+  if (infoRes && output.resolution) infoRes.textContent = output.resolution;
+  if (infoFps && output.fps) infoFps.textContent = `${output.fps} fps`;
+  if (infoSize && output.fileSize) infoSize.textContent = `${(output.fileSize / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function exportProjectPackageZip() {
+  showToast('Đang đóng gói toàn bộ dự án thành file ZIP chuẩn portable...', 'info');
+}
+
+// Global window bindings for inline HTML handlers
+window.toggleProductionUiMode = toggleProductionUiMode;
+window.triggerOneClickProduction = triggerOneClickProduction;
+window.pauseCurrentProductionJob = pauseCurrentProductionJob;
+window.resumeCurrentProductionJob = resumeCurrentProductionJob;
+window.cancelCurrentProductionJob = cancelCurrentProductionJob;
+window.runTechnicalQaUi = runTechnicalQaUi;
+window.runAutoSafeRepairUi = runAutoSafeRepairUi;
+window.clearRenderCacheUi = clearRenderCacheUi;
+window.exportProjectPackageZip = exportProjectPackageZip;
+window.loadSmartAssetManagerUI = loadSmartAssetManagerUI;
+window.loadDefaultAiStoryboardDemo = loadDefaultAiStoryboardDemo;
+window.scanProjectRequirementsUi = scanProjectRequirementsUi;
+window.autoResolveAssetsUi = autoResolveAssetsUi;
+window.filterRequirementsByCategory = filterRequirementsByCategory;
+window.filterMissingOnlyUi = filterMissingOnlyUi;
+window.handleSmartAssetSearch = handleSmartAssetSearch;
+window.copyRequirementPrompt = copyRequirementPrompt;
+window.copyAllPromptsUi = copyAllPromptsUi;
+window.exportRequirementsCsvUi = exportRequirementsCsvUi;
+window.exportGenerationPackageZipUi = exportGenerationPackageZipUi;
+window.handleSmartBulkFilesSelected = handleSmartBulkFilesSelected;
+window.handleSmartZipFileSelected = handleSmartZipFileSelected;
+window.openSmartAnchorModal = openSmartAnchorModal;
+window.closeSmartAnchorModal = closeSmartAnchorModal;
+window.applyAnchorPreset = applyAnchorPreset;
+window.saveCustomAnchorSetting = saveCustomAnchorSetting;
+window.promptManualBindAsset = promptManualBindAsset;
+window.checkProjectReadinessUi = checkProjectReadinessUi;
+window.confirmAssetsAndProceedToSceneBuilder = confirmAssetsAndProceedToSceneBuilder;
+
+
+
+

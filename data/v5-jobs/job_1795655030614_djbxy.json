@@ -1,0 +1,40 @@
+{
+  "jobId": "job_1795655030614_djbxy",
+  "projectId": "proj_1795655030614",
+  "projectRevision": "1.0",
+  "mode": "MODE_B_FULL_AUTO",
+  "status": "Failed",
+  "stage": "Validate Scene Plan",
+  "progressPercent": 5,
+  "createdAt": "2026-11-26T01:03:50.614Z",
+  "startedAt": "2026-11-26T01:03:50.614Z",
+  "completedAt": null,
+  "checkpoints": [
+    {
+      "name": "PLAN_IMPORTED",
+      "timestamp": "2026-11-26T01:03:50.614Z",
+      "data": {
+        "reason": "Nhập dữ liệu dự án"
+      }
+    },
+    {
+      "name": "VALIDATING",
+      "timestamp": "2026-11-26T01:03:50.614Z",
+      "data": {
+        "reason": "Kiểm tra Scene Plan"
+      }
+    }
+  ],
+  "logs": [
+    "[08:03:50] Trạng thái: DRAFT ➔ PLAN_IMPORTED (Nhập dữ liệu dự án)",
+    "[08:03:50] Checkpoint lưu thành công: \"PLAN_IMPORTED\".",
+    "[08:03:50] [Validate Scene Plan] Tiến độ: 5%",
+    "[08:03:50] Trạng thái: PLAN_IMPORTED ➔ VALIDATING (Kiểm tra Scene Plan)",
+    "[08:03:50] Checkpoint lưu thành công: \"VALIDATING\".",
+    "[08:03:50] ❌ Lỗi thực thi Job: Scene Plan không chứa danh sách phân cảnh hợp lệ."
+  ],
+  "errorDetails": "Scene Plan không chứa danh sách phân cảnh hợp lệ.",
+  "retryCount": 0,
+  "options": {},
+  "snapshot": null
+}

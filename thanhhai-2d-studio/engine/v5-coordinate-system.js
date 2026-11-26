@@ -166,3 +166,4 @@ export function getResolutionScaleRatio(sourceRes = DEFAULT_RESOLUTION, targetRe
     uniformScale: targetRes.width / sourceRes.width
   };
 }
+

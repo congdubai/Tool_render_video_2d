@@ -1,0 +1,21 @@
+{
+  "jobId": "job_1795655010547_1t5fs",
+  "projectId": "proj_resume",
+  "projectRevision": "1.0",
+  "mode": "MODE_B_FULL_AUTO",
+  "status": "Rendering",
+  "stage": "Initialized",
+  "progressPercent": 0,
+  "createdAt": "2026-11-26T01:03:30.547Z",
+  "startedAt": null,
+  "completedAt": null,
+  "checkpoints": [],
+  "logs": [
+    "[08:03:30] Job đã được tạm dừng tại checkpoint an toàn.",
+    "[08:03:30] Tiếp tục thực thi Job từ checkpoint."
+  ],
+  "errorDetails": null,
+  "retryCount": 0,
+  "options": {},
+  "snapshot": null
+}

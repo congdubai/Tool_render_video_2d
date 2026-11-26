@@ -1697,6 +1697,168 @@
         </div>
       </div>
     </section>
+
+    <!-- ================= WIZARD STEP 6: AUTOMATIC VIDEO PRODUCTION & FINAL DASHBOARD ================= -->
+    <section class="card" id="autoVideoProductionSection" style="margin-top: 24px; border-color: #22c55e;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>🚀 Bước 6: Trung Tâm Sản Xuất Video Tự Động (Production Dashboard V5)</h2>
+          <span class="hint">One-Click Production Orchestrator: Tự động điều phối toàn bộ pipeline từ Scene Plan, Diễn hoạt, Technical QA, Render và Xuất MP4 thành phẩm</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 6px; background: #0f172a; padding: 4px 10px; border-radius: 6px; border: 1px solid #334155; font-size: 12px;">
+            <label style="color: #94a3b8;">Giao diện:</label>
+            <select id="prodUiModeSelect" class="select-control" style="padding: 2px 6px; font-size: 12px; width: 110px;" onchange="toggleProductionUiMode(this.value)">
+              <option value="simple" selected>Simple Mode</option>
+              <option value="advanced">Advanced Mode</option>
+            </select>
+          </div>
+          <span id="prodStateBadge" class="badge" style="background-color: #0284c7; color: #fff; font-size: 13px; font-weight: 700; padding: 6px 12px;">DRAFT</span>
+        </div>
+      </div>
+
+      <div class="card-body" style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- A. Bảng Thông Tin Dự Án (Project Info Bar) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Tên Dự Án</span>
+            <div id="prodProjectName" style="font-size: 16px; font-weight: 700; color: #38bdf8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Dự Án V5</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Thời Lượng</span>
+            <div id="prodDuration" style="font-size: 20px; font-weight: 700; color: #4ade80;">15.0s</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Số Cảnh (Scenes)</span>
+            <div id="prodSceneCount" style="font-size: 20px; font-weight: 700; color: #c084fc;">3 cảnh</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Hardware Encoder</span>
+            <div id="prodHardwareEncoder" style="font-size: 14px; font-weight: 700; color: #f59e0b;">NVENC / CPU</div>
+          </div>
+        </div>
+
+        <!-- B. Tiến Độ Sản Xuất Thời Gian Thực (Live Production Progress) -->
+        <div id="prodProgressBox" style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 14px;">
+          <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px;">
+            <span id="prodStageLabel" style="color: #cbd5e1; font-weight: 600;">Sẵn sàng sản xuất video</span>
+            <span id="prodProgressPercent" style="font-weight: 700; color: #22c55e;">0%</span>
+          </div>
+          <div style="width: 100%; height: 10px; background: #334155; border-radius: 5px; overflow: hidden;">
+            <div id="prodProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #38bdf8, #22c55e); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- C. One-Click Production Control Bar -->
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; background: #1e293b; padding: 12px 16px; border-radius: 6px; border: 1px solid #334155; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label style="font-size: 13px; color: #94a3b8; font-weight: 600;">Chế độ:</label>
+            <select id="productionModeSelect" class="select-control" style="width: 220px; font-weight: 600;">
+              <option value="MODE_B_FULL_AUTO" selected>Mode B — Tự Động Toàn Phần (Render MP4)</option>
+              <option value="MODE_A_PREVIEW">Mode A — Xem Trước Preview (Không Render)</option>
+              <option value="MODE_C_SELECTIVE">Mode C — Sản Xuất Chọn Lọc</option>
+            </select>
+          </div>
+
+          <button id="btnStartOneClickProduction" class="btn btn-success" style="font-weight: 700; padding: 10px 20px; font-size: 14px; background: #16a34a; border-color: #22c55e;" onclick="triggerOneClickProduction()">
+            🚀 TỰ ĐỘNG SẢN XUẤT VIDEO
+          </button>
+
+          <button id="btnPauseProdJob" class="btn btn-outline" onclick="pauseCurrentProductionJob()" disabled>
+            ⏸️ Tạm Dừng
+          </button>
+          <button id="btnResumeProdJob" class="btn btn-outline" onclick="resumeCurrentProductionJob()" disabled>
+            ▶️ Tiếp Tục
+          </button>
+          <button id="btnCancelProdJob" class="btn btn-outline" style="border-color: #f87171; color: #f87171;" onclick="cancelCurrentProductionJob()" disabled>
+            ⏹️ Hủy
+          </button>
+
+          <div style="margin-left: auto; display: flex; gap: 8px;">
+            <button class="btn btn-outline" style="border-color: #c084fc; color: #c084fc;" onclick="runTechnicalQaUi()">
+              🔍 Chạy Technical QA
+            </button>
+            <button class="btn btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="runAutoSafeRepairUi()">
+              🛠️ Tự Động Sửa Lỗi
+            </button>
+          </div>
+        </div>
+
+        <!-- D. Advanced Mode Details Panel (Chỉ hiển thị khi bật Advanced Mode) -->
+        <div id="prodAdvancedDetailsPanel" class="hidden" style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 14px;">
+          <h4 style="margin: 0 0 10px 0; color: #38bdf8;">⚙️ Cấu Hình Nâng Cao & Technical QA Matrix</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px;">
+            <div>
+              <label style="font-size: 12px; color: #94a3b8;">Độ Phân Giải:</label>
+              <select id="prodResolutionSelect" class="select-control" style="width: 100%;">
+                <option value="1280x720">1280x720 (HD 720p)</option>
+                <option value="1920x1080" selected>1920x1080 (Full HD 1080p)</option>
+                <option value="2560x1440">2560x1440 (2K QHD)</option>
+                <option value="3840x2160">3840x2160 (4K UHD)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: #94a3b8;">Tốc Độ Khung Hình (FPS):</label>
+              <select id="prodFpsSelect" class="select-control" style="width: 100%;">
+                <option value="24">24 FPS (Cinematic)</option>
+                <option value="30" selected>30 FPS (Chuẩn Cartoon)</option>
+                <option value="60">60 FPS (Siêu mượt)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: #94a3b8;">Render Cache:</label>
+              <div style="display: flex; gap: 6px; margin-top: 4px;">
+                <button class="btn btn-sm btn-outline" onclick="clearRenderCacheUi()">🧹 Xóa Cache Render</button>
+              </div>
+            </div>
+          </div>
+          <div id="prodQaSummaryBox" style="font-size: 13px; color: #cbd5e1; padding: 8px 12px; background: #1e293b; border-radius: 4px;">
+            Trạng thái QA: Chưa phát hiện lỗi chặn (0 Blockers, 0 Errors, 0 Warnings).
+          </div>
+        </div>
+
+        <!-- E. Khu Vực Thành Phẩm & Video Player (Final Output & Player) -->
+        <div id="prodFinalOutputSection" style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <strong style="color: #22c55e; font-size: 16px; display: flex; align-items: center; gap: 6px;">
+              🎬 Video Thành Phẩm (Final MP4 Output)
+            </strong>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <a id="prodDownloadMp4Btn" href="#" class="btn btn-sm btn-success" style="font-weight: 700; text-decoration: none;" download>
+                ⬇️ Tải Video MP4
+              </a>
+              <button class="btn btn-sm btn-outline" onclick="openOutputFolder()">
+                📂 Mở Thư Mục out/
+              </button>
+              <button class="btn btn-sm btn-outline" style="border-color: #c084fc; color: #c084fc;" onclick="exportProjectPackageZip()">
+                📦 Xuất Gói ZIP Dự Án
+              </button>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: center;">
+            <div style="background: #000; border-radius: 6px; overflow: hidden; max-height: 360px; display: flex; justify-content: center; align-items: center; border: 1px solid #334155;">
+              <video id="prodFinalVideoPlayer" controls style="width: 100%; height: auto; max-height: 360px;" poster="" preload="metadata">
+                Trình duyệt không hỗ trợ phát video MP4.
+              </video>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+              <div style="background: #1e293b; padding: 12px; border-radius: 6px; border: 1px solid #334155;">
+                <div style="font-weight: 700; color: #38bdf8; margin-bottom: 6px;">THÔNG TIN KỸ THUẬT VIDEO:</div>
+                <div style="display: grid; grid-template-columns: 140px 1fr; gap: 4px; color: #94a3b8;">
+                  <span>Đường dẫn file:</span> <code id="prodInfoPath" style="color: #cbd5e1; word-break: break-all;">out/v5_demo_final.mp4</code>
+                  <span>Độ phân giải:</span> <span id="prodInfoResolution" style="color: #cbd5e1;">1920x1080</span>
+                  <span>FPS:</span> <span id="prodInfoFps" style="color: #cbd5e1;">30 fps</span>
+                  <span>Dung lượng:</span> <span id="prodInfoSize" style="color: #cbd5e1;">--</span>
+                  <span>Audio Codec:</span> <span id="prodInfoAudio" style="color: #cbd5e1;">AAC Stereo</span>
+                  <span>Verification:</span> <span id="prodInfoVerify" style="color: #22c55e; font-weight: 700;">Đã kiểm định hợp lệ</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- ================= MODAL THIẾT LẬP ĐIỂM NEO (ANCHOR & PIVOT ASSISTANT) ================= -->

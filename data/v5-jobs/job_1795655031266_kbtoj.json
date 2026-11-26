@@ -1,0 +1,20 @@
+{
+  "jobId": "job_1795655031266_kbtoj",
+  "projectId": "proj_retry",
+  "projectRevision": "1.0",
+  "mode": "MODE_B_FULL_AUTO",
+  "status": "Failed",
+  "stage": "Initialized",
+  "progressPercent": 0,
+  "createdAt": "2026-11-26T01:03:51.266Z",
+  "startedAt": null,
+  "completedAt": null,
+  "checkpoints": [],
+  "logs": [
+    "[08:03:51] ❌ Lỗi thực thi Job: Segment error"
+  ],
+  "errorDetails": "Segment error",
+  "retryCount": 0,
+  "options": {},
+  "snapshot": null
+}

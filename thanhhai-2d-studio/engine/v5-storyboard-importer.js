@@ -133,3 +133,4 @@ export function applyScenePatch(existingPlan = {}, patch = {}) {
     scenes
   };
 }
+

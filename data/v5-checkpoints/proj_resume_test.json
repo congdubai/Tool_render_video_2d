@@ -1,0 +1,16 @@
+{
+  "projectId": "proj_resume_test",
+  "state": "VALIDATING",
+  "checkpointName": "waiting_for_assets",
+  "timestamp": "2026-11-26T01:03:50.591Z",
+  "history": [
+    "DRAFT",
+    "PLAN_IMPORTED",
+    "VALIDATING"
+  ],
+  "data": {
+    "missing": [
+      "bg"
+    ]
+  }
+}

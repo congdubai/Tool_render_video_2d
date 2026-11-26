@@ -87,3 +87,4 @@ export function buildSceneBuilderContract(scenePlan = {}, bindingRegistry, readi
     canCompile: readinessReport.isReadyForSceneBuilding
   };
 }
+

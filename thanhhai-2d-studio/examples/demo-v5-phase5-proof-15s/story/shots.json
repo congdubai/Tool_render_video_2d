@@ -1,0 +1,27 @@
+{
+  "fps": 30,
+  "duration": 15,
+  "shots": [
+    {
+      "id": "s001",
+      "name": "Doc bước đi",
+      "start": 0,
+      "end": 5,
+      "duration": 5
+    },
+    {
+      "id": "s002",
+      "name": "Suy nghĩ & Bất ngờ",
+      "start": 5,
+      "end": 10,
+      "duration": 5
+    },
+    {
+      "id": "s003",
+      "name": "Tương tác & Ăn mừng",
+      "start": 10,
+      "end": 15,
+      "duration": 5
+    }
+  ]
+}

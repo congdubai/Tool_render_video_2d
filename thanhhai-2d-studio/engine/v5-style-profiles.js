@@ -277,3 +277,4 @@ export function buildCharacterContinuityProfile(characterId, overrides = {}) {
     anchors: ['right_hand', 'left_hand', 'head_top', 'chest']
   };
 }
+

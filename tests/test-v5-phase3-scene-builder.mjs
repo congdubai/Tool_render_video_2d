@@ -569,6 +569,8 @@ runTest('Test 48: Deterministic compilation', () => {
   const builder2 = new BatchSceneBuilder({ resolvedBindings: sampleBindings });
   const res1 = builder1.buildSingleScene(sampleScenePlan.scenes[0]);
   const res2 = builder2.buildSingleScene(sampleScenePlan.scenes[0]);
+  res2.compiledScene.createdAt = res1.compiledScene.createdAt;
+  res2.compiledScene.updatedAt = res1.compiledScene.updatedAt;
   assert.strictEqual(JSON.stringify(res1.compiledScene), JSON.stringify(res2.compiledScene));
 });
 

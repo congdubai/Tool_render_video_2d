@@ -135,3 +135,17 @@ export class SmartAssetManager {
     };
   }
 }
+
+export function resolveAssetRequirements(scenePlan = {}, options = {}) {
+  const manager = new SmartAssetManager(null, scenePlan);
+  const result = manager.scanAndResolve(options);
+  const resolutions = result?.resolution?.results || [];
+  const missing = resolutions.filter(r => r.status === 'missing' || !r.isResolved);
+  return {
+    success: missing.length === 0,
+    missingAssets: missing,
+    resolutions
+  };
+}
+
+

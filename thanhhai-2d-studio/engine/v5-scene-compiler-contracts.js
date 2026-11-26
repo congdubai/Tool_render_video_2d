@@ -107,3 +107,4 @@ export function createAnimationReadyContract(options = {}) {
     generatedAt: new Date().toISOString()
   };
 }
+

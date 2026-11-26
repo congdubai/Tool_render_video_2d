@@ -1742,6 +1742,160 @@ app.post("/api/v5/builder/export-tab2", (req, res) => {
   }
 });
 
+// =========================================================================
+// THANH HAI 2D STUDIO V5 — PHASE 5 PRODUCTION PIPELINE ENDPOINTS
+// =========================================================================
+import { defaultOrchestrator, PRODUCTION_MODES, PRODUCTION_STATES } from "../thanhhai-2d-studio/engine/v5-production-orchestrator.js";
+import { defaultJobManager } from "../thanhhai-2d-studio/engine/v5-production-job-manager.js";
+import { defaultQaEngine } from "../thanhhai-2d-studio/engine/v5-technical-qa-engine.js";
+import { defaultRenderCache, SCENE_APPROVAL_STATUS } from "../thanhhai-2d-studio/engine/v5-render-engine.js";
+import { defaultFfmpegAssembler } from "../thanhhai-2d-studio/engine/v5-ffmpeg-assembler.js";
+import { defaultAiDirectorPackage } from "../thanhhai-2d-studio/engine/v5-ai-director-package.js";
+import { defaultProjectManager } from "../thanhhai-2d-studio/engine/v5-project-manager.js";
+
+// 1. One-Click Production Orchestrator (Run Mode A / B / C)
+app.post("/api/v5/production/orchestrate", async (req, res) => {
+  try {
+    const { projectData, mode = PRODUCTION_MODES.MODE_B_FULL_AUTO, options = {} } = req.body;
+    const result = await defaultOrchestrator.produceVideo(projectData || {}, mode, options);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Production Job Status & Logs
+app.get("/api/v5/production/job-status/:jobId", (req, res) => {
+  try {
+    const job = defaultJobManager.getJob(req.params.jobId);
+    if (!job) return res.status(404).json({ success: false, error: "Không tìm thấy Job ID." });
+    res.json({ success: true, job });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. Pause Job
+app.post("/api/v5/production/pause/:jobId", (req, res) => {
+  try {
+    const job = defaultJobManager.pauseJob(req.params.jobId);
+    res.json({ success: !!job, job });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. Resume Job
+app.post("/api/v5/production/resume/:jobId", (req, res) => {
+  try {
+    const job = defaultJobManager.resumeJob(req.params.jobId);
+    res.json({ success: !!job, job });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5. Cancel Job
+app.post("/api/v5/production/cancel/:jobId", (req, res) => {
+  try {
+    const job = defaultJobManager.cancelJob(req.params.jobId, req.body.reason);
+    res.json({ success: !!job, job });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6. Technical QA & Safe Repair
+app.post("/api/v5/production/qa", (req, res) => {
+  try {
+    const { projectData = {}, autoRepair = false } = req.body;
+    let qaResult = defaultQaEngine.validateProject(projectData);
+    let repairResult = null;
+
+    if (autoRepair) {
+      repairResult = defaultQaEngine.autoRepairSafeIssues(projectData);
+      qaResult = defaultQaEngine.validateProject(projectData);
+    }
+
+    res.json({ success: true, qaResult, repairResult });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 7. Hardware Capabilities Detection
+app.get("/api/v5/production/hardware", (req, res) => {
+  try {
+    const hw = defaultFfmpegAssembler.detectHardwareCapabilities();
+    res.json({ success: true, hardware: hw });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 8. Scene Approval & Lock Workflow
+app.post("/api/v5/production/lock-scene", (req, res) => {
+  try {
+    const { sceneId, status = SCENE_APPROVAL_STATUS.LOCKED, notes = "" } = req.body;
+    defaultRenderCache.setApprovalStatus(sceneId, status, notes);
+    res.json({ success: true, sceneId, status, notes });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 9. Incremental Scene Repair Exporter & Importer
+app.post("/api/v5/production/export-repair-package", (req, res) => {
+  try {
+    const { scene, compiledScene, animTrack, userFeedback } = req.body;
+    const pkg = defaultAiDirectorPackage.exportSceneRepairPackage(scene, compiledScene, animTrack, userFeedback);
+    res.json({ success: true, repairPackage: pkg });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 10. Merge Multi-batch Scene Plans
+app.post("/api/v5/production/merge-batches", (req, res) => {
+  try {
+    const { batches = [] } = req.body;
+    const merged = defaultAiDirectorPackage.mergeScenePlanBatches(batches);
+    res.json(merged);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 11. Projects List, Create & Save
+app.get("/api/v5/production/projects", (req, res) => {
+  try {
+    const projects = defaultProjectManager.listProjects();
+    res.json({ success: true, projects });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/v5/production/projects/create", (req, res) => {
+  try {
+    const { name, options } = req.body;
+    const project = defaultProjectManager.createProject(name, options);
+    res.json({ success: true, project });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/v5/production/projects/save", (req, res) => {
+  try {
+    const { project } = req.body;
+    defaultProjectManager.saveProjectAtomic(project);
+    res.json({ success: true, projectId: project.id });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Đảm bảo mọi request /api/* không tìm thấy luôn trả về JSON
 app.all("/api/*", (req, res) => {
   res.status(404).json({

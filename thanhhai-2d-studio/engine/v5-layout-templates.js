@@ -311,3 +311,4 @@ export function selectBestLayoutTemplate(scene = {}) {
   // Default single character
   return LAYOUT_TEMPLATES[TEMPLATE_IDS.SINGLE_CHARACTER];
 }
+

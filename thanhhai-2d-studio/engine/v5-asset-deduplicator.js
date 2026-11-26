@@ -72,3 +72,4 @@ export function isDistinctVariant(reqA, reqB) {
   if ((reqA.timeOfDay || 'day') !== (reqB.timeOfDay || 'day')) return true;
   return false;
 }
+
