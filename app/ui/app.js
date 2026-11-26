@@ -5793,16 +5793,294 @@ const DEFAULT_V5_DEMO_SCENE_PLAN = {
   ]
 };
 
+// =========================================================================
+// TAB 4 WIZARD CONTROLLER: 6 STEPS NAVIGATION & VIEW MODES
+// =========================================================================
+let currentWizardStep = 4;
+let wizardDisplayMode = 'single'; // 'single' | 'all'
+
+const WIZARD_STEP_TITLES = {
+  1: 'Kịch bản & Style',
+  2: 'Xuất AI Context',
+  3: 'Nhập Scene Plan',
+  4: 'Smart Asset Manager',
+  5: 'Dựng Cảnh (Phase 3)',
+  6: 'Preview & Render'
+};
+
+function switchWizardStep(stepNum) {
+  if (stepNum < 1 || stepNum > 6) return;
+  currentWizardStep = stepNum;
+  updateWizardDisplayUi();
+}
+
+function setWizardDisplayMode(mode) {
+  wizardDisplayMode = mode;
+  updateWizardDisplayUi();
+}
+
+function updateWizardDisplayUi() {
+  for (let i = 1; i <= 6; i++) {
+    const pill = document.getElementById(`wStep${i}`);
+    if (!pill) continue;
+    const numSpan = pill.querySelector('span:first-child');
+    const textSpan = pill.querySelector('span:last-child');
+
+    if (i === currentWizardStep) {
+      pill.className = 'wizard-step-pill active';
+      pill.style.background = '#0369a1';
+      pill.style.border = '1px solid #38bdf8';
+      pill.style.boxShadow = '0 0 10px rgba(56, 189, 248, 0.4)';
+      pill.style.opacity = '1';
+      if (numSpan) {
+        numSpan.style.color = '#fff';
+        numSpan.textContent = `Bước ${i} ⭐`;
+      }
+      if (textSpan) {
+        textSpan.style.color = '#fff';
+        textSpan.style.fontWeight = '700';
+      }
+    } else {
+      pill.className = 'wizard-step-pill';
+      pill.style.background = '#1e293b';
+      pill.style.border = '1px solid #334155';
+      pill.style.boxShadow = 'none';
+      pill.style.opacity = '0.85';
+      if (numSpan) {
+        numSpan.style.color = '#94a3b8';
+        numSpan.textContent = `Bước ${i}`;
+      }
+      if (textSpan) {
+        textSpan.style.color = '#cbd5e1';
+        textSpan.style.fontWeight = 'normal';
+      }
+    }
+  }
+
+  // Cập nhật text tóm tắt
+  const sumText = document.getElementById('wizStepSummaryText');
+  if (sumText) {
+    sumText.textContent = `Đang xem: Bước ${currentWizardStep} — ${WIZARD_STEP_TITLES[currentWizardStep] || ''}`;
+  }
+
+  // Cập nhật nút chọn chế độ
+  const btnSingle = document.getElementById('wizModeSingle');
+  const btnAll = document.getElementById('wizModeAll');
+  if (btnSingle && btnAll) {
+    if (wizardDisplayMode === 'single') {
+      btnSingle.className = 'btn btn-sm btn-primary active';
+      btnAll.className = 'btn btn-sm btn-outline';
+    } else {
+      btnSingle.className = 'btn btn-sm btn-outline';
+      btnAll.className = 'btn btn-sm btn-primary active';
+    }
+  }
+
+  // Hiển thị/ẩn các section
+  const sections = {
+    1: document.getElementById('wizardStep1Section'),
+    2: document.getElementById('wizardStep2Section'),
+    3: document.getElementById('wizardStep3Section'),
+    4: document.getElementById('smartAssetManagerSection'),
+    5: document.getElementById('autoSceneBuilderSection'),
+    6: document.getElementById('autoVideoProductionSection')
+  };
+
+  if (wizardDisplayMode === 'all') {
+    for (let i = 1; i <= 6; i++) {
+      if (sections[i]) sections[i].style.display = 'block';
+    }
+    if (sections[currentWizardStep]) {
+      sections[currentWizardStep].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  } else {
+    for (let i = 1; i <= 6; i++) {
+      if (sections[i]) {
+        sections[i].style.display = (i === currentWizardStep) ? 'block' : 'none';
+      }
+    }
+  }
+}
+
+// BƯỚC 1: NHẬP KỊCH BẢN TỪ TAB 1
+function importScriptFromTab1() {
+  const t1 = document.getElementById('rawScriptInput');
+  const target = document.getElementById('v5ScriptInput');
+  if (t1 && t1.value.trim() && target) {
+    target.value = t1.value.trim();
+    if (typeof showToast === 'function') {
+      showToast("✅ Đã nạp kịch bản từ Tab 1!");
+    } else {
+      alert("✅ Đã nạp kịch bản từ Tab 1!");
+    }
+  } else {
+    alert("⚠️ Chưa có kịch bản nào ở Tab 1. Hãy nhập kịch bản trực tiếp vào ô bên dưới!");
+  }
+}
+
+// BƯỚC 2: XUẤT AI CONTEXT PACKAGE CHO CHATGPT / CLAUDE
+function getAiDirectorPromptContent() {
+  const scriptInput = document.getElementById('v5ScriptInput');
+  const styleSelect = document.getElementById('v5StyleProfileSelect');
+  const aspectSelect = document.getElementById('v5AspectRatioSelect');
+
+  const script = (scriptInput && scriptInput.value.trim()) ? scriptInput.value.trim() : 
+    "Năm 1945, siêu máy tính ENIAC ra đời mở ra kỷ nguyên số. Đến thập niên 1950, linh kiện bán dẫn transistor xuất hiện giúp thu nhỏ kích thước máy. Thập niên 1970 chứng kiến vi xử lý silicon tích hợp. Thập niên 1980 máy tính cá nhân bùng nổ trong gia đình và công sở. Ngày nay là kỷ nguyên laptop và AI khắp nơi.";
+  const style = styleSelect ? styleSelect.value : "educational_cartoon";
+  const aspect = aspectSelect ? aspectSelect.value : "16:9";
+
+  return `Bạn là Senior AI Animation Director chuyên nghiệp cho phần mềm Thanh Hai 2D Studio V5.
+Nhiệm vụ của bạn: Phân tích kịch bản dưới đây thành các cảnh hoạt hình 2D ngắn (3 đến 6 giây mỗi cảnh) và trả về DUY NHẤT một khối Scene Plan JSON tuân thủ chuẩn Schema V5.
+
+THÔNG TIN DỰ ÁN:
+- Kịch bản gốc:
+"${script}"
+- Phong cách hình ảnh (Style Profile): "${style}"
+- Tỷ lệ khung hình: "${aspect}"
+
+QUY CHUẨN ĐẠO DIỄN:
+1. Mỗi cảnh có visualObjective rõ ràng, narrationText tương ứng phần lời đọc.
+2. Background: Chọn tên bối cảnh phù hợp hoặc đặt prompt sinh ảnh mô tả chi tiết.
+3. Characters: Chọn nhân vật (ví dụ: "doc", "student", "worker", "narrator"), trang phục và hành động ("talk_excited", "point_right", "walk_right", "stand_idle").
+4. Asset Requirements: Liệt kê các đạo cụ (prop) hoặc background cần thiết có prompt sinh ảnh minh họa nền trong suốt (PNG transparent).
+5. Trả về đúng định dạng JSON hợp lệ (không kèm giải thích bên ngoài):
+\`\`\`json
+{
+  "schemaVersion": "5.1",
+  "project": {
+    "title": "Dự Án Hoạt Hình V5",
+    "targetDurationMs": 25000,
+    "fps": 24,
+    "resolution": { "width": ${aspect === "9:16" ? 720 : 1280}, "height": ${aspect === "9:16" ? 1280 : 720} }
+  },
+  "style": { "profileId": "${style}" },
+  "assetRequirements": [
+    {
+      "id": "REQ_PROP_SAMPLE",
+      "name": "Đạo cụ mẫu",
+      "type": "prop",
+      "description": "Mô tả đạo cụ",
+      "transparentBackground": true,
+      "recommendedDimensions": { "width": 1024, "height": 1024 }
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene_001",
+      "startMs": 0,
+      "endMs": 5000,
+      "visualObjective": "Mở đầu cảnh giới thiệu",
+      "narrationText": "...",
+      "background": { "assetId": "bg_studio" },
+      "characters": [
+        {
+          "characterId": "doc",
+          "outfitId": "outfit_default",
+          "expressionId": "exp_happy",
+          "actionId": "talk_excited",
+          "position": { "x": 0.5, "y": 0.8 },
+          "scale": 1.0
+        }
+      ],
+      "camera": { "preset": "medium_shot", "movement": "static" }
+    }
+  ]
+}
+\`\`\``;
+}
+
+async function copyAiDirectorPackagePrompt() {
+  const prompt = getAiDirectorPromptContent();
+  try {
+    await navigator.clipboard.writeText(prompt);
+    if (typeof showToast === 'function') {
+      showToast("📋 Đã sao chép Prompt AI Director vào bộ nhớ tạm! Dán vào ChatGPT/Claude.");
+    } else {
+      alert("📋 Đã sao chép Prompt AI Director vào bộ nhớ tạm! Hãy mở ChatGPT hoặc Claude và dán prompt này.");
+    }
+  } catch (err) {
+    const ta = document.createElement("textarea");
+    ta.value = prompt;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+    alert("📋 Đã sao chép Prompt AI Director vào bộ nhớ tạm!");
+  }
+}
+
+function downloadAiDirectorPackageJson() {
+  const prompt = getAiDirectorPromptContent();
+  const pkg = {
+    schemaVersion: "5.1",
+    generator: "Thanh Hai 2D Studio V5",
+    createdAt: new Date().toISOString(),
+    prompt: prompt,
+    demoScenePlan: DEFAULT_V5_DEMO_SCENE_PLAN
+  };
+  const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `ai_director_package_${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// BƯỚC 3: NHẬP SCENE PLAN JSON
+function importScenePlanFromInput() {
+  const inputEl = document.getElementById('v5ScenePlanInput');
+  if (!inputEl || !inputEl.value.trim()) {
+    alert("⚠️ Vui lòng dán Scene Plan JSON do AI trả về vào khung trước!");
+    return;
+  }
+
+  try {
+    let raw = inputEl.value.trim();
+    if (raw.startsWith("```json")) raw = raw.replace(/^```json/, "");
+    if (raw.startsWith("```")) raw = raw.replace(/^```/, "");
+    if (raw.endsWith("```")) raw = raw.replace(/```$/, "");
+    raw = raw.trim();
+
+    const plan = JSON.parse(raw);
+    if (!plan.scenes || !Array.isArray(plan.scenes) || plan.scenes.length === 0) {
+      alert("⚠️ JSON không hợp lệ: Thiếu danh sách scenes hoặc danh sách rỗng.");
+      return;
+    }
+
+    smartAssetState.scenePlan = plan;
+    scanProjectRequirementsUi();
+    switchWizardStep(4);
+    alert(`✅ Đã nạp thành công Scene Plan gồm ${plan.scenes.length} cảnh!\nĐã chuyển sang Bước 4 (Smart Asset Manager) để quét và chuẩn bị tài nguyên.`);
+  } catch (err) {
+    alert(`❌ Lỗi phân tích cú pháp JSON: ${err.message}\nVui lòng kiểm tra lại cấu trúc JSON do AI trả về.`);
+  }
+}
+
 async function loadSmartAssetManagerUI() {
   if (!smartAssetState.scenePlan) {
     smartAssetState.scenePlan = DEFAULT_V5_DEMO_SCENE_PLAN;
   }
+  updateWizardDisplayUi();
   await scanProjectRequirementsUi();
 }
 
 function loadDefaultAiStoryboardDemo() {
   smartAssetState.scenePlan = JSON.parse(JSON.stringify(DEFAULT_V5_DEMO_SCENE_PLAN));
+  
+  const scriptInput = document.getElementById('v5ScriptInput');
+  if (scriptInput) {
+    scriptInput.value = "Năm 1945, siêu máy tính ENIAC ra đời, mở ra kỷ nguyên số của nhân loại. Đến thập niên 1950, linh kiện bán dẫn transistor xuất hiện, mở đầu cuộc cách mạng thu nhỏ kích thước máy tính. Vào những năm 1970, vi xử lý silicon xuất hiện, kết hợp hàng ngàn bóng bán dẫn trên một vi mạch duy nhất. Thập niên 1980 chứng kiến sự bùng nổ của máy tính cá nhân đưa công nghệ vào từng hộ gia đình và góc làm việc. Và ngày nay, kỷ nguyên số bùng nổ với laptop siêu mỏng, điện thoại thông minh và trí tuệ nhân tạo khắp mọi nơi.";
+  }
+  const scenePlanInput = document.getElementById('v5ScenePlanInput');
+  if (scenePlanInput) {
+    scenePlanInput.value = JSON.stringify(DEFAULT_V5_DEMO_SCENE_PLAN, null, 2);
+  }
+
   scanProjectRequirementsUi();
+  updateWizardDisplayUi();
   alert("✅ Đã nạp kịch bản Storyboard mẫu: 'Sự Tiến Hóa Của Máy Tính' (5 cảnh, 25 giây)!");
 }
 
@@ -6221,6 +6499,7 @@ async function confirmAssetsAndProceedToSceneBuilder() {
   const data = await res.json();
   if (data.success) {
     alert("🚀 Hợp đồng tích hợp Automatic Scene Builder (Phase 3 Contract) đã sẵn sàng!");
+    switchWizardStep(5);
   }
 }
 
@@ -6539,8 +6818,6 @@ window.exportSceneBuildReport = exportSceneBuildReport;
 window.applyAnchorPreset = applyAnchorPreset;
 window.saveCustomAnchorSetting = saveCustomAnchorSetting;
 window.promptManualBindAsset = promptManualBindAsset;
-window.checkProjectReadinessUi = checkProjectReadinessUi;
-window.confirmAssetsAndProceedToSceneBuilder = confirmAssetsAndProceedToSceneBuilder;
 
 // =========================================================================
 // THANH HAI 2D STUDIO V5 — PHASE 5 PRODUCTION DASHBOARD CONTROLLERS
@@ -6826,6 +7103,25 @@ window.saveCustomAnchorSetting = saveCustomAnchorSetting;
 window.promptManualBindAsset = promptManualBindAsset;
 window.checkProjectReadinessUi = checkProjectReadinessUi;
 window.confirmAssetsAndProceedToSceneBuilder = confirmAssetsAndProceedToSceneBuilder;
+window.switchWizardStep = switchWizardStep;
+window.setWizardDisplayMode = setWizardDisplayMode;
+window.updateWizardDisplayUi = updateWizardDisplayUi;
+window.importScriptFromTab1 = importScriptFromTab1;
+window.copyAiDirectorPackagePrompt = copyAiDirectorPackagePrompt;
+window.downloadAiDirectorPackageJson = downloadAiDirectorPackageJson;
+window.importScenePlanFromInput = importScenePlanFromInput;
+
+// Auto-initialize Tab 4 Wizard UI on page ready
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof updateWizardDisplayUi === 'function') updateWizardDisplayUi();
+    });
+  } else {
+    if (typeof updateWizardDisplayUi === 'function') updateWizardDisplayUi();
+  }
+}
+
 
 
 

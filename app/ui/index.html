@@ -1405,6 +1405,7 @@
           <span class="hint">Kho tài nguyên hoạt hình tái sử dụng: Biểu cảm, Trang phục, Đạo cụ, Hành động, VFX, Thời tiết, Bối cảnh & Composite Actions</span>
         </div>
         <div class="card-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; font-weight: 600;" onclick="switchTab(4)">🤖 Sang AI Auto Director V5 (Tab 4) ➔</button>
           <button class="btn btn-sm btn-outline" onclick="switchTab3View('chars')">🎭 Sang mục Nhân Vật</button>
           <button class="btn btn-sm btn-outline" onclick="switchTab3View('all')">🌟 Xem Tất Cả</button>
           <button class="btn btn-sm btn-success" style="font-weight: 700;" onclick="openCreateAssetModal()">➕ Thêm Asset Mới</button>
@@ -1466,32 +1467,149 @@
 
       <!-- 6 Wizard Steps Indicator -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
-        <div class="wizard-step-pill" id="wStep1" style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
+        <div class="wizard-step-pill" id="wStep1" onclick="switchWizardStep(1)" style="cursor: pointer; background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
           <span style="display: block; font-weight: 700; color: #94a3b8;">Bước 1</span>
           <span style="color: #cbd5e1;">Kịch bản & Style</span>
         </div>
-        <div class="wizard-step-pill" id="wStep2" style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
+        <div class="wizard-step-pill" id="wStep2" onclick="switchWizardStep(2)" style="cursor: pointer; background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
           <span style="display: block; font-weight: 700; color: #94a3b8;">Bước 2</span>
           <span style="color: #cbd5e1;">Xuất AI Context</span>
         </div>
-        <div class="wizard-step-pill" id="wStep3" style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
+        <div class="wizard-step-pill" id="wStep3" onclick="switchWizardStep(3)" style="cursor: pointer; background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
           <span style="display: block; font-weight: 700; color: #94a3b8;">Bước 3</span>
           <span style="color: #cbd5e1;">Nhập Scene Plan</span>
         </div>
-        <div class="wizard-step-pill active" id="wStep4" style="background: #0369a1; border: 1px solid #38bdf8; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);">
+        <div class="wizard-step-pill active" id="wStep4" onclick="switchWizardStep(4)" style="cursor: pointer; background: #0369a1; border: 1px solid #38bdf8; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);">
           <span style="display: block; font-weight: 700; color: #fff;">Bước 4 ⭐</span>
           <span style="color: #fff; font-weight: 700;">Smart Asset Manager</span>
         </div>
-        <div class="wizard-step-pill" id="wStep5" style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center; opacity: 0.7;">
+        <div class="wizard-step-pill" id="wStep5" onclick="switchWizardStep(5)" style="cursor: pointer; background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
           <span style="display: block; font-weight: 700; color: #94a3b8;">Bước 5</span>
           <span style="color: #cbd5e1;">Dựng Cảnh (Phase 3)</span>
         </div>
-        <div class="wizard-step-pill" id="wStep6" style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center; opacity: 0.7;">
+        <div class="wizard-step-pill" id="wStep6" onclick="switchWizardStep(6)" style="cursor: pointer; background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 6px; font-size: 13px; text-align: center;">
           <span style="display: block; font-weight: 700; color: #94a3b8;">Bước 6</span>
           <span style="color: #cbd5e1;">Preview & Render</span>
         </div>
       </div>
+
+      <!-- Quick Step Navigation Bar & Display Mode -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid #1e293b; font-size: 12px; color: #94a3b8; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span>Chế độ xem:</span>
+          <button id="wizModeSingle" class="btn btn-sm btn-primary active" onclick="setWizardDisplayMode('single')">🔘 Xem Từng Bước (Focus Step)</button>
+          <button id="wizModeAll" class="btn btn-sm btn-outline" onclick="setWizardDisplayMode('all')">📜 Xem Tất Cả (All Steps)</button>
+        </div>
+        <div id="wizStepSummaryText" style="color: #38bdf8; font-weight: 600; font-size: 13px;">
+          Đang xem: Bước 4 — Smart Asset Manager
+        </div>
+      </div>
     </div>
+
+    <!-- ================= WIZARD STEP 1: KỊCH BẢN & STYLE ================= -->
+    <section class="card" id="wizardStep1Section" style="margin-bottom: 24px; display: none;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>📝 Bước 1: Kịch Bản & Phong Cách Hoạt Hình (AI Storyboard)</h2>
+          <span class="hint">Nhập nội dung kịch bản lời kể hoặc lời thoại, thiết lập phong cách nghệ thuật cho video hoạt hình 2D</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-outline" onclick="importScriptFromTab1()">📥 Nhập Từ Tab 1</button>
+          <button class="btn btn-sm btn-outline" onclick="loadDefaultAiStoryboardDemo()">🎬 Kịch Bản Mẫu: Tiến Hóa Máy Tính</button>
+        </div>
+      </div>
+      <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #e2e8f0;">Nội dung kịch bản văn bản (Script):</label>
+          <textarea id="v5ScriptInput" class="text-input" rows="6" style="width: 100%; box-sizing: border-box; font-size: 13px;" placeholder="Dán kịch bản video tại đây... Ví dụ: Năm 1945, siêu máy tính ENIAC ra đời mở ra kỷ nguyên số. Sau đó vào thập niên 1950, linh kiện bán dẫn transistor xuất hiện giúp kích thước máy thu nhỏ đáng kể..."></textarea>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;">
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #e2e8f0;">Phong cách nghệ thuật (Style Profile):</label>
+            <select id="v5StyleProfileSelect" class="text-input" style="width: 100%;">
+              <option value="educational_cartoon" selected>🎨 Educational Cartoon (Hoạt hình giáo dục kiến thức - Khuyên dùng)</option>
+              <option value="minimal_white_cartoon">✏️ Minimal White Cartoon (Nét vẽ phẳng tối giản, hiện đại)</option>
+              <option value="chibi_cartoon">👶 Chibi Cute Cartoon (Nhân vật chibi đầu to đáng yêu)</option>
+              <option value="historical_storytelling">📜 Historical Storytelling (Kể chuyện lịch sử & tài liệu)</option>
+            </select>
+          </div>
+          <div>
+            <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #e2e8f0;">Tỷ lệ khung hình (Aspect Ratio):</label>
+            <select id="v5AspectRatioSelect" class="text-input" style="width: 100%;">
+              <option value="16:9" selected>🖥️ 16:9 Ngang (YouTube, TV, Facebook Video - 1280x720 / 1920x1080)</option>
+              <option value="9:16">📱 9:16 Dọc (TikTok, Shorts, Reels - 720x1280 / 1080x1920)</option>
+            </select>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #1e293b; padding-top: 14px;">
+          <button class="btn btn-primary" onclick="switchWizardStep(2)" style="font-weight: 700;">Tiếp tục sang Bước 2: Xuất AI Context ➔</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= WIZARD STEP 2: XUẤT AI CONTEXT ================= -->
+    <section class="card" id="wizardStep2Section" style="margin-bottom: 24px; display: none;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>📤 Bước 2: Xuất AI Context Package (Cho ChatGPT / Claude)</h2>
+          <span class="hint">Đóng gói kịch bản, quy chuẩn phân cảnh, thư viện năng lực (Capability Registry) và Schema chuẩn để gửi AI</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-outline" onclick="copyAiDirectorPackagePrompt()">📋 Sao Chép Prompt Đầy Đủ</button>
+          <button class="btn btn-sm btn-outline" onclick="downloadAiDirectorPackageJson()">💾 Tải AI Package (.json)</button>
+        </div>
+      </div>
+      <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px;">
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 14px;">
+            <div style="font-weight: 700; color: #38bdf8; margin-bottom: 6px;">1. Sao chép Prompt Chuẩn</div>
+            <p style="font-size: 12px; color: #94a3b8; margin: 0 0 10px 0;">Bấm nút bên dưới để sao chép toàn bộ Prompt đã được đóng gói chuẩn kèm Schema và quy tắc phân cảnh hoạt hình 2D.</p>
+            <button class="btn btn-sm btn-primary" style="width: 100%;" onclick="copyAiDirectorPackagePrompt()">📋 Sao Chép Prompt Vào Clipboard</button>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 14px;">
+            <div style="font-weight: 700; color: #22c55e; margin-bottom: 6px;">2. Gửi Cho ChatGPT hoặc Claude</div>
+            <p style="font-size: 12px; color: #94a3b8; margin: 0 0 10px 0;">Mở ChatGPT (GPT-4o) hoặc Claude (3.5 Sonnet) trong trình duyệt, dán prompt vừa sao chép và gửi để AI tư duy đạo diễn.</p>
+            <a href="https://chatgpt.com" target="_blank" class="btn btn-sm btn-outline" style="width: 100%; text-decoration: none; text-align: center; box-sizing: border-box; display: block; border-color: #22c55e; color: #22c55e;">🌐 Mở ChatGPT Trong Tab Mới</a>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 14px;">
+            <div style="font-weight: 700; color: #f59e0b; margin-bottom: 6px;">3. Nhận JSON & Dán Vào Bước 3</div>
+            <p style="font-size: 12px; color: #94a3b8; margin: 0 0 10px 0;">AI sẽ trả về khối Scene Plan JSON hoàn chỉnh. Bạn chỉ cần sao chép toàn bộ khối JSON đó và dán vào Bước 3.</p>
+            <button class="btn btn-sm btn-outline" style="width: 100%; border-color: #f59e0b; color: #f59e0b;" onclick="switchWizardStep(3)">Chuyển Sang Bước 3 ➔</button>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #1e293b; padding-top: 14px;">
+          <button class="btn btn-secondary" onclick="switchWizardStep(1)">⬅️ Quay lại Bước 1</button>
+          <button class="btn btn-primary" onclick="switchWizardStep(3)" style="font-weight: 700;">Tiếp tục sang Bước 3: Nhập Scene Plan ➔</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= WIZARD STEP 3: NHẬP SCENE PLAN ================= -->
+    <section class="card" id="wizardStep3Section" style="margin-bottom: 24px; display: none;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>📥 Bước 3: Nhập & Phân Tích Scene Plan JSON</h2>
+          <span class="hint">Dán Scene Plan JSON từ ChatGPT hoặc Claude để hệ thống tự động kiểm tra cấu trúc và nạp vào dự án</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-sm btn-outline" onclick="loadDefaultAiStoryboardDemo()">🎬 Nạp Demo Mẫu: Tiến Hóa Máy Tính</button>
+        </div>
+      </div>
+      <div class="card-body" style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #e2e8f0;">Dán nội dung Scene Plan JSON vào đây:</label>
+          <textarea id="v5ScenePlanInput" class="text-input" rows="8" style="width: 100%; box-sizing: border-box; font-family: monospace; font-size: 12px;" placeholder="{\n  &quot;schemaVersion&quot;: &quot;5.1&quot;,\n  &quot;project&quot;: { &quot;title&quot;: &quot;Dự Án Hoạt Hình&quot; },\n  &quot;scenes&quot;: [ ... ]\n}"></textarea>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-success" style="font-weight: 700;" onclick="importScenePlanFromInput()">📥 Nạp & Phân Tích Scene Plan JSON</button>
+          <button class="btn btn-outline" onclick="loadDefaultAiStoryboardDemo()">🎬 Nạp Mẫu Demo Chuẩn (5 Cảnh Tiến Hóa Máy Tính)</button>
+        </div>
+        <div style="display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #1e293b; padding-top: 14px;">
+          <button class="btn btn-secondary" onclick="switchWizardStep(2)">⬅️ Quay lại Bước 2</button>
+          <button class="btn btn-primary" onclick="switchWizardStep(4)" style="font-weight: 700;">Tiếp tục sang Bước 4: Smart Asset Manager ➔</button>
+        </div>
+      </div>
+    </section>
 
     <!-- ================= WIZARD STEP 4: SMART ASSET MANAGER ================= -->
     <section class="card" id="smartAssetManagerSection">
@@ -1500,7 +1618,8 @@
           <h2>📦 Bước 4: Smart Asset Manager & Tự Động Chuẩn Bị Tài Nguyên</h2>
           <span class="hint">Tự động quét Scene Plan, phát hiện tài nguyên còn thiếu, gộp trùng lặp, xuất prompt và tự động liên kết ảnh import</span>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8; font-weight: 600;" onclick="switchTab(3)">📦 Mở Thư Viện Tài Nguyên V4 (Tab 3)</button>
           <span id="smartAssetOverallBadge" class="badge" style="background-color: #eab308; color: #000; font-size: 13px; font-weight: 700; padding: 6px 12px;">Đang quét...</span>
         </div>
       </div>
@@ -1596,6 +1715,15 @@
           </div>
           <div id="smartUnassignedGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px;">
             <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Wizard Step 4 Navigation Footer -->
+        <div style="display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #1e293b; padding-top: 14px; margin-top: 10px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="switchWizardStep(3)">⬅️ Quay lại Bước 3: Nhập Scene Plan</button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="switchTab(3)">📦 Mở Thư Viện Tài Nguyên V4 (Tab 3)</button>
+            <button class="btn btn-primary" onclick="switchWizardStep(5)" style="font-weight: 700;">Tiếp tục sang Bước 5: Dựng Cảnh Tự Động ➔</button>
           </div>
         </div>
       </div>
@@ -1694,6 +1822,12 @@
           <div id="storyboardVisualGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; min-height: 200px;">
             <div class="empty-state">Chưa có cảnh nào được dựng. Hãy bấm "Tự Động Dựng Toàn Bộ Cảnh" ở trên.</div>
           </div>
+        </div>
+
+        <!-- Wizard Step 5 Navigation Footer -->
+        <div style="display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #1e293b; padding-top: 14px; margin-top: 10px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="switchWizardStep(4)">⬅️ Quay lại Bước 4: Smart Asset Manager</button>
+          <button class="btn btn-primary" onclick="switchWizardStep(6)" style="font-weight: 700;">Tiếp tục sang Bước 6: Diễn Hoạt & Sản Xuất Video ➔</button>
         </div>
       </div>
     </section>
@@ -1856,6 +1990,12 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Wizard Step 6 Navigation Footer -->
+        <div style="display: flex; justify-content: space-between; gap: 10px; border-top: 1px solid #1e293b; padding-top: 14px; margin-top: 10px; flex-wrap: wrap;">
+          <button class="btn btn-secondary" onclick="switchWizardStep(5)">⬅️ Quay lại Bước 5: Dựng Cảnh Tự Động</button>
+          <button class="btn btn-outline" onclick="switchWizardStep(1)">🔄 Làm Lại Từ Bước 1 (Kịch Bản Mới)</button>
         </div>
       </div>
     </section>
@@ -2444,7 +2584,7 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=5.0"></script>
+  <script src="app.js?v=5.1"></script>
 </body>
 </html>
 
