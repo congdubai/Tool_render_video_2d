@@ -1799,15 +1799,21 @@ app.get("/api/v5/procedural/templates", (req, res) => {
 app.post("/api/v5/procedural/generate", async (req, res) => {
   try {
     const { requirement, type, template, styleProfileId, options = {}, seed } = req.body;
+    const reqId = requirement?.id || req.body.requirementId || `req_${type || 'prop'}_${Date.now()}`;
+    const detectedType = type || requirement?.type || (reqId.toLowerCase().includes('bg') || reqId.toLowerCase().includes('background') ? 'background' : (reqId.toLowerCase().includes('diagram') ? 'diagram' : 'prop'));
+    
     const reqObj = requirement || {
-      id: `req_${type || 'prop'}_${Date.now()}`,
-      type: type || 'prop',
+      id: reqId,
+      type: detectedType,
       proceduralTemplateId: template,
       name: options.name || template || 'Procedural Asset'
     };
+    if (template) reqObj.proceduralTemplateId = template;
+    if (detectedType) reqObj.type = detectedType;
 
     const asset = generateProceduralAsset(reqObj, {
       ...options,
+      template,
       styleProfile: styleProfileId || options.styleProfile || 'flat_vector',
       seed: seed !== undefined ? seed : (options.seed || 12345)
     });
@@ -1854,16 +1860,18 @@ app.post("/api/v5/procedural/save-and-bind", async (req, res) => {
       return res.status(400).json({ success: false, error: "Thiếu requirementId." });
     }
 
+    const detectedType = type || (requirementId.toLowerCase().includes('bg') || requirementId.toLowerCase().includes('background') ? 'background' : (requirementId.toLowerCase().includes('diagram') ? 'diagram' : 'prop'));
     const manager = getProjectManager(projectId);
     const reqObj = {
       id: requirementId,
-      type: type || 'prop',
+      type: detectedType,
       proceduralTemplateId: template,
       name: customName || template || requirementId
     };
 
     const asset = generateProceduralAsset(reqObj, {
       ...options,
+      template,
       styleProfile: styleProfileId || 'flat_vector',
       seed: seed !== undefined ? seed : (options.seed || 12345)
     });

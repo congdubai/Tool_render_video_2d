@@ -83,24 +83,30 @@ export function generateProceduralAsset(requirement = {}, options = {}) {
 
   // 2. Backgrounds
   if (type === 'background') {
-    let template = 'lab_modern';
-    if (targetId.includes('vintage') || targetId.includes('history') || targetId.includes('eniac')) {
-      template = targetId.includes('computer') ? 'vintage_computer_room' : 'vintage_lab';
-    } else if (targetId.includes('cafe')) {
-      template = 'cafe';
-    } else if (targetId.includes('street') || targetId.includes('night') || targetId.includes('city')) {
-      template = 'street';
-    } else if (targetId.includes('lab')) {
-      template = 'lab_modern';
-    } else if (requirement.proceduralTemplateId) {
-      template = requirement.proceduralTemplateId;
+    let template = options.template || requirement.proceduralTemplateId;
+    if (!template) {
+      if (targetId.includes('vintage') || targetId.includes('history') || targetId.includes('eniac')) {
+        template = targetId.includes('computer') ? 'vintage_computer_room' : 'vintage_lab';
+      } else if (targetId.includes('cafe')) {
+        template = 'cafe';
+      } else if (targetId.includes('street') || targetId.includes('night') || targetId.includes('city')) {
+        template = 'street';
+      } else if (targetId.includes('lab')) {
+        template = 'lab_modern';
+      } else {
+        template = 'lab_modern';
+      }
     }
+
+    // Map UI aliases
+    if (template === 'modern_lab') template = 'lab_modern';
+    if (template === 'city_street') template = 'street';
 
     const bg = generateProceduralBackground(template, {
       ...options,
       styleProfile,
       seed,
-      timeOfDay: targetId.includes('night') ? 'night' : options.timeOfDay
+      timeOfDay: targetId.includes('night') ? 'night' : (options.timeOfDay || 'day')
     });
     bg.id = `proc_${reqId.toLowerCase().replace(/[^a-z0-9_]/g, '_')}`;
     return bg;
@@ -108,10 +114,12 @@ export function generateProceduralAsset(requirement = {}, options = {}) {
 
   // 3. Diagrams & Educational Graphics
   if (type === 'diagram' || type === 'illustration') {
-    let diagType = 'historical_timeline';
-    if (targetId.includes('principle') || targetId.includes('flow')) diagType = 'principle_diagram';
-    else if (targetId.includes('compare') || targetId.includes('comparison')) diagType = 'comparison_chart';
-    else if (requirement.proceduralTemplateId) diagType = requirement.proceduralTemplateId;
+    let diagType = options.template || requirement.proceduralTemplateId;
+    if (!diagType) {
+      if (targetId.includes('principle') || targetId.includes('flow')) diagType = 'principle_diagram';
+      else if (targetId.includes('compare') || targetId.includes('comparison')) diagType = 'comparison_chart';
+      else diagType = 'historical_timeline';
+    }
 
     const diag = generateProceduralDiagram(diagType, {
       ...options,
@@ -124,23 +132,25 @@ export function generateProceduralAsset(requirement = {}, options = {}) {
   }
 
   // 4. Props & Objects
-  let propTemplate = 'vintage_computer';
-  if (targetId.includes('eniac') || targetId.includes('vintage_computer') || targetId.includes('mainframe')) {
-    propTemplate = 'vintage_computer';
-  } else if (targetId.includes('transistor')) {
-    propTemplate = 'transistor';
-  } else if (targetId.includes('microchip') || targetId.includes('cpu') || targetId.includes('chip')) {
-    propTemplate = 'microchip';
-  } else if (targetId.includes('laptop')) {
-    propTemplate = 'laptop';
-  } else if (targetId.includes('bulb') || targetId.includes('idea') || targetId.includes('light')) {
-    propTemplate = 'lightbulb';
-  } else if (targetId.includes('coffee') || targetId.includes('cup') || targetId.includes('mug')) {
-    propTemplate = 'coffee_cup';
-  } else if (targetId.includes('lab') || targetId.includes('flask')) {
-    propTemplate = 'lab_equipment';
-  } else if (requirement.proceduralTemplateId) {
-    propTemplate = requirement.proceduralTemplateId;
+  let propTemplate = options.template || requirement.proceduralTemplateId;
+  if (!propTemplate) {
+    if (targetId.includes('eniac') || targetId.includes('vintage_computer') || targetId.includes('mainframe')) {
+      propTemplate = 'vintage_computer';
+    } else if (targetId.includes('transistor')) {
+      propTemplate = 'transistor';
+    } else if (targetId.includes('microchip') || targetId.includes('cpu') || targetId.includes('chip')) {
+      propTemplate = 'microchip';
+    } else if (targetId.includes('laptop')) {
+      propTemplate = 'laptop';
+    } else if (targetId.includes('bulb') || targetId.includes('idea') || targetId.includes('light')) {
+      propTemplate = 'lightbulb';
+    } else if (targetId.includes('coffee') || targetId.includes('cup') || targetId.includes('mug')) {
+      propTemplate = 'coffee_cup';
+    } else if (targetId.includes('lab') || targetId.includes('flask')) {
+      propTemplate = 'lab_equipment';
+    } else if (requirement.proceduralTemplateId) {
+      propTemplate = requirement.proceduralTemplateId;
+    }
   }
 
   const prop = generateProceduralProp(propTemplate, {

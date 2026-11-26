@@ -2,9 +2,12 @@
   "projectId": "v5_production_demo",
   "state": "WAITING_FOR_ASSETS",
   "checkpointName": "waiting_for_assets",
-  "timestamp": "2026-11-26T01:37:18.940Z",
+  "timestamp": "2026-11-26T05:30:51.912Z",
   "history": [
     "DRAFT",
+    "PLAN_IMPORTED",
+    "VALIDATING",
+    "WAITING_FOR_ASSETS",
     "PLAN_IMPORTED",
     "VALIDATING",
     "WAITING_FOR_ASSETS"
@@ -19,7 +22,7 @@
         "confidence": "EXACT_MATCH",
         "status": "READY",
         "reasons": [
-          "Khớp chính xác nhân vật tích hợp \"doc\" (Mode A)"
+          "Khớp nhân vật Doc (Nhà Khoa Học) theo vai trò/danh tính"
         ],
         "asset": {
           "id": "doc",
@@ -30,16 +33,16 @@
       {
         "requirementId": "REQ_RIG_DOC",
         "resolvedAssetId": "doc",
-        "resolutionMethod": "EXACT_CHARACTER_ID",
+        "resolutionMethod": "BUILTIN_RIG",
         "matchScore": 100,
         "confidence": "EXACT_MATCH",
         "status": "READY",
         "reasons": [
-          "Khớp chính xác nhân vật tích hợp \"doc\" (Mode A)"
+          "Rig nhân vật Mode A \"doc\" đã tích hợp sẵn đầy đủ cấu trúc xương"
         ],
         "asset": {
           "id": "doc",
-          "type": "character",
+          "type": "character_rig",
           "mode": "built_in"
         }
       }

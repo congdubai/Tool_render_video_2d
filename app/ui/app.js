@@ -4695,7 +4695,10 @@ function applyVfxToCurrentShot() {
 // 6. Quản lý Modal Import Sprite Sheet ngoài
 function openSpriteSheetImportModal() {
   const modal = document.getElementById('vfxSpriteSheetModal');
-  if (modal) modal.classList.remove('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
 }
 
 function closeSpriteSheetImportModal() {
@@ -6452,7 +6455,10 @@ function openSmartAnchorModal(reqId) {
   const modal = document.getElementById('smartAssetAnchorModal');
   const title = document.getElementById('anchorModalTitle');
   if (title) title.textContent = `Thiết Lập Điểm Neo Cho: ${reqId}`;
-  if (modal) modal.classList.remove('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
 }
 
 function closeSmartAnchorModal() {
@@ -6510,7 +6516,10 @@ async function openVisualAssetPickerModal(reqId) {
   if (badgeId) badgeId.textContent = reqId;
   if (badgeType) badgeType.textContent = req?.type || 'tài nguyên';
 
-  if (modal) modal.classList.remove('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
 
   // Pre-select tab based on requirement type
   let targetCategory = 'all';
@@ -6536,7 +6545,10 @@ async function openVisualAssetPickerModal(reqId) {
 
 function closeVisualAssetPickerModal() {
   const modal = document.getElementById('visualAssetPickerModal');
-  if (modal) modal.classList.add('hidden');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
 }
 
 async function loadPickerLibraryAssets() {
@@ -7392,13 +7404,34 @@ let currentProcModalState = {
 };
 
 async function openProceduralEditorModal(reqId) {
-  const req = (smartAssetState.requirements || []).find(r => r.id === reqId);
-  if (!req) return;
+  const modal = document.getElementById('proceduralAssetEditorModal');
+  if (!modal) {
+    console.error("❌ Không tìm thấy modal proceduralAssetEditorModal");
+    alert("⚠️ Không tìm thấy giao diện Procedural Asset Editor!");
+    return;
+  }
 
-  currentProcModalState.reqId = reqId;
+  // 1. Luôn mở modal ngay lập tức để người dùng có phản hồi thị giác tức thì
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+
+  // 2. Tìm requirement hoặc fallback nếu chưa đồng bộ kịp
+  let req = (smartAssetState.requirements || []).find(r => r.id === reqId);
+  if (!req) {
+    const cleanId = (reqId || '').toLowerCase();
+    const isBg = cleanId.includes('bg') || cleanId.includes('background');
+    const isDiagram = cleanId.includes('diagram') || cleanId.includes('chart') || cleanId.includes('timeline');
+    req = {
+      id: reqId,
+      type: isBg ? 'background' : (isDiagram ? 'diagram' : 'prop'),
+      targetAssetId: reqId.replace(/^REQ_(BG|PROP|CHAR|RIG)_/i, '').toLowerCase(),
+      description: `Procedural vector asset for ${reqId}`
+    };
+  }
+
+  currentProcModalState.reqId = req.id;
   currentProcModalState.requirement = req;
 
-  const modal = document.getElementById('proceduralAssetEditorModal');
   const reqIdBadge = document.getElementById('procReqIdBadge');
   const reqTypeBadge = document.getElementById('procReqTypeBadge');
   const templateSelect = document.getElementById('procTemplateSelect');
@@ -7420,7 +7453,7 @@ async function openProceduralEditorModal(reqId) {
       else if (targetId.includes('compare')) templateSelect.value = 'comparison_chart';
       else templateSelect.value = 'historical_timeline';
     } else {
-      if (targetId.includes('computer') || targetId.includes('eniac')) templateSelect.value = 'vintage_computer';
+      if (targetId.includes('vintage') || targetId.includes('computer') || targetId.includes('eniac')) templateSelect.value = 'vintage_computer';
       else if (targetId.includes('laptop')) templateSelect.value = 'laptop';
       else if (targetId.includes('microchip') || targetId.includes('chip') || targetId.includes('cpu')) templateSelect.value = 'microchip';
       else if (targetId.includes('transistor')) templateSelect.value = 'transistor';
@@ -7431,13 +7464,19 @@ async function openProceduralEditorModal(reqId) {
     }
   }
 
-  handleProcTemplateChanged();
-  if (modal) modal.classList.remove('hidden');
+  try {
+    await updateProceduralPreviewUi();
+  } catch (err) {
+    console.error("Lỗi cập nhật preview procedural:", err);
+  }
 }
 
 function closeProceduralEditorModal() {
   const modal = document.getElementById('proceduralAssetEditorModal');
-  if (modal) modal.classList.add('hidden');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
   currentProcModalState.reqId = null;
   currentProcModalState.requirement = null;
   currentProcModalState.currentAsset = null;
@@ -7483,6 +7522,8 @@ async function updateProceduralPreviewUi() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         requirement: currentProcModalState.requirement,
+        requirementId: currentProcModalState.reqId,
+        type: currentProcModalState.requirement?.type,
         template,
         styleProfileId,
         options: { timeOfDay },
@@ -7551,6 +7592,7 @@ async function saveAndBindCurrentProceduralAssetUi() {
       body: JSON.stringify({
         projectId: smartAssetState.projectId || 'default_v5_project',
         requirementId: currentProcModalState.reqId,
+        type: currentProcModalState.requirement?.type,
         template,
         styleProfileId,
         options: { timeOfDay },
