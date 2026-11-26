@@ -1,6 +1,8 @@
 // engine/v5-technical-qa-engine.js — Technical QA Engine, Severity Matrix & Automatic Safe Repair (V5 Phase 5)
 // Consolidates structural, kinematic, asset, audio, and storytelling quality checks into a unified QA pipeline.
 
+import fs from 'node:fs';
+
 export const QA_SEVERITY = {
   BLOCKER: 'BLOCKER',
   ERROR: 'ERROR',
@@ -126,6 +128,29 @@ export class TechnicalQaEngine {
     // 6. Character consistency check
     const characterConsistency = this.checkCharacterConsistency(scenes);
     issues.push(...characterConsistency.issues);
+
+    // 7. Rendered Video Output File Validation
+    if (projectData.outputPath) {
+      const outPath = projectData.outputPath;
+      if (!fs.existsSync(outPath)) {
+        issues.push({
+          severity: QA_SEVERITY.BLOCKER,
+          code: 'OUTPUT_FILE_MISSING',
+          description: `File video đầu ra "${outPath}" không tồn tại trên ổ đĩa.`,
+          suggestedFix: 'Tiến hành kết xuất (render) trước khi kiểm định hợp lệ.'
+        });
+      } else {
+        const stats = fs.statSync(outPath);
+        if (stats.size < 1024) { // Less than 1KB
+          issues.push({
+            severity: QA_SEVERITY.BLOCKER,
+            code: 'OUTPUT_FILE_EMPTY',
+            description: `File video đầu ra "${outPath}" rỗng hoặc dung lượng không hợp lệ (${stats.size} bytes).`,
+            suggestedFix: 'Kiểm tra tiến trình FFmpeg và kết xuất lại video.'
+          });
+        }
+      }
+    }
 
     const blockers = issues.filter(x => x.severity === QA_SEVERITY.BLOCKER);
     const errors = issues.filter(x => x.severity === QA_SEVERITY.ERROR);

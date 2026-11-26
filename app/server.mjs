@@ -81,6 +81,14 @@ import {
   SmartAssetManager
 } from "../thanhhai-2d-studio/engine/v5-smart-asset-manager.js";
 import {
+  generateProceduralAsset,
+  saveProceduralAsset,
+  generateAndBindAllMissing,
+  canGenerateProcedurally,
+  BACKGROUND_CATEGORIES,
+  PROP_CATALOG
+} from "../thanhhai-2d-studio/engine/v5-procedural-generator.js";
+import {
   executeAutoBuildAll,
   executeBuildSingleScene,
   executeIncrementalRebuild,
@@ -1430,21 +1438,33 @@ app.post("/api/v5/smart-assets/bind", (req, res) => {
       force
     });
 
-    // Auto-link Mode A characters (Doc & Jake) with rig and hand anchors
+    // Auto-link Mode A characters (Doc, Jake, Chibi Doc) with rig and hand anchors
     const resolvedNorm = (resolvedAssetId || '').toLowerCase();
     const reqNorm = (requirementId || '').toLowerCase();
     if (resolvedNorm.includes('doc') || resolvedNorm.includes('jake') || reqNorm.startsWith('req_char_')) {
-      const knownChars = ['doc', 'jake'];
-      const matchedChar = knownChars.find(c => resolvedNorm.includes(c) || reqNorm.includes(c));
+      const knownChars = ['chibi_doc', 'doc', 'jake'];
+      const matchedChar = knownChars.find(c => resolvedNorm.includes(c) || reqNorm.includes(c)) ||
+                          (resolvedNorm.includes('scientist') ? 'doc' : null);
       if (matchedChar) {
+        const isChibi = matchedChar.startsWith('chibi');
         const rigReqId = `REQ_RIG_${matchedChar.toUpperCase()}`;
         if (!manager.bindingRegistry.getBinding(rigReqId)) {
           manager.bindingRegistry.bind(rigReqId, matchedChar, {
-            resolutionMethod: 'BUILTIN_RIG',
+            resolutionMethod: isChibi ? 'CHIBI_RIG' : 'BUILTIN_RIG',
             status: 'READY'
           });
         }
         manager.dependencyGraph.setRequirementStatus(rigReqId, 'READY');
+
+        if (matchedChar.includes('doc')) {
+          manager.dependencyGraph.setRequirementStatus('REQ_RIG_DOC', 'READY');
+          if (!manager.bindingRegistry.getBinding('REQ_RIG_DOC')) {
+            manager.bindingRegistry.bind('REQ_RIG_DOC', matchedChar, {
+              resolutionMethod: isChibi ? 'CHIBI_RIG' : 'BUILTIN_RIG',
+              status: 'READY'
+            });
+          }
+        }
 
         // Hand anchors
         for (const hand of ['RIGHT_HAND', 'LEFT_HAND']) {
@@ -1456,6 +1476,17 @@ app.post("/api/v5/smart-assets/bind", (req, res) => {
             });
           }
           manager.dependencyGraph.setRequirementStatus(anchorReqId, 'READY');
+
+          if (matchedChar.includes('doc')) {
+            const docAnchorId = `REQ_ANCHOR_DOC_${hand}`;
+            manager.dependencyGraph.setRequirementStatus(docAnchorId, 'READY');
+            if (!manager.bindingRegistry.getBinding(docAnchorId)) {
+              manager.bindingRegistry.bind(docAnchorId, `${matchedChar}:${hand.toLowerCase()}`, {
+                resolutionMethod: 'BUILTIN_RIG_ANCHOR',
+                status: 'READY'
+              });
+            }
+          }
         }
       }
     }
@@ -1733,6 +1764,168 @@ app.post("/api/v5/smart-assets/compile-contract", (req, res) => {
     res.json({
       success: true,
       contract
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// PROCEDURAL ASSET GENERATOR (V5.1) - ZERO LOCAL AI, ZERO PAID APIS
+// ============================================================================
+
+// 1. Danh sách templates hỗ trợ Procedural
+app.get("/api/v5/procedural/templates", (req, res) => {
+  try {
+    res.json({
+      success: true,
+      backgrounds: BACKGROUND_CATEGORIES,
+      props: PROP_CATALOG,
+      styles: [
+        { id: "white_cartoon", name: "Hoạt Hình Nét Trắng (White Cartoon)" },
+        { id: "chibi_cartoon", name: "Chibi Dễ Thương (Chibi Cartoon)" },
+        { id: "flat_vector", name: "Đồ Họa Phẳng Hiện Đại (Flat Vector)" },
+        { id: "minimal_educational", name: "Tối Giản Giáo Dục (Minimal Educational)" },
+        { id: "historical_cartoon", name: "Lịch Sử Cổ Điển (Historical Vintage)" },
+        { id: "doodle", name: "Nét Vẽ Tay Phác Thảo (Doodle Sketch)" }
+      ]
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Tạo xem trước tài nguyên Procedural (In-Memory Preview)
+app.post("/api/v5/procedural/generate", async (req, res) => {
+  try {
+    const { requirement, type, template, styleProfileId, options = {}, seed } = req.body;
+    const reqObj = requirement || {
+      id: `req_${type || 'prop'}_${Date.now()}`,
+      type: type || 'prop',
+      proceduralTemplateId: template,
+      name: options.name || template || 'Procedural Asset'
+    };
+
+    const asset = generateProceduralAsset(reqObj, {
+      ...options,
+      styleProfile: styleProfileId || options.styleProfile || 'flat_vector',
+      seed: seed !== undefined ? seed : (options.seed || 12345)
+    });
+
+    const svg = asset.getSvg ? asset.getSvg() : '';
+    let previewBase64 = null;
+    try {
+      const { renderToPngBuffer } = await import("../thanhhai-2d-studio/engine/v5-vector-engine.js");
+      const pngBuf = await renderToPngBuffer(asset.vectorSpec, {
+        width: Math.min(asset.width || 512, 512),
+        height: Math.min(asset.height || 512, 512)
+      });
+      previewBase64 = `data:image/png;base64,${pngBuf.toString('base64')}`;
+    } catch (e) {
+      console.warn("PNG preview generation warning:", e.message);
+    }
+
+    res.json({
+      success: true,
+      asset: {
+        id: asset.id,
+        name: asset.name,
+        type: asset.type,
+        width: asset.width,
+        height: asset.height,
+        layers: asset.layers || [],
+        gripPoint: asset.gripPoint,
+        groundContact: asset.groundContact,
+        pivot: asset.pivot,
+        svg,
+        previewBase64
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. Lưu và liên kết tài nguyên Procedural vào Requirement (Save & Bind)
+app.post("/api/v5/procedural/save-and-bind", async (req, res) => {
+  try {
+    const { projectId = "default_v5_project", requirementId, type, template, styleProfileId, options = {}, seed, customName } = req.body;
+    if (!requirementId) {
+      return res.status(400).json({ success: false, error: "Thiếu requirementId." });
+    }
+
+    const manager = getProjectManager(projectId);
+    const reqObj = {
+      id: requirementId,
+      type: type || 'prop',
+      proceduralTemplateId: template,
+      name: customName || template || requirementId
+    };
+
+    const asset = generateProceduralAsset(reqObj, {
+      ...options,
+      styleProfile: styleProfileId || 'flat_vector',
+      seed: seed !== undefined ? seed : (options.seed || 12345)
+    });
+
+    const safeId = path.basename(projectId).replace(/[^a-zA-Z0-9_-]/g, "");
+    const targetDir = path.resolve(projectRoot, "imported_projects", safeId, "assets");
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    const saveRes = await saveProceduralAsset(asset, targetDir, options);
+
+    // Bind into project registry
+    manager.bindingRegistry.bind(requirementId, saveRes.assetId, {
+      resolutionMethod: 'PROCEDURAL_CODE_GEN',
+      status: 'READY',
+      imagePath: `/imported_projects/${safeId}/assets/${saveRes.assetId}.png`,
+      svgPath: `/imported_projects/${safeId}/assets/${saveRes.assetId}.svg`,
+      anchor: asset.gripPoint,
+      dimensions: { width: asset.width, height: asset.height },
+      procedural: true,
+      layers: asset.layers
+    });
+
+    manager.dependencyGraph.setRequirementStatus(requirementId, 'READY');
+
+    const readiness = calculateProjectReadiness(manager.scenePlan, manager.dependencyGraph, manager.bindingRegistry);
+
+    res.json({
+      success: true,
+      assetId: saveRes.assetId,
+      savedPaths: {
+        png: saveRes.pngPath,
+        svg: saveRes.svgPath,
+        meta: saveRes.metaPath
+      },
+      readiness,
+      bindings: manager.bindingRegistry.getAllBindings()
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. Tự động vẽ và gán toàn bộ tài nguyên còn thiếu (CODE GEN ALL)
+app.post("/api/v5/procedural/generate-all", async (req, res) => {
+  try {
+    const { projectId = "default_v5_project", scenePlan, styleProfileId, options = {} } = req.body;
+    const manager = getProjectManager(projectId, scenePlan);
+
+    const safeId = path.basename(projectId).replace(/[^a-zA-Z0-9_-]/g, "");
+    const targetDir = path.resolve(projectRoot, "imported_projects", safeId, "assets");
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    const result = await generateAndBindAllMissing(manager.scenePlan, manager, {
+      ...options,
+      styleProfile: styleProfileId || 'flat_vector',
+      targetDir
+    });
+
+    res.json({
+      success: true,
+      ...result,
+      bindings: manager.bindingRegistry.getAllBindings()
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

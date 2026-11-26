@@ -1,0 +1,27 @@
+{
+  "fps": 30,
+  "duration": 15,
+  "shots": [
+    {
+      "id": "s001",
+      "name": "Cảnh 1: Doc Bước Vào Lab",
+      "start": 0,
+      "end": 5,
+      "duration": 5
+    },
+    {
+      "id": "s002",
+      "name": "Cảnh 2: Máy Tính Cổ Điển & Khói",
+      "start": 5,
+      "end": 10,
+      "duration": 5
+    },
+    {
+      "id": "s003",
+      "name": "Cảnh 3: Bóng Đèn Ý Tưởng",
+      "start": 10,
+      "end": 15,
+      "duration": 5
+    }
+  ]
+}

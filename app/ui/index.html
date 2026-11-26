@@ -1604,6 +1604,9 @@
           <button class="btn btn-sm btn-outline" style="border-color: #c084fc; color: #c084fc;" onclick="exportRequirementsCsvUi()">📄 Xuất Danh Sách CSV</button>
           <button class="btn btn-sm btn-outline" style="border-color: #a855f7; color: #c084fc; font-weight: 700;" onclick="exportGenerationPackageZipUi()">📦 Xuất Gói Generation ZIP</button>
           
+          <!-- Nút Tự Động Vẽ Bằng Code (V5.1 Procedural Generator) -->
+          <button class="btn btn-sm btn-warning" style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #000; font-weight: 800; border: none; box-shadow: 0 0 10px rgba(234, 179, 8, 0.4);" onclick="triggerCodeGenAllUi()">⚡ Tự Động Vẽ Toàn Bộ (CODE GEN ALL)</button>
+
           <!-- Nút Import Hàng Loạt & ZIP -->
           <button class="btn btn-sm btn-success" style="font-weight: 700;" onclick="document.getElementById('smartBulkFileInput').click()">📥 Import Ảnh Hàng Loạt</button>
           <button class="btn btn-sm btn-success" style="font-weight: 700;" onclick="document.getElementById('smartZipFileInput').click()">📦 Import ZIP</button>
@@ -2005,6 +2008,281 @@
         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 10px;">
           <span id="pickerCountText" style="font-size: 12px; color: #94a3b8;">Hiển thị 0 tài nguyên</span>
           <button class="btn btn-secondary" onclick="closeVisualAssetPickerModal()">Đóng Cửa Sổ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL CHỌN TÀI NGUYÊN TRỰC QUAN (VISUAL ASSET PICKER MODAL) ================= -->
+  <div id="visualAssetPickerModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 880px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+        <div>
+          <h3 style="margin: 0; color: #38bdf8; font-size: 18px;">🖼️ Thư Viện Tài Nguyên V4 — Chọn Asset</h3>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+            Đang gán cho: <code id="pickerReqIdBadge" style="color: #facc15; font-weight: 700;">REQ_...</code> &bull; Loại: <span id="pickerReqTypeBadge" style="color: #38bdf8; font-weight: 600;">prop</span>
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closeVisualAssetPickerModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px; padding-top: 12px; overflow: hidden;">
+        <!-- Thanh Tìm Kiếm & Lọc Danh Mục -->
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+          <div style="flex: 1; min-width: 240px;">
+            <input type="text" id="pickerSearchInput" class="text-input" placeholder="🔍 Tìm kiếm tài nguyên theo tên, ID hoặc tag..." oninput="handlePickerSearch(event)" />
+          </div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button class="btn btn-sm btn-secondary active" id="pickerTab_all" onclick="filterPickerCategory('all')">Tất cả</button>
+            <button class="btn btn-sm btn-secondary" id="pickerTab_character" onclick="filterPickerCategory('character')">🎭 Nhân vật</button>
+            <button class="btn btn-sm btn-secondary" id="pickerTab_background" onclick="filterPickerCategory('background')">🏙️ Bối cảnh</button>
+            <button class="btn btn-sm btn-secondary" id="pickerTab_prop" onclick="filterPickerCategory('prop')">📦 Đạo cụ</button>
+            <button class="btn btn-sm btn-secondary" id="pickerTab_outfit" onclick="filterPickerCategory('outfit')">👕 Trang phục</button>
+            <button class="btn btn-sm btn-secondary" id="pickerTab_expression" onclick="filterPickerCategory('expression')">😊 Biểu cảm</button>
+            <button class="btn btn-sm btn-secondary" id="pickerTab_vfx" onclick="filterPickerCategory('vfx')">✨ VFX</button>
+          </div>
+        </div>
+
+        <!-- Lưới Hiển Thị Tài Nguyên Thư Viện -->
+        <div id="pickerAssetsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; max-height: 480px; overflow-y: auto; padding: 4px;">
+          <div class="empty-state" style="grid-column: 1/-1;">Đang tải danh sách tài nguyên từ thư viện...</div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 10px;">
+          <span id="pickerCountText" style="font-size: 12px; color: #94a3b8;">Hiển thị 0 tài nguyên</span>
+          <button class="btn btn-secondary" onclick="closeVisualAssetPickerModal()">Đóng Cửa Sổ</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL VẼ TÀI NGUYÊN PROCEDURAL (CODE GEN MODAL V5.1) ================= -->
+  <div id="proceduralAssetEditorModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 920px; width: 95%; max-height: 92vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+        <div>
+          <h3 style="margin: 0; color: #facc15; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+            <span>⚡ Procedural Vector Generator — Vẽ Tài Nguyên Bằng Code</span>
+          </h3>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+            Đang sinh cho: <code id="procReqIdBadge" style="color: #38bdf8; font-weight: 700;">REQ_...</code> &bull; Loại: <span id="procReqTypeBadge" style="color: #c084fc; font-weight: 600;">prop</span> &bull; Không cần AI local / API
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closeProceduralEditorModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding-top: 14px; overflow-y: auto;">
+        <!-- Cột Trái: Cấu Hình Thông Số & Thuật Toán Sinh -->
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div>
+            <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Mẫu Thiết Kế (Template):</label>
+            <select id="procTemplateSelect" class="text-input" onchange="handleProcTemplateChanged()">
+              <!-- Backgrounds -->
+              <optgroup label="🏙️ Bối Cảnh (Backgrounds)">
+                <option value="modern_lab">Phòng thí nghiệm hiện đại (Modern Lab)</option>
+                <option value="vintage_lab">Phòng máy tính cổ điển thập niên 1950 (Vintage Computer Room)</option>
+                <option value="office">Văn phòng công nghệ (Modern Office)</option>
+                <option value="classroom">Phòng học khoa học (Science Classroom)</option>
+                <option value="city_street">Đường phố đô thị (City Street)</option>
+                <option value="park">Công viên & Cây xanh (City Park)</option>
+              </optgroup>
+              <!-- Props -->
+              <optgroup label="📦 Đạo Cụ & Thiết Bị (Props)">
+                <option value="vintage_computer">Máy tính ENIAC / Mainframe cổ điển (đèn chân không + cuộn băng)</option>
+                <option value="laptop">Máy tính xách tay hiện đại (Laptop)</option>
+                <option value="microchip">Vi mạch xử lý bán dẫn (Microchip / CPU)</option>
+                <option value="transistor">Bóng bán dẫn điện tử (Transistor)</option>
+                <option value="lightbulb">Bóng đèn ý tưởng phát sáng (Idea Bulb)</option>
+                <option value="coffee_cup">Tách cà phê bốc khói (Coffee Cup)</option>
+                <option value="lab_equipment">Bình thí nghiệm hóa học (Lab Flask)</option>
+              </optgroup>
+              <!-- Diagrams -->
+              <optgroup label="📊 Sơ Đồ & Minh Họa (Diagrams)">
+                <option value="historical_timeline">Dòng thời gian lịch sử phát triển (Historical Timeline)</option>
+                <option value="principle_diagram">Sơ đồ nguyên lý cấu trúc (Principle Diagram)</option>
+                <option value="comparison_chart">Biểu đồ so sánh công nghệ (Comparison Chart)</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Phong Cách (Style):</label>
+              <select id="procStyleSelect" class="text-input" onchange="updateProceduralPreviewUi()">
+                <option value="flat_vector">Đồ họa phẳng (Flat Vector)</option>
+                <option value="white_cartoon">Hoạt hình nét trắng (White Cartoon)</option>
+                <option value="chibi_cartoon">Chibi dễ thương (Chibi Cartoon)</option>
+                <option value="minimal_educational">Tối giản giáo dục (Minimal)</option>
+                <option value="historical_cartoon">Lịch sử cổ điển (Historical)</option>
+                <option value="doodle">Nét vẽ tay phác thảo (Doodle)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Thời Điểm (Lighting):</label>
+              <select id="procTimeOfDaySelect" class="text-input" onchange="updateProceduralPreviewUi()">
+                <option value="day">Ban ngày (Daylight)</option>
+                <option value="night">Ban đêm (Night Ambient)</option>
+                <option value="sunset">Hoàng hôn (Sunset Warmth)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; align-items: flex-end;">
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Hạt Giống Ngẫu Nhiên (Seed):</label>
+              <input type="number" id="procSeedInput" class="text-input" value="12345" onchange="updateProceduralPreviewUi()" />
+            </div>
+            <button class="btn btn-secondary" onclick="randomizeProcSeedUi()" title="Sinh biến thể ngẫu nhiên với seed mới">🎲 Đổi Biến Thể</button>
+          </div>
+
+          <!-- Thông tin cấu trúc Layer & Anchors -->
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 10px;">
+            <div style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">📐 Thông Số Cấu Trúc Đồ Họa:</div>
+            <div id="procAssetSpecs" style="font-size: 11px; color: #94a3b8; line-height: 1.6;">
+              Độ phân giải: <span id="procDimText" style="color: #38bdf8;">1920x1080</span><br>
+              Phân tách lớp: <span id="procLayersText" style="color: #22c55e;">Multi-layer</span><br>
+              Tọa độ tay cầm / Neo: <span id="procAnchorText" style="color: #f59e0b;">Grip (0.5, 0.85)</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 10px;">
+            <button class="btn btn-primary" style="flex: 1; background: #2563eb; font-weight: 700;" onclick="saveAndBindCurrentProceduralAssetUi()">💾 Xác Nhận & Gán Vào Dự Án</button>
+            <button class="btn btn-secondary" onclick="closeProceduralEditorModal()">Hủy Bỏ</button>
+          </div>
+        </div>
+
+        <!-- Cột Phải: Khung Xem Trước Trực Quan (Live Preview SVG / PNG) -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 12px; color: #cbd5e1; font-weight: 600;">Xem Trước Trực Tiếp (Vector SVG Preview):</span>
+            <span id="procRenderTimeBadge" class="badge" style="background: #1e293b; color: #38bdf8; font-size: 11px;">Tốc độ: &lt; 15ms</span>
+          </div>
+
+          <div id="procPreviewContainer" style="background: repeating-conic-gradient(#1e293b 0% 25%, #0f172a 0% 50%) 50% / 20px 20px; border: 1px solid #334155; border-radius: 6px; min-height: 340px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+            <div id="procSvgWrapper" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 10px;">
+              <span style="color: #64748b;">Đang chuẩn bị bản vẽ vector...</span>
+            </div>
+          </div>
+
+          <div style="font-size: 11px; color: #64748b; text-align: center;">
+            💡 Đồ họa được sinh hoàn toàn từ mã lệnh vector toán học. Có thể kéo giãn kích thước vô tận không vỡ hình.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL VẼ TÀI NGUYÊN PROCEDURAL (CODE GEN MODAL V5.1) ================= -->
+  <div id="proceduralAssetEditorModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 920px; width: 95%; max-height: 92vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px;">
+        <div>
+          <h3 style="margin: 0; color: #facc15; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+            <span>⚡ Procedural Vector Generator — Vẽ Tài Nguyên Bằng Code</span>
+          </h3>
+          <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+            Đang sinh cho: <code id="procReqIdBadge" style="color: #38bdf8; font-weight: 700;">REQ_...</code> &bull; Loại: <span id="procReqTypeBadge" style="color: #c084fc; font-weight: 600;">prop</span> &bull; Không cần AI local / API
+          </div>
+        </div>
+        <button class="modal-close-btn" onclick="closeProceduralEditorModal()">✕</button>
+      </div>
+
+      <div class="modal-body" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding-top: 14px; overflow-y: auto;">
+        <!-- Cột Trái: Cấu Hình Thông Số & Thuật Toán Sinh -->
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div>
+            <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Mẫu Thiết Kế (Template):</label>
+            <select id="procTemplateSelect" class="text-input" onchange="handleProcTemplateChanged()">
+              <!-- Backgrounds -->
+              <optgroup label="🏙️ Bối Cảnh (Backgrounds)">
+                <option value="modern_lab">Phòng thí nghiệm hiện đại (Modern Lab)</option>
+                <option value="vintage_lab">Phòng máy tính cổ điển thập niên 1950 (Vintage Computer Room)</option>
+                <option value="office">Văn phòng công nghệ (Modern Office)</option>
+                <option value="classroom">Phòng học khoa học (Science Classroom)</option>
+                <option value="city_street">Đường phố đô thị (City Street)</option>
+                <option value="park">Công viên & Cây xanh (City Park)</option>
+              </optgroup>
+              <!-- Props -->
+              <optgroup label="📦 Đạo Cụ & Thiết Bị (Props)">
+                <option value="vintage_computer">Máy tính ENIAC / Mainframe cổ điển (đèn chân không + cuộn băng)</option>
+                <option value="laptop">Máy tính xách tay hiện đại (Laptop)</option>
+                <option value="microchip">Vi mạch xử lý bán dẫn (Microchip / CPU)</option>
+                <option value="transistor">Bóng bán dẫn điện tử (Transistor)</option>
+                <option value="lightbulb">Bóng đèn ý tưởng phát sáng (Idea Bulb)</option>
+                <option value="coffee_cup">Tách cà phê bốc khói (Coffee Cup)</option>
+                <option value="lab_equipment">Bình thí nghiệm hóa học (Lab Flask)</option>
+              </optgroup>
+              <!-- Diagrams -->
+              <optgroup label="📊 Sơ Đồ & Minh Họa (Diagrams)">
+                <option value="historical_timeline">Dòng thời gian lịch sử phát triển (Historical Timeline)</option>
+                <option value="principle_diagram">Sơ đồ nguyên lý cấu trúc (Principle Diagram)</option>
+                <option value="comparison_chart">Biểu đồ so sánh công nghệ (Comparison Chart)</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Phong Cách (Style):</label>
+              <select id="procStyleSelect" class="text-input" onchange="updateProceduralPreviewUi()">
+                <option value="flat_vector">Đồ họa phẳng (Flat Vector)</option>
+                <option value="white_cartoon">Hoạt hình nét trắng (White Cartoon)</option>
+                <option value="chibi_cartoon">Chibi dễ thương (Chibi Cartoon)</option>
+                <option value="minimal_educational">Tối giản giáo dục (Minimal)</option>
+                <option value="historical_cartoon">Lịch sử cổ điển (Historical)</option>
+                <option value="doodle">Nét vẽ tay phác thảo (Doodle)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Thời Điểm (Lighting):</label>
+              <select id="procTimeOfDaySelect" class="text-input" onchange="updateProceduralPreviewUi()">
+                <option value="day">Ban ngày (Daylight)</option>
+                <option value="night">Ban đêm (Night Ambient)</option>
+                <option value="sunset">Hoàng hôn (Sunset Warmth)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; align-items: flex-end;">
+            <div style="flex: 1;">
+              <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Hạt Giống Ngẫu Nhiên (Seed):</label>
+              <input type="number" id="procSeedInput" class="text-input" value="12345" onchange="updateProceduralPreviewUi()" />
+            </div>
+            <button class="btn btn-secondary" onclick="randomizeProcSeedUi()" title="Sinh biến thể ngẫu nhiên với seed mới">🎲 Đổi Biến Thể</button>
+          </div>
+
+          <!-- Thông tin cấu trúc Layer & Anchors -->
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 10px;">
+            <div style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">📐 Thông Số Cấu Trúc Đồ Họa:</div>
+            <div id="procAssetSpecs" style="font-size: 11px; color: #94a3b8; line-height: 1.6;">
+              Độ phân giải: <span id="procDimText" style="color: #38bdf8;">1920x1080</span><br>
+              Phân tách lớp: <span id="procLayersText" style="color: #22c55e;">Multi-layer</span><br>
+              Tọa độ tay cầm / Neo: <span id="procAnchorText" style="color: #f59e0b;">Grip (0.5, 0.85)</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 10px;">
+            <button class="btn btn-primary" style="flex: 1; background: #2563eb; font-weight: 700;" onclick="saveAndBindCurrentProceduralAssetUi()">💾 Xác Nhận & Gán Vào Dự Án</button>
+            <button class="btn btn-secondary" onclick="closeProceduralEditorModal()">Hủy Bỏ</button>
+          </div>
+        </div>
+
+        <!-- Cột Phải: Khung Xem Trước Trực Quan (Live Preview SVG / PNG) -->
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 12px; color: #cbd5e1; font-weight: 600;">Xem Trước Trực Tiếp (Vector SVG Preview):</span>
+            <span id="procRenderTimeBadge" class="badge" style="background: #1e293b; color: #38bdf8; font-size: 11px;">Tốc độ: &lt; 15ms</span>
+          </div>
+
+          <div id="procPreviewContainer" style="background: repeating-conic-gradient(#1e293b 0% 25%, #0f172a 0% 50%) 50% / 20px 20px; border: 1px solid #334155; border-radius: 6px; min-height: 340px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+            <div id="procSvgWrapper" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 10px;">
+              <span style="color: #64748b;">Đang chuẩn bị bản vẽ vector...</span>
+            </div>
+          </div>
+
+          <div style="font-size: 11px; color: #64748b; text-align: center;">
+            💡 Đồ họa được sinh hoàn toàn từ mã lệnh vector toán học. Có thể kéo giãn kích thước vô tận không vỡ hình.
+          </div>
         </div>
       </div>
     </div>

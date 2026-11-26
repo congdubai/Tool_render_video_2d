@@ -110,31 +110,45 @@ export class SmartAssetManager {
   }
 
   autoLinkModeACharacters(canonicalReqs = []) {
-    const knownChars = ['doc', 'jake'];
+    const knownChars = ['doc', 'jake', 'chibi_doc'];
     for (const req of canonicalReqs) {
       if (req.type === 'character') {
         const binding = this.bindingRegistry.getBinding(req.id);
         const resolvedId = binding?.resolvedAssetId || req.resolvedAssetId || req.targetAssetId || '';
-        const matchedChar = knownChars.find(c => resolvedId.toLowerCase().includes(c));
+        const matchedChar = knownChars.find(c => resolvedId.toLowerCase().includes(c)) ||
+                            (resolvedId.toLowerCase().includes('scientist') ? 'doc' : null);
         if (matchedChar) {
-          // 1. Auto-link character rig
-          const rigReq = canonicalReqs.find(r => r.type === 'character_rig' && (r.id.toLowerCase().includes(matchedChar) || r.targetAssetId === matchedChar));
-          if (rigReq) {
+          const isChibi = matchedChar.startsWith('chibi');
+          // 1. Auto-link character rig (matching either charId or character requirement ID)
+          const charKey = req.id.replace(/^REQ_CHAR_/, '').toLowerCase();
+          const rigReqs = canonicalReqs.filter(r => r.type === 'character_rig' && 
+            (r.id.toLowerCase().includes(matchedChar) || 
+             r.id.toLowerCase().includes(charKey) || 
+             r.targetAssetId === matchedChar || 
+             r.targetAssetId === req.targetAssetId));
+
+          for (const rigReq of rigReqs) {
             rigReq.status = 'READY';
             rigReq.resolvedAssetId = matchedChar;
-            rigReq.resolutionMethod = 'BUILTIN_RIG';
-            rigReq.reasons = [`Rig nhân vật tích hợp Mode A "${matchedChar}" đã tích hợp sẵn`];
+            rigReq.resolutionMethod = isChibi ? 'CHIBI_RIG' : 'BUILTIN_RIG';
+            rigReq.reasons = [`Rig nhân vật ${isChibi ? 'Chibi' : 'Mode A'} "${matchedChar}" đã tích hợp sẵn`];
             this.dependencyGraph.setRequirementStatus(rigReq.id, 'READY');
             if (!this.bindingRegistry.getBinding(rigReq.id)) {
               this.bindingRegistry.bind(rigReq.id, matchedChar, {
-                resolutionMethod: 'BUILTIN_RIG',
+                resolutionMethod: isChibi ? 'CHIBI_RIG' : 'BUILTIN_RIG',
                 status: 'READY',
                 autoSave: false
               });
             }
           }
+
           // 2. Auto-link hand anchors
-          const anchorReqs = canonicalReqs.filter(r => r.type === 'anchor_point' && (r.id.toLowerCase().includes(matchedChar) || (r.targetAssetId || '').toLowerCase().includes(matchedChar)));
+          const anchorReqs = canonicalReqs.filter(r => r.type === 'anchor_point' && 
+            (r.id.toLowerCase().includes(matchedChar) || 
+             r.id.toLowerCase().includes(charKey) ||
+             (r.targetAssetId || '').toLowerCase().includes(matchedChar) ||
+             (r.targetAssetId || '').toLowerCase().includes(charKey)));
+
           for (const aReq of anchorReqs) {
             aReq.status = 'READY';
             aReq.resolvedAssetId = aReq.targetAssetId || `${matchedChar}:hand`;

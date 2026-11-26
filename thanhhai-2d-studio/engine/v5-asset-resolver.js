@@ -60,38 +60,61 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
     }
   }
 
-  // Also check built-in character / rig exact match
+  // Character Resolution (Exact ID + Semantic Role & Identity Matching)
   if (reqType === 'character') {
-    const knownChars = ['doc', 'jake'];
-    const matchedChar = knownChars.find(c => c === targetId.toLowerCase() || targetId.toLowerCase().includes(c));
+    const knownChars = ['doc', 'jake', 'chibi_doc'];
+    const normTarget = targetId.toLowerCase();
+    const normName = (requirement.name || '').toLowerCase();
+    const normDesc = (requirement.description || '').toLowerCase();
+    const role = (requirement.role || '').toLowerCase();
+
+    // 1. Direct match
+    let matchedChar = knownChars.find(c => normTarget === c || normTarget.includes(c));
+
+    // 2. Semantic role matching: scientist / nhà khoa học / giáo sư -> Doc
+    if (!matchedChar) {
+      const isScientist = normTarget.includes('scientist') || normName.includes('scientist') || 
+                          normName.includes('khoa_hoc') || normDesc.includes('khoa_hoc') || 
+                          role.includes('scientist') || role.includes('khoa_hoc');
+      if (isScientist) {
+        matchedChar = normTarget.includes('chibi') ? 'chibi_doc' : 'doc';
+      }
+    }
+
     if (matchedChar) {
+      const isChibi = matchedChar.startsWith('chibi');
       return {
         requirementId: reqId,
         resolvedAssetId: matchedChar,
-        resolutionMethod: 'EXACT_CHARACTER_ID',
+        resolutionMethod: (normTarget === matchedChar) ? 'EXACT_CHARACTER_ID' : 'SEMANTIC_ROLE_MATCH',
         matchScore: 100,
         confidence: 'EXACT_MATCH',
         status: 'READY',
-        reasons: [`Khớp chính xác nhân vật tích hợp "${matchedChar}" (Mode A)`],
-        asset: { id: matchedChar, type: 'character', mode: 'built_in' }
+        reasons: [`Khớp nhân vật ${matchedChar === 'doc' ? 'Doc (Nhà Khoa Học)' : matchedChar} theo vai trò/danh tính`],
+        asset: { id: matchedChar, type: 'character', mode: isChibi ? 'chibi' : 'built_in' }
       };
     }
   }
 
-  // Built-in Character Rig for Mode A characters (Doc & Jake)
+  // Built-in Character Rig for Mode A / Chibi Characters (Doc, Jake, Chibi Doc)
   if (reqType === 'character_rig') {
-    const knownChars = ['doc', 'jake'];
-    const matchedChar = knownChars.find(c => c === targetId.toLowerCase() || targetId.toLowerCase().includes(c));
+    const knownChars = ['doc', 'jake', 'chibi_doc'];
+    const normTarget = targetId.toLowerCase();
+    let matchedChar = knownChars.find(c => normTarget === c || normTarget.includes(c));
+    if (!matchedChar && (normTarget.includes('scientist') || normTarget.includes('khoa_hoc'))) {
+      matchedChar = normTarget.includes('chibi') ? 'chibi_doc' : 'doc';
+    }
     if (matchedChar) {
+      const isChibi = matchedChar.startsWith('chibi');
       return {
         requirementId: reqId,
         resolvedAssetId: matchedChar,
-        resolutionMethod: 'BUILTIN_RIG',
+        resolutionMethod: isChibi ? 'CHIBI_RIG' : 'BUILTIN_RIG',
         matchScore: 100,
         confidence: 'EXACT_MATCH',
         status: 'READY',
-        reasons: [`Rig nhân vật tích hợp Mode A "${matchedChar}" đã có sẵn đầy đủ cấu trúc xương`],
-        asset: { id: matchedChar, type: 'character_rig', mode: 'built_in' }
+        reasons: [`Rig nhân vật ${isChibi ? 'Chibi' : 'Mode A'} "${matchedChar}" đã tích hợp sẵn đầy đủ cấu trúc xương`],
+        asset: { id: matchedChar, type: 'character_rig', mode: isChibi ? 'chibi' : 'built_in' }
       };
     }
   }
@@ -99,10 +122,10 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
   // Built-in Hand Anchors for Rig
   if (reqType === 'anchor_point') {
     const norm = targetId.toLowerCase();
-    const isDocOrJake = norm.includes('doc') || norm.includes('jake');
+    const isKnownChar = norm.includes('doc') || norm.includes('jake') || norm.includes('scientist');
     const knownAnchors = ['left_hand', 'right_hand', 'head_top', 'chest', 'hand'];
     const hasValidAnchor = knownAnchors.some(a => norm.includes(a));
-    if (isDocOrJake || hasValidAnchor) {
+    if (isKnownChar || hasValidAnchor) {
       return {
         requirementId: reqId,
         resolvedAssetId: targetId,
@@ -110,7 +133,7 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
         matchScore: 100,
         confidence: 'EXACT_MATCH',
         status: 'READY',
-        reasons: [`Điểm neo "${targetId}" đã sẵn có trên hệ thống xương nhân vật (Mode A)`],
+        reasons: [`Điểm neo "${targetId}" đã sẵn có trên hệ thống xương nhân vật`],
         anchor: { x: 0.5, y: 0.85 }
       };
     }
@@ -225,11 +248,12 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
     // 4. Standard Built-in Procedural Actions supported by Universal Motion Engine
     const STANDARD_PROCEDURAL_ACTIONS = new Set([
       'idle', 'idle_talk', 'idle_breathe', 'stand', 'talk', 'talking',
-      'walk', 'walk_cycle', 'run', 'run_cycle', 'sneak_walk', 'approach',
+      'walk', 'walk_cycle', 'walk_in', 'walk_out', 'run', 'run_cycle', 'sneak_walk', 'approach',
       'sit', 'sit_down', 'wave_hand', 'raise_arm', 'point_forward',
       'scratch_head', 'fall_backward', 'celebrate', 'thinking', 'thoughtful',
       'look_around', 'bow', 'shrug', 'nod', 'shake_head', 'dance', 'jump',
-      'surprised', 'shocked', 'angry', 'laughing'
+      'surprised', 'shocked', 'angry', 'laughing',
+      'inspect', 'inspect_computer', 'eureka', 'eureka_idea', 'examine'
     ]);
     const bareAct = normAct.replace(/^act_/, '').replace(/^action_/, '');
     if (STANDARD_PROCEDURAL_ACTIONS.has(bareAct) || STANDARD_PROCEDURAL_ACTIONS.has(normAct)) {

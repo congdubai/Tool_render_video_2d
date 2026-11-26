@@ -6331,13 +6331,15 @@ function renderSmartAssetRequirements() {
           ${req.type === 'prop' ? `
             <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #f59e0b;" onclick="openSmartAnchorModal('${req.id}')">⚓ Điểm Neo (Anchor)</button>
           ` : ''}
+          ${!isNonImage && (req.type === 'background' || req.type === 'prop' || req.type === 'diagram' || req.type === 'illustration') ? `
+            <button class="btn btn-sm btn-warning" style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #000; font-weight: 700; border: none;" onclick="openProceduralEditorModal('${req.id}')">⚡ CODE GEN</button>
+          ` : ''}
           <button class="btn btn-sm btn-primary" style="background: #2563eb;" onclick="openVisualAssetPickerModal('${req.id}')">🖼️ Chọn Từ Thư Viện</button>
           <button class="btn btn-sm btn-outline" style="border-color: #64748b; color: #94a3b8;" onclick="promptManualBindAsset('${req.id}')">🔗 Nhập ID</button>
         </div>
       </div>
     `;
   }).join('');
-}
 }
 
 function copyRequirementPrompt(reqId) {
@@ -7309,15 +7311,20 @@ function updateFinalOutputUi(output) {
   const infoSize = document.getElementById('prodInfoSize');
   const dlBtn = document.getElementById('prodDownloadMp4Btn');
 
-  if (output.outputPath) {
-    const relUrl = `/out/${output.outputPath.split(/[\\/]/).pop()}`;
-    if (player) {
-      player.src = relUrl;
-      player.load();
-    }
-    if (dlBtn) dlBtn.href = relUrl;
-    if (infoPath) infoPath.textContent = output.outputPath;
+  if (!output || !output.outputPath || !output.fileSize || output.fileSize < 1024) {
+    if (infoPath) infoPath.textContent = output?.outputPath || 'Chưa có file video hợp lệ.';
+    if (infoSize) infoSize.textContent = '0 MB (Lỗi render hoặc file rỗng)';
+    showToast('⚠️ Video kết xuất không hợp lệ (file rỗng hoặc 0 bytes). Vui lòng kiểm tra lại.', 'error');
+    return;
   }
+
+  const relUrl = `/out/${output.outputPath.split(/[\\/]/).pop()}`;
+  if (player) {
+    player.src = relUrl;
+    player.load();
+  }
+  if (dlBtn) dlBtn.href = relUrl;
+  if (infoPath) infoPath.textContent = output.outputPath;
   if (infoRes && output.resolution) infoRes.textContent = output.resolution;
   if (infoFps && output.fps) infoFps.textContent = `${output.fps} fps`;
   if (infoSize && output.fileSize) infoSize.textContent = `${(output.fileSize / (1024 * 1024)).toFixed(2)} MB`;
@@ -7373,6 +7380,248 @@ window.closeVisualAssetPickerModal = closeVisualAssetPickerModal;
 window.filterPickerCategory = filterPickerCategory;
 window.handlePickerSearch = handlePickerSearch;
 window.confirmPickerBinding = confirmPickerBinding;
+
+// ============================================================================
+// PROCEDURAL ASSET GENERATOR UI CONTROLLER (V5.1)
+// ============================================================================
+
+let currentProcModalState = {
+  reqId: null,
+  requirement: null,
+  currentAsset: null
+};
+
+async function openProceduralEditorModal(reqId) {
+  const req = (smartAssetState.requirements || []).find(r => r.id === reqId);
+  if (!req) return;
+
+  currentProcModalState.reqId = reqId;
+  currentProcModalState.requirement = req;
+
+  const modal = document.getElementById('proceduralAssetEditorModal');
+  const reqIdBadge = document.getElementById('procReqIdBadge');
+  const reqTypeBadge = document.getElementById('procReqTypeBadge');
+  const templateSelect = document.getElementById('procTemplateSelect');
+
+  if (reqIdBadge) reqIdBadge.textContent = req.id;
+  if (reqTypeBadge) reqTypeBadge.textContent = req.type;
+
+  const targetId = (req.targetAssetId || req.id || '').toLowerCase();
+  if (templateSelect) {
+    if (req.type === 'background') {
+      if (targetId.includes('lab') || targetId.includes('computer')) templateSelect.value = 'modern_lab';
+      else if (targetId.includes('office')) templateSelect.value = 'office';
+      else if (targetId.includes('classroom')) templateSelect.value = 'classroom';
+      else if (targetId.includes('street') || targetId.includes('city')) templateSelect.value = 'city_street';
+      else if (targetId.includes('park')) templateSelect.value = 'park';
+      else templateSelect.value = 'modern_lab';
+    } else if (req.type === 'diagram' || req.type === 'illustration') {
+      if (targetId.includes('flow') || targetId.includes('principle')) templateSelect.value = 'principle_diagram';
+      else if (targetId.includes('compare')) templateSelect.value = 'comparison_chart';
+      else templateSelect.value = 'historical_timeline';
+    } else {
+      if (targetId.includes('computer') || targetId.includes('eniac')) templateSelect.value = 'vintage_computer';
+      else if (targetId.includes('laptop')) templateSelect.value = 'laptop';
+      else if (targetId.includes('microchip') || targetId.includes('chip') || targetId.includes('cpu')) templateSelect.value = 'microchip';
+      else if (targetId.includes('transistor')) templateSelect.value = 'transistor';
+      else if (targetId.includes('bulb') || targetId.includes('idea')) templateSelect.value = 'lightbulb';
+      else if (targetId.includes('coffee') || targetId.includes('cup')) templateSelect.value = 'coffee_cup';
+      else if (targetId.includes('flask') || targetId.includes('lab')) templateSelect.value = 'lab_equipment';
+      else templateSelect.value = 'vintage_computer';
+    }
+  }
+
+  handleProcTemplateChanged();
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeProceduralEditorModal() {
+  const modal = document.getElementById('proceduralAssetEditorModal');
+  if (modal) modal.classList.add('hidden');
+  currentProcModalState.reqId = null;
+  currentProcModalState.requirement = null;
+  currentProcModalState.currentAsset = null;
+}
+
+function handleProcTemplateChanged() {
+  updateProceduralPreviewUi();
+}
+
+function randomizeProcSeedUi() {
+  const seedInput = document.getElementById('procSeedInput');
+  if (seedInput) {
+    seedInput.value = Math.floor(Math.random() * 900000) + 10000;
+  }
+  updateProceduralPreviewUi();
+}
+
+async function updateProceduralPreviewUi() {
+  const templateSelect = document.getElementById('procTemplateSelect');
+  const styleSelect = document.getElementById('procStyleSelect');
+  const timeOfDaySelect = document.getElementById('procTimeOfDaySelect');
+  const seedInput = document.getElementById('procSeedInput');
+  const svgWrapper = document.getElementById('procSvgWrapper');
+  const dimText = document.getElementById('procDimText');
+  const layersText = document.getElementById('procLayersText');
+  const anchorText = document.getElementById('procAnchorText');
+  const renderTimeBadge = document.getElementById('procRenderTimeBadge');
+
+  if (!templateSelect || !svgWrapper) return;
+
+  const template = templateSelect.value;
+  const styleProfileId = styleSelect ? styleSelect.value : 'flat_vector';
+  const timeOfDay = timeOfDaySelect ? timeOfDaySelect.value : 'day';
+  const seed = seedInput ? parseInt(seedInput.value, 10) || 12345 : 12345;
+
+  svgWrapper.innerHTML = `<span style="color: #64748b;">Đang dựng đồ họa vector toán học...</span>`;
+
+  const startTime = performance.now();
+
+  try {
+    const res = await fetch('/api/v5/procedural/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requirement: currentProcModalState.requirement,
+        template,
+        styleProfileId,
+        options: { timeOfDay },
+        seed
+      })
+    });
+
+    const data = await res.json();
+    const duration = Math.round(performance.now() - startTime);
+    if (renderTimeBadge) renderTimeBadge.textContent = `Tốc độ: ${duration}ms`;
+
+    if (!data.success || !data.asset) {
+      svgWrapper.innerHTML = `<span style="color: #ef4444;">Lỗi sinh vector: ${data.error || 'Unknown'}</span>`;
+      return;
+    }
+
+    currentProcModalState.currentAsset = data.asset;
+
+    if (data.asset.svg) {
+      svgWrapper.innerHTML = data.asset.svg;
+      const svgEl = svgWrapper.querySelector('svg');
+      if (svgEl) {
+        svgEl.style.maxWidth = '100%';
+        svgEl.style.maxHeight = '320px';
+        svgEl.style.height = 'auto';
+        svgEl.style.display = 'block';
+      }
+    } else if (data.asset.previewBase64) {
+      svgWrapper.innerHTML = `<img src="${data.asset.previewBase64}" style="max-width: 100%; max-height: 320px; object-fit: contain;" />`;
+    }
+
+    if (dimText) dimText.textContent = `${data.asset.width}x${data.asset.height}`;
+    if (layersText) {
+      const layerCount = (data.asset.layers || []).length;
+      layersText.textContent = layerCount > 0 ? `${layerCount} lớp tách rời` : 'Single vector surface';
+    }
+    if (anchorText) {
+      const grip = data.asset.gripPoint;
+      anchorText.textContent = grip ? `Tay cầm (${grip.x.toFixed(2)}, ${grip.y.toFixed(2)})` : 'Trung tâm (0.5, 0.5)';
+    }
+  } catch (err) {
+    svgWrapper.innerHTML = `<span style="color: #ef4444;">Lỗi kết nối API: ${err.message}</span>`;
+  }
+}
+
+async function saveAndBindCurrentProceduralAssetUi() {
+  if (!currentProcModalState.reqId) {
+    alert("⚠️ Không có requirement ID.");
+    return;
+  }
+
+  const templateSelect = document.getElementById('procTemplateSelect');
+  const styleSelect = document.getElementById('procStyleSelect');
+  const timeOfDaySelect = document.getElementById('procTimeOfDaySelect');
+  const seedInput = document.getElementById('procSeedInput');
+
+  const template = templateSelect ? templateSelect.value : 'vintage_computer';
+  const styleProfileId = styleSelect ? styleSelect.value : 'flat_vector';
+  const timeOfDay = timeOfDaySelect ? timeOfDaySelect.value : 'day';
+  const seed = seedInput ? parseInt(seedInput.value, 10) || 12345 : 12345;
+
+  try {
+    const res = await fetch('/api/v5/procedural/save-and-bind', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: smartAssetState.projectId || 'default_v5_project',
+        requirementId: currentProcModalState.reqId,
+        template,
+        styleProfileId,
+        options: { timeOfDay },
+        seed
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert(`⚡ Đã vẽ xong và gán tài nguyên "${data.assetId}" thành công!`);
+      closeProceduralEditorModal();
+
+      if (typeof scanProjectRequirementsUi === 'function') {
+        await scanProjectRequirementsUi();
+      }
+    } else {
+      alert(`⚠️ Lỗi lưu tài nguyên: ${data.error}`);
+    }
+  } catch (err) {
+    alert(`⚠️ Lỗi: ${err.message}`);
+  }
+}
+
+async function triggerCodeGenAllUi() {
+  if (!smartAssetState.scenePlan) {
+    alert("⚠️ Chưa có Scene Plan. Hãy nhập hoặc tải kịch bản trước!");
+    return;
+  }
+
+  if (!confirm("⚡ Bắt đầu tự động vẽ toàn bộ tài nguyên còn thiếu (CODE GEN ALL)?\n\n• Sử dụng Vector Engine toán học thuần (SVG + Sharp)\n• Không cần model AI local\n• Không tốn bất kỳ chi phí API nào\n• Thời gian hoàn thành chỉ vài giây.")) {
+    return;
+  }
+
+  const overallBadge = document.getElementById('smartAssetOverallBadge');
+  if (overallBadge) {
+    overallBadge.textContent = '⚡ Đang tự động vẽ toàn bộ tài nguyên...';
+    overallBadge.style.backgroundColor = '#eab308';
+  }
+
+  try {
+    const res = await fetch('/api/v5/procedural/generate-all', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: smartAssetState.projectId || 'default_v5_project',
+        scenePlan: smartAssetState.scenePlan,
+        styleProfileId: 'flat_vector'
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      alert(`🎉 Hoàn tất CODE GEN ALL!\n\n• Đã tự động vẽ và liên kết: ${data.totalGenerated} tài nguyên\n• Tổng tài nguyên xử lý: ${data.totalScanned}\n• Tiến độ dự án: ${data.readiness?.readinessPercentage || 100}%`);
+      if (typeof scanProjectRequirementsUi === 'function') {
+        await scanProjectRequirementsUi();
+      }
+    } else {
+      alert(`⚠️ Lỗi tự động vẽ: ${data.error}`);
+    }
+  } catch (err) {
+    alert(`⚠️ Lỗi: ${err.message}`);
+  }
+}
+
+window.openProceduralEditorModal = openProceduralEditorModal;
+window.closeProceduralEditorModal = closeProceduralEditorModal;
+window.handleProcTemplateChanged = handleProcTemplateChanged;
+window.randomizeProcSeedUi = randomizeProcSeedUi;
+window.updateProceduralPreviewUi = updateProceduralPreviewUi;
+window.saveAndBindCurrentProceduralAssetUi = saveAndBindCurrentProceduralAssetUi;
+window.triggerCodeGenAllUi = triggerCodeGenAllUi;
 
 // Auto-initialize Tab 4 Wizard UI on page ready
 if (typeof document !== 'undefined') {

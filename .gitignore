@@ -48,5 +48,9 @@ Thumbs.db
 
 # Temporary scratch and QC
 scratch/
+data/v5-jobs/
+data/v5-projects/
+proj_v51_test_3scenes/
+tests/output_v5_procedural/
 out/character_redesign_qc/
 output_videos/
