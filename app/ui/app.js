@@ -5794,23 +5794,23 @@ const DEFAULT_V5_DEMO_SCENE_PLAN = {
 };
 
 // =========================================================================
-// TAB 4 WIZARD CONTROLLER: 6 STEPS NAVIGATION & VIEW MODES
+// TAB 4 WIZARD CONTROLLER: 4 STEPS NAVIGATION & VIEW MODES
 // =========================================================================
-let currentWizardStep = 4;
+let currentWizardStep = 1;
 let wizardDisplayMode = 'single'; // 'single' | 'all'
 
 const WIZARD_STEP_TITLES = {
-  1: 'Kịch bản & Style',
-  2: 'Xuất AI Context',
-  3: 'Nhập Scene Plan',
-  4: 'Smart Asset Manager',
-  5: 'Dựng Cảnh (Phase 3)',
-  6: 'Preview & Render'
+  1: 'Nhập Scene Plan (Import JSON)',
+  2: 'Smart Asset Manager',
+  3: 'Dựng Cảnh (Phase 3)',
+  4: 'Preview & Render'
 };
 
 function switchWizardStep(stepNum) {
-  if (stepNum < 1 || stepNum > 6) return;
-  currentWizardStep = stepNum;
+  let s = Number(stepNum);
+  if (s < 1) s = 1;
+  if (s > 4) s = 4;
+  currentWizardStep = s;
   updateWizardDisplayUi();
 }
 
@@ -5820,7 +5820,7 @@ function setWizardDisplayMode(mode) {
 }
 
 function updateWizardDisplayUi() {
-  for (let i = 1; i <= 6; i++) {
+  for (let i = 1; i <= 4; i++) {
     const pill = document.getElementById(`wStep${i}`);
     if (!pill) continue;
     const numSpan = pill.querySelector('span:first-child');
@@ -5876,25 +5876,23 @@ function updateWizardDisplayUi() {
     }
   }
 
-  // Hiển thị/ẩn các section
+  // Hiển thị/ẩn các section cho 4 bước
   const sections = {
-    1: document.getElementById('wizardStep1Section'),
-    2: document.getElementById('wizardStep2Section'),
-    3: document.getElementById('wizardStep3Section'),
-    4: document.getElementById('smartAssetManagerSection'),
-    5: document.getElementById('autoSceneBuilderSection'),
-    6: document.getElementById('autoVideoProductionSection')
+    1: document.getElementById('wizardScenePlanSection'),
+    2: document.getElementById('smartAssetManagerSection'),
+    3: document.getElementById('autoSceneBuilderSection'),
+    4: document.getElementById('autoVideoProductionSection')
   };
 
   if (wizardDisplayMode === 'all') {
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 4; i++) {
       if (sections[i]) sections[i].style.display = 'block';
     }
     if (sections[currentWizardStep]) {
       sections[currentWizardStep].scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   } else {
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 4; i++) {
       if (sections[i]) {
         sections[i].style.display = (i === currentWizardStep) ? 'block' : 'none';
       }
@@ -5902,138 +5900,105 @@ function updateWizardDisplayUi() {
   }
 }
 
-// BƯỚC 1: NHẬP KỊCH BẢN TỪ TAB 1
-function importScriptFromTab1() {
-  const t1 = document.getElementById('rawScriptInput');
-  const target = document.getElementById('v5ScriptInput');
-  if (t1 && t1.value.trim() && target) {
-    target.value = t1.value.trim();
-    if (typeof showToast === 'function') {
-      showToast("✅ Đã nạp kịch bản từ Tab 1!");
-    } else {
-      alert("✅ Đã nạp kịch bản từ Tab 1!");
-    }
-  } else {
-    alert("⚠️ Chưa có kịch bản nào ở Tab 1. Hãy nhập kịch bản trực tiếp vào ô bên dưới!");
+// BƯỚC 1: XỬ LÝ IMPORT FILE JSON & KÉO THẢ
+function handleScenePlanFileSelected(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  loadScenePlanFromFile(file);
+}
+
+function loadScenePlanFromFile(file) {
+  if (!file.name.toLowerCase().endsWith('.json')) {
+    alert("⚠️ Vui lòng chọn file định dạng .json!");
+    return;
   }
-}
 
-// BƯỚC 2: XUẤT AI CONTEXT PACKAGE CHO CHATGPT / CLAUDE
-function getAiDirectorPromptContent() {
-  const scriptInput = document.getElementById('v5ScriptInput');
-  const styleSelect = document.getElementById('v5StyleProfileSelect');
-  const aspectSelect = document.getElementById('v5AspectRatioSelect');
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const rawText = e.target.result;
+      const parsed = JSON.parse(rawText);
+      if (!parsed.scenes || !Array.isArray(parsed.scenes)) {
+        alert("⚠️ File JSON không hợp lệ: Không tìm thấy danh sách 'scenes' hợp lệ trong cấu trúc.");
+        return;
+      }
 
-  const script = (scriptInput && scriptInput.value.trim()) ? scriptInput.value.trim() : 
-    "Năm 1945, siêu máy tính ENIAC ra đời mở ra kỷ nguyên số. Đến thập niên 1950, linh kiện bán dẫn transistor xuất hiện giúp thu nhỏ kích thước máy. Thập niên 1970 chứng kiến vi xử lý silicon tích hợp. Thập niên 1980 máy tính cá nhân bùng nổ trong gia đình và công sở. Ngày nay là kỷ nguyên laptop và AI khắp nơi.";
-  const style = styleSelect ? styleSelect.value : "educational_cartoon";
-  const aspect = aspectSelect ? aspectSelect.value : "16:9";
+      // Đưa nội dung vào textarea để người dùng kiểm tra
+      const ta = document.getElementById('v5ScenePlanInput');
+      if (ta) ta.value = JSON.stringify(parsed, null, 2);
 
-  return `Bạn là Senior AI Animation Director chuyên nghiệp cho phần mềm Thanh Hai 2D Studio V5.
-Nhiệm vụ của bạn: Phân tích kịch bản dưới đây thành các cảnh hoạt hình 2D ngắn (3 đến 6 giây mỗi cảnh) và trả về DUY NHẤT một khối Scene Plan JSON tuân thủ chuẩn Schema V5.
+      // Hiển thị badge thông tin file
+      const infoEl = document.getElementById('selectedJsonFileInfo');
+      if (infoEl) {
+        infoEl.style.display = 'block';
+        infoEl.textContent = `📄 Đã nạp file: ${file.name} (${(file.size / 1024).toFixed(1)} KB) — Tìm thấy ${parsed.scenes.length} cảnh.`;
+      }
 
-THÔNG TIN DỰ ÁN:
-- Kịch bản gốc:
-"${script}"
-- Phong cách hình ảnh (Style Profile): "${style}"
-- Tỷ lệ khung hình: "${aspect}"
+      // Lưu vào state và kích hoạt quét tài nguyên
+      smartAssetState.scenePlan = parsed;
+      scanProjectRequirementsUi();
 
-QUY CHUẨN ĐẠO DIỄN:
-1. Mỗi cảnh có visualObjective rõ ràng, narrationText tương ứng phần lời đọc.
-2. Background: Chọn tên bối cảnh phù hợp hoặc đặt prompt sinh ảnh mô tả chi tiết.
-3. Characters: Chọn nhân vật (ví dụ: "doc", "student", "worker", "narrator"), trang phục và hành động ("talk_excited", "point_right", "walk_right", "stand_idle").
-4. Asset Requirements: Liệt kê các đạo cụ (prop) hoặc background cần thiết có prompt sinh ảnh minh họa nền trong suốt (PNG transparent).
-5. Trả về đúng định dạng JSON hợp lệ (không kèm giải thích bên ngoài):
-\`\`\`json
-{
-  "schemaVersion": "5.1",
-  "project": {
-    "title": "Dự Án Hoạt Hình V5",
-    "targetDurationMs": 25000,
-    "fps": 24,
-    "resolution": { "width": ${aspect === "9:16" ? 720 : 1280}, "height": ${aspect === "9:16" ? 1280 : 720} }
-  },
-  "style": { "profileId": "${style}" },
-  "assetRequirements": [
-    {
-      "id": "REQ_PROP_SAMPLE",
-      "name": "Đạo cụ mẫu",
-      "type": "prop",
-      "description": "Mô tả đạo cụ",
-      "transparentBackground": true,
-      "recommendedDimensions": { "width": 1024, "height": 1024 }
+      if (typeof showToast === 'function') {
+        showToast(`✅ Đã nạp thành công file: ${file.name} (${parsed.scenes.length} cảnh)!`);
+      } else {
+        alert(`✅ Đã nạp thành công file ${file.name} (${parsed.scenes.length} cảnh)!\nĐang tự động chuyển sang Bước 2 (Smart Asset Manager)...`);
+      }
+
+      // Tự động chuyển tiếp sang Bước 2
+      setTimeout(() => {
+        switchWizardStep(2);
+      }, 700);
+
+    } catch (err) {
+      alert("❌ Lỗi khi phân tích file JSON: " + err.message);
     }
-  ],
-  "scenes": [
-    {
-      "id": "scene_001",
-      "startMs": 0,
-      "endMs": 5000,
-      "visualObjective": "Mở đầu cảnh giới thiệu",
-      "narrationText": "...",
-      "background": { "assetId": "bg_studio" },
-      "characters": [
-        {
-          "characterId": "doc",
-          "outfitId": "outfit_default",
-          "expressionId": "exp_happy",
-          "actionId": "talk_excited",
-          "position": { "x": 0.5, "y": 0.8 },
-          "scale": 1.0
-        }
-      ],
-      "camera": { "preset": "medium_shot", "movement": "static" }
-    }
-  ]
-}
-\`\`\``;
-}
-
-async function copyAiDirectorPackagePrompt() {
-  const prompt = getAiDirectorPromptContent();
-  try {
-    await navigator.clipboard.writeText(prompt);
-    if (typeof showToast === 'function') {
-      showToast("📋 Đã sao chép Prompt AI Director vào bộ nhớ tạm! Dán vào ChatGPT/Claude.");
-    } else {
-      alert("📋 Đã sao chép Prompt AI Director vào bộ nhớ tạm! Hãy mở ChatGPT hoặc Claude và dán prompt này.");
-    }
-  } catch (err) {
-    const ta = document.createElement("textarea");
-    ta.value = prompt;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    alert("📋 Đã sao chép Prompt AI Director vào bộ nhớ tạm!");
-  }
-}
-
-function downloadAiDirectorPackageJson() {
-  const prompt = getAiDirectorPromptContent();
-  const pkg = {
-    schemaVersion: "5.1",
-    generator: "Thanh Hai 2D Studio V5",
-    createdAt: new Date().toISOString(),
-    prompt: prompt,
-    demoScenePlan: DEFAULT_V5_DEMO_SCENE_PLAN
   };
-  const blob = new Blob([JSON.stringify(pkg, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `ai_director_package_${Date.now()}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  reader.readAsText(file);
 }
 
-// BƯỚC 3: NHẬP SCENE PLAN JSON
+function clearScenePlanInput() {
+  const ta = document.getElementById('v5ScenePlanInput');
+  if (ta) ta.value = '';
+  const infoEl = document.getElementById('selectedJsonFileInfo');
+  if (infoEl) {
+    infoEl.style.display = 'none';
+    infoEl.textContent = '';
+  }
+}
+
+function setupScenePlanDropZone() {
+  const dropZone = document.getElementById('scenePlanDropZone');
+  if (!dropZone) return;
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.style.borderColor = '#22c55e';
+    dropZone.style.background = 'rgba(34, 197, 94, 0.12)';
+  });
+
+  dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.style.borderColor = '#38bdf8';
+    dropZone.style.background = 'rgba(56, 189, 248, 0.05)';
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.style.borderColor = '#38bdf8';
+    dropZone.style.background = 'rgba(56, 189, 248, 0.05)';
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      loadScenePlanFromFile(e.dataTransfer.files[0]);
+    }
+  });
+}
+
 function importScenePlanFromInput() {
   const inputEl = document.getElementById('v5ScenePlanInput');
   if (!inputEl || !inputEl.value.trim()) {
-    alert("⚠️ Vui lòng dán Scene Plan JSON do AI trả về vào khung trước!");
+    alert("⚠️ Vui lòng dán Scene Plan JSON hoặc chọn file .json từ máy tính trước!");
     return;
   }
 
@@ -6052,10 +6017,10 @@ function importScenePlanFromInput() {
 
     smartAssetState.scenePlan = plan;
     scanProjectRequirementsUi();
-    switchWizardStep(4);
-    alert(`✅ Đã nạp thành công Scene Plan gồm ${plan.scenes.length} cảnh!\nĐã chuyển sang Bước 4 (Smart Asset Manager) để quét và chuẩn bị tài nguyên.`);
+    switchWizardStep(2);
+    alert(`✅ Đã nạp thành công Scene Plan gồm ${plan.scenes.length} cảnh!\nĐã chuyển sang Bước 2 (Smart Asset Manager) để quét và chuẩn bị tài nguyên.`);
   } catch (err) {
-    alert(`❌ Lỗi phân tích cú pháp JSON: ${err.message}\nVui lòng kiểm tra lại cấu trúc JSON do AI trả về.`);
+    alert(`❌ Lỗi phân tích cú pháp JSON: ${err.message}\nVui lòng kiểm tra lại cấu trúc JSON.`);
   }
 }
 
@@ -6064,19 +6029,22 @@ async function loadSmartAssetManagerUI() {
     smartAssetState.scenePlan = DEFAULT_V5_DEMO_SCENE_PLAN;
   }
   updateWizardDisplayUi();
+  setupScenePlanDropZone();
   await scanProjectRequirementsUi();
 }
 
 function loadDefaultAiStoryboardDemo() {
   smartAssetState.scenePlan = JSON.parse(JSON.stringify(DEFAULT_V5_DEMO_SCENE_PLAN));
   
-  const scriptInput = document.getElementById('v5ScriptInput');
-  if (scriptInput) {
-    scriptInput.value = "Năm 1945, siêu máy tính ENIAC ra đời, mở ra kỷ nguyên số của nhân loại. Đến thập niên 1950, linh kiện bán dẫn transistor xuất hiện, mở đầu cuộc cách mạng thu nhỏ kích thước máy tính. Vào những năm 1970, vi xử lý silicon xuất hiện, kết hợp hàng ngàn bóng bán dẫn trên một vi mạch duy nhất. Thập niên 1980 chứng kiến sự bùng nổ của máy tính cá nhân đưa công nghệ vào từng hộ gia đình và góc làm việc. Và ngày nay, kỷ nguyên số bùng nổ với laptop siêu mỏng, điện thoại thông minh và trí tuệ nhân tạo khắp mọi nơi.";
-  }
   const scenePlanInput = document.getElementById('v5ScenePlanInput');
   if (scenePlanInput) {
     scenePlanInput.value = JSON.stringify(DEFAULT_V5_DEMO_SCENE_PLAN, null, 2);
+  }
+
+  const infoEl = document.getElementById('selectedJsonFileInfo');
+  if (infoEl) {
+    infoEl.style.display = 'block';
+    infoEl.textContent = `📄 Đã nạp kịch bản mẫu: Sự Tiến Hóa Máy Tính (5 cảnh, 25 giây).`;
   }
 
   scanProjectRequirementsUi();
@@ -6499,7 +6467,7 @@ async function confirmAssetsAndProceedToSceneBuilder() {
   const data = await res.json();
   if (data.success) {
     alert("🚀 Hợp đồng tích hợp Automatic Scene Builder (Phase 3 Contract) đã sẵn sàng!");
-    switchWizardStep(5);
+    switchWizardStep(3);
   }
 }
 
@@ -7110,15 +7078,21 @@ window.importScriptFromTab1 = importScriptFromTab1;
 window.copyAiDirectorPackagePrompt = copyAiDirectorPackagePrompt;
 window.downloadAiDirectorPackageJson = downloadAiDirectorPackageJson;
 window.importScenePlanFromInput = importScenePlanFromInput;
+window.handleScenePlanFileSelected = handleScenePlanFileSelected;
+window.loadScenePlanFromFile = loadScenePlanFromFile;
+window.clearScenePlanInput = clearScenePlanInput;
+window.setupScenePlanDropZone = setupScenePlanDropZone;
 
 // Auto-initialize Tab 4 Wizard UI on page ready
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       if (typeof updateWizardDisplayUi === 'function') updateWizardDisplayUi();
+      if (typeof setupScenePlanDropZone === 'function') setupScenePlanDropZone();
     });
   } else {
     if (typeof updateWizardDisplayUi === 'function') updateWizardDisplayUi();
+    if (typeof setupScenePlanDropZone === 'function') setupScenePlanDropZone();
   }
 }
 
