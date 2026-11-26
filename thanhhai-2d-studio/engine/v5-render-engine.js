@@ -151,3 +151,4 @@ export class RenderCacheManager {
 }
 
 export const defaultRenderCache = new RenderCacheManager();
+

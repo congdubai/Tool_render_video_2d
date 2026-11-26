@@ -259,3 +259,4 @@ runPhase5ProofDemo().catch(err => {
   console.error('Lỗi chạy demo proof:', err);
   process.exit(1);
 });
+

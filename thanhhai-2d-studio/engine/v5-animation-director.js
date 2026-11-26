@@ -290,3 +290,4 @@ export function compileProjectAnimations(compiledScenes = [], scenePlan = {}) {
     scenes: results
   };
 }
+

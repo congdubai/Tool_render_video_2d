@@ -233,3 +233,4 @@ export class FfmpegAssembler {
 }
 
 export const defaultFfmpegAssembler = new FfmpegAssembler();
+
