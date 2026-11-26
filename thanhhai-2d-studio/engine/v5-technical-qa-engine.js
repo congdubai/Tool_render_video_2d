@@ -129,7 +129,25 @@ export class TechnicalQaEngine {
     const characterConsistency = this.checkCharacterConsistency(scenes);
     issues.push(...characterConsistency.issues);
 
-    // 7. Rendered Video Output File Validation
+    // 7. Missing Assets & Dependency Blocker Check
+    const missingAssets = Array.isArray(projectData.missingAssets) ? projectData.missingAssets : [];
+    if (missingAssets.length > 0) {
+      missingAssets.forEach(m => {
+        const reqId = m.id || m.requirementId || 'UNKNOWN_REQ';
+        const name = m.name || reqId;
+        const type = m.type || m.category || 'asset';
+        const reason = (m.reasons && m.reasons[0]) || m.reason || 'Chưa liên kết trong dự án';
+        issues.push({
+          severity: QA_SEVERITY.BLOCKER,
+          code: 'MISSING_REQUIRED_ASSET',
+          objectId: reqId,
+          description: `Thiếu tài nguyên bắt buộc: "${name}" (${type}) [${reqId}]. Lý do: ${reason}`,
+          suggestedFix: 'Mở Bước 2 (Smart Asset Manager) để gán tài nguyên hoặc tự vẽ bằng code (CODE GEN).'
+        });
+      });
+    }
+
+    // 8. Rendered Video Output File Validation
     if (projectData.outputPath) {
       const outPath = projectData.outputPath;
       if (!fs.existsSync(outPath)) {

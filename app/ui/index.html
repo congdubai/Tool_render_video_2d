@@ -1817,6 +1817,20 @@
           </div>
         </div>
 
+        <!-- B2. Cảnh Báo Tài Nguyên Thiếu & Chẩn Đoán Lỗi (Missing Assets Alert & Diagnostics) -->
+        <div id="prodMissingAssetsAlert" class="hidden" style="background: rgba(234, 179, 8, 0.12); border: 1px solid #eab308; border-radius: 6px; padding: 14px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="color: #facc15; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+              ⚠️ CẦN BỔ SUNG TÀI NGUYÊN (PHÁT HIỆN TÀI NGUYÊN CHƯA SẴN SÀNG)
+            </strong>
+            <span id="prodMissingAssetsCountBadge" class="badge badge-warning" style="background: #ca8a04; color: #fff; font-weight: 700; padding: 3px 8px; border-radius: 4px;">Thiếu 0 tài nguyên</span>
+          </div>
+          <p style="font-size: 12px; color: #cbd5e1; margin-bottom: 10px; line-height: 1.5;">
+            Production Orchestrator tạm dừng vì phát hiện tài nguyên chưa liên kết hoặc chưa hoàn thành vẽ vector bằng code. Bạn có thể nhấn trực tiếp nút chuyển sang Bước 2 để gán tài nguyên hoặc sinh tự động:
+          </p>
+          <div id="prodMissingAssetsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
         <!-- C. One-Click Production Control Bar -->
         <div style="display: flex; gap: 10px; flex-wrap: wrap; background: #1e293b; padding: 12px 16px; border-radius: 6px; border: 1px solid #334155; align-items: center;">
           <div style="display: flex; align-items: center; gap: 6px;">
@@ -1881,7 +1895,13 @@
             </div>
           </div>
           <div id="prodQaSummaryBox" style="font-size: 13px; color: #cbd5e1; padding: 8px 12px; background: #1e293b; border-radius: 4px;">
-            Trạng thái QA: Chưa phát hiện lỗi chặn (0 Blockers, 0 Errors, 0 Warnings).
+            Trạng thái QA: Chưa chạy kiểm định kỹ thuật (Nhấn "Chạy Technical QA" để phân tích).
+          </div>
+          <div style="margin-top: 14px; border-top: 1px solid #334155; padding-top: 12px;">
+            <h5 style="margin: 0 0 8px 0; color: #38bdf8; font-size: 13px;">📋 Chi Tiết Phân Tích Tài Nguyên Thiếu (Missing Assets Diagnostic Table):</h5>
+            <div id="prodAdvancedMissingAssetsContainer" style="font-size: 12px; color: #94a3b8; background: #1e293b; padding: 10px; border-radius: 4px;">
+              Đầy đủ 100% tài nguyên, không có tài nguyên nào bị thiếu.
+            </div>
           </div>
         </div>
 
@@ -1914,12 +1934,12 @@
               <div style="background: #1e293b; padding: 12px; border-radius: 6px; border: 1px solid #334155;">
                 <div style="font-weight: 700; color: #38bdf8; margin-bottom: 6px;">THÔNG TIN KỸ THUẬT VIDEO:</div>
                 <div style="display: grid; grid-template-columns: 140px 1fr; gap: 4px; color: #94a3b8;">
-                  <span>Đường dẫn file:</span> <code id="prodInfoPath" style="color: #cbd5e1; word-break: break-all;">out/v5_demo_final.mp4</code>
-                  <span>Độ phân giải:</span> <span id="prodInfoResolution" style="color: #cbd5e1;">1920x1080</span>
-                  <span>FPS:</span> <span id="prodInfoFps" style="color: #cbd5e1;">30 fps</span>
+                  <span>Đường dẫn file:</span> <code id="prodInfoPath" style="color: #cbd5e1; word-break: break-all;">--</code>
+                  <span>Độ phân giải:</span> <span id="prodInfoResolution" style="color: #cbd5e1;">--</span>
+                  <span>FPS:</span> <span id="prodInfoFps" style="color: #cbd5e1;">--</span>
                   <span>Dung lượng:</span> <span id="prodInfoSize" style="color: #cbd5e1;">--</span>
-                  <span>Audio Codec:</span> <span id="prodInfoAudio" style="color: #cbd5e1;">AAC Stereo</span>
-                  <span>Verification:</span> <span id="prodInfoVerify" style="color: #22c55e; font-weight: 700;">Đã kiểm định hợp lệ</span>
+                  <span>Audio Codec:</span> <span id="prodInfoAudio" style="color: #cbd5e1;">--</span>
+                  <span>Verification:</span> <span id="prodInfoVerify" style="color: #94a3b8; font-weight: 600;">Chưa kiểm định (Chờ sản xuất)</span>
                 </div>
               </div>
             </div>
@@ -2677,7 +2697,7 @@
   <!-- Toast thông báo -->
   <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=5.3.4"></script>
+  <script src="app.js?v=5.3.5"></script>
 </body>
 </html>
 

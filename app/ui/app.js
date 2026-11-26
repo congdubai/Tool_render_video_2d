@@ -7244,12 +7244,19 @@ async function triggerOneClickProduction() {
   if (btnCancel) btnCancel.disabled = false;
 
   try {
+    // Synchronize project ID, revision, scenePlan, and bindings across all steps
+    const activePlan = smartAssetState.scenePlan || appState.aiStoryboardPlan || DEFAULT_V5_DEMO_SCENE_PLAN;
+    const activeId = smartAssetState.projectId || appState.activeAiProject || 'demo_v5_procedural_15s';
+    const activeRevision = smartAssetState.revision || '1.0';
+    const activeBindings = smartAssetState.bindings || {};
+
     const projectData = {
-      id: appState.activeAiProject || 'v5_production_demo',
-      revision: '1.0',
-      scenePlan: appState.aiStoryboardPlan || { scenes: [
-        { id: 'scene_001', duration: 4, background: 'laboratory', characters: [{ id: 'doc', action: 'walk' }] }
-      ] }
+      id: activeId,
+      projectId: activeId,
+      revision: activeRevision,
+      scenePlan: activePlan,
+      bindings: activeBindings,
+      styleProfile: 'vietnamese_cartoon'
     };
 
     const res = await fetch('/api/v5/production/orchestrate', {
@@ -7264,10 +7271,18 @@ async function triggerOneClickProduction() {
         stateBadge.textContent = 'WAITING_FOR_ASSETS';
         stateBadge.style.backgroundColor = '#eab308';
       }
-      if (stageLabel) stageLabel.textContent = `Tạm dừng: Thiếu ${data.missingAssets?.length || 0} tài nguyên bắt buộc.`;
-      showToast(`Thiếu ${data.missingAssets?.length || 0} tài nguyên. Vui lòng bổ sung tại Bước 4.`, 'warning');
+      const count = data.missingAssets?.length || 0;
+      if (stageLabel) stageLabel.textContent = `Tạm dừng: Thiếu ${count} tài nguyên bắt buộc.`;
+      
+      // Render full missing assets diagnostics with 1-click jump button
+      renderMissingAssetsInProductionUi(data.missingAssets || []);
+
+      showToast(`Thiếu ${count} tài nguyên bắt buộc. Vui lòng bổ sung tại Bước 2.`, 'warning');
       return;
     }
+
+    // If success, clear any previous missing asset warnings
+    renderMissingAssetsInProductionUi([]);
 
     if (data.jobId) {
       currentProductionJobId = data.jobId;
@@ -7286,7 +7301,10 @@ async function triggerOneClickProduction() {
       if (data.finalOutput) {
         updateFinalOutputUi(data.finalOutput);
       }
-      showToast('🎉 Tự động sản xuất video hoàn tất!', 'success');
+      if (data.qaResult) {
+        renderQaResultInUi(data.qaResult);
+      }
+      showToast('🎉 Tự động sản xuất video hoàn tất và đã kiểm định hợp lệ!', 'success');
     }
   } catch (err) {
     if (stateBadge) {
@@ -7298,6 +7316,131 @@ async function triggerOneClickProduction() {
   } finally {
     if (btnStart) btnStart.disabled = false;
   }
+}
+
+/**
+ * Renders missing asset diagnostics in both main view and Advanced Mode with 1-click jump button
+ */
+function renderMissingAssetsInProductionUi(missingAssets = []) {
+  const alertBox = document.getElementById('prodMissingAssetsAlert');
+  const countBadge = document.getElementById('prodMissingAssetsCountBadge');
+  const listContainer = document.getElementById('prodMissingAssetsList');
+  const advContainer = document.getElementById('prodAdvancedMissingAssetsContainer');
+  const qaBox = document.getElementById('prodQaSummaryBox');
+
+  if (!missingAssets || missingAssets.length === 0) {
+    if (alertBox) alertBox.classList.add('hidden');
+    if (advContainer) {
+      advContainer.innerHTML = `<span style="color: #22c55e; font-weight: 600;">✔ Đầy đủ 100% tài nguyên, không có tài nguyên nào bị thiếu.</span>`;
+    }
+    return;
+  }
+
+  if (alertBox) alertBox.classList.remove('hidden');
+  if (countBadge) countBadge.textContent = `Thiếu ${missingAssets.length} tài nguyên`;
+
+  let htmlList = '';
+  let advHtml = `
+    <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px;">
+      <thead>
+        <tr style="border-bottom: 1px solid #475569; color: #cbd5e1; text-align: left;">
+          <th style="padding: 6px;">ID</th>
+          <th style="padding: 6px;">Tên</th>
+          <th style="padding: 6px;">Loại</th>
+          <th style="padding: 6px;">Cảnh Dùng</th>
+          <th style="padding: 6px;">Nguyên Nhân</th>
+          <th style="padding: 6px; text-align: center;">Thao Tác</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  missingAssets.forEach(m => {
+    const reqId = m.id || m.requirementId || 'UNKNOWN_REQ';
+    const name = m.name || reqId;
+    const cat = m.category || m.type || 'Tài nguyên';
+    const scenes = (m.sceneUsages && m.sceneUsages.length > 0) ? m.sceneUsages.join(', ') : (m.scenes?.join(', ') || 'Toàn dự án');
+    const reason = (m.reasons && m.reasons[0]) || m.reason || 'Chưa liên kết trong thư viện hoặc chưa vẽ bằng code';
+
+    htmlList += `
+      <div style="display: flex; justify-content: space-between; align-items: center; background: #1e293b; border: 1px solid #475569; padding: 10px 14px; border-radius: 6px; gap: 10px; flex-wrap: wrap;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <strong style="color: #f87171; font-size: 13px;">${escapeHtml(name)}</strong>
+            <code style="background: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #94a3b8;">${escapeHtml(reqId)}</code>
+            <span style="font-size: 11px; background: #334155; color: #38bdf8; padding: 2px 6px; border-radius: 4px;">${escapeHtml(cat)}</span>
+          </div>
+          <div style="font-size: 12px; color: #cbd5e1; margin-top: 3px;">
+            <span>🎬 Sử dụng trong: <strong>${escapeHtml(scenes)}</strong></span>
+            <span style="margin-left: 12px; color: #fbbf24;">⚠️ Nguyên nhân: ${escapeHtml(reason)}</span>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-primary" style="font-weight: 600; white-space: nowrap;" onclick="jumpToStep2ForMissingAsset('${escapeHtml(reqId)}')">
+          🎯 Đến Bước 2 Để Gán Tài Nguyên
+        </button>
+      </div>
+    `;
+
+    advHtml += `
+      <tr style="border-bottom: 1px solid #334155;">
+        <td style="padding: 6px;"><code style="color: #38bdf8;">${escapeHtml(reqId)}</code></td>
+        <td style="padding: 6px; color: #f1f5f9; font-weight: 600;">${escapeHtml(name)}</td>
+        <td style="padding: 6px; color: #cbd5e1;">${escapeHtml(cat)}</td>
+        <td style="padding: 6px; color: #94a3b8;">${escapeHtml(scenes)}</td>
+        <td style="padding: 6px; color: #fbbf24;">${escapeHtml(reason)}</td>
+        <td style="padding: 6px; text-align: center;">
+          <button class="btn btn-xs btn-outline" onclick="jumpToStep2ForMissingAsset('${escapeHtml(reqId)}')">Gán Tại Bước 2</button>
+        </td>
+      </tr>
+    `;
+  });
+
+  advHtml += `</tbody></table>`;
+
+  if (listContainer) listContainer.innerHTML = htmlList;
+  if (advContainer) advContainer.innerHTML = advHtml;
+
+  if (qaBox) {
+    qaBox.innerHTML = `
+      <strong style="color: #ef4444;">Kết Quả Kiểm Định QA: PHÁT HIỆN LỖI CHẶN</strong><br/>
+      • Lỗi chặn (Blockers): <span style="color:#ef4444; font-weight:700;">${missingAssets.length}</span> (Thiếu ${missingAssets.length} tài nguyên bắt buộc)<br/>
+      • Đề xuất xử lý: <em>Nhấn "Đến Bước 2 Để Gán Tài Nguyên" để chọn hoặc vẽ bằng code</em>
+    `;
+  }
+}
+
+/**
+ * 1-click button to jump directly to missing asset in Step 2 (Smart Asset Manager)
+ */
+function jumpToStep2ForMissingAsset(reqId) {
+  // 1. Switch to Step 2
+  switchWizardStep(2);
+
+  // 2. Clear missing only filter or set search filter
+  smartAssetState.missingOnly = false;
+  if (reqId) {
+    const cleanTerm = reqId.replace(/^REQ_(BG|PROP|CHAR|RIG|VFX)_/i, '').toLowerCase();
+    smartAssetState.searchTerm = cleanTerm;
+    const searchInput = document.getElementById('smartAssetSearchInput');
+    if (searchInput) searchInput.value = cleanTerm;
+  }
+
+  // 3. Re-render Step 2
+  renderSmartAssetRequirementsUi();
+
+  showToast(`Đã chuyển sang Bước 2 để gán tài nguyên "${reqId}".`, 'info');
+}
+
+function renderQaResultInUi(qa) {
+  const box = document.getElementById('prodQaSummaryBox');
+  if (!box || !qa) return;
+  const isOk = qa.isValid && (!qa.blockers || qa.blockers.length === 0);
+  box.innerHTML = `
+    <strong>Kết Quả Kiểm Định QA:</strong><br/>
+    • Lỗi chặn (Blockers): <span style="color:${isOk ? '#22c55e' : '#ef4444'}; font-weight:700;">${qa.blockers?.length || 0}</span><br/>
+    • Cảnh báo (Warnings): <span style="color:#eab308; font-weight:700;">${qa.warnings?.length || 0}</span><br/>
+    • Đánh giá nhịp độ kể chuyện: <em>${qa.storytellingReport?.pacingAssessment || 'Cân bằng'}</em>
+  `;
 }
 
 function pollProductionJobProgress(jobId) {
@@ -7379,9 +7522,26 @@ async function cancelCurrentProductionJob() {
 
 async function runTechnicalQaUi() {
   try {
+    const activePlan = smartAssetState.scenePlan || appState.aiStoryboardPlan || null;
+    const activeId = smartAssetState.projectId || appState.activeAiProject || 'demo_v5_procedural_15s';
+    const activeBindings = smartAssetState.bindings || {};
+
+    const missingReqs = (smartAssetState.readiness?.missingRequirements || []).map(r => ({
+      id: r.id,
+      requirementId: r.id,
+      name: r.name,
+      category: r.category,
+      reasons: [r.reason || 'Chưa liên kết tài nguyên']
+    }));
+
     const projectData = {
-      scenes: appState.aiStoryboardPlan?.scenes || []
+      id: activeId,
+      projectId: activeId,
+      scenes: activePlan?.scenes || [],
+      bindings: activeBindings,
+      missingAssets: missingReqs
     };
+
     const res = await fetch('/api/v5/production/qa', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -7390,16 +7550,12 @@ async function runTechnicalQaUi() {
     const data = await res.json();
     if (data.success && data.qaResult) {
       const qa = data.qaResult;
-      const box = document.getElementById('prodQaSummaryBox');
-      if (box) {
-        box.innerHTML = `
-          <strong>Kết Quả Kiểm Định QA:</strong><br/>
-          • Lỗi chặn (Blockers): <span style="color:${qa.blockers.length ? '#ef4444' : '#22c55e'}; font-weight:700;">${qa.blockers.length}</span><br/>
-          • Cảnh báo (Warnings): <span style="color:#eab308; font-weight:700;">${qa.warnings.length}</span><br/>
-          • Đánh giá nhịp độ kể chuyện: <em>${qa.storytellingReport?.pacingAssessment || 'Cân bằng'}</em>
-        `;
+      renderQaResultInUi(qa);
+      if (qa.blockers?.length > 0) {
+        showToast(`Technical QA: Phát hiện ${qa.blockers.length} lỗi chặn!`, 'error');
+      } else {
+        showToast(`Technical QA: 0 Blockers, ${qa.warnings?.length || 0} Warnings. Đạt chuẩn!`, 'success');
       }
-      showToast(`Technical QA: ${qa.blockers.length} Blockers, ${qa.warnings.length} Warnings.`, qa.blockers.length ? 'error' : 'success');
     }
   } catch (e) {
     showToast(e.message, 'error');
@@ -7408,8 +7564,9 @@ async function runTechnicalQaUi() {
 
 async function runAutoSafeRepairUi() {
   try {
+    const activePlan = smartAssetState.scenePlan || appState.aiStoryboardPlan || null;
     const projectData = {
-      scenes: appState.aiStoryboardPlan?.scenes || []
+      scenes: activePlan?.scenes || []
     };
     const res = await fetch('/api/v5/production/qa', {
       method: 'POST',
@@ -7435,11 +7592,16 @@ function updateFinalOutputUi(output) {
   const infoRes = document.getElementById('prodInfoResolution');
   const infoFps = document.getElementById('prodInfoFps');
   const infoSize = document.getElementById('prodInfoSize');
+  const infoVerify = document.getElementById('prodInfoVerify');
   const dlBtn = document.getElementById('prodDownloadMp4Btn');
 
   if (!output || !output.outputPath || !output.fileSize || output.fileSize < 1024) {
-    if (infoPath) infoPath.textContent = output?.outputPath || 'Chưa có file video hợp lệ.';
-    if (infoSize) infoSize.textContent = '0 MB (Lỗi render hoặc file rỗng)';
+    if (infoPath) infoPath.textContent = output?.outputPath || '--';
+    if (infoSize) infoSize.textContent = '--';
+    if (infoVerify) {
+      infoVerify.textContent = 'Chưa kiểm định (Lỗi kết xuất)';
+      infoVerify.style.color = '#ef4444';
+    }
     showToast('⚠️ Video kết xuất không hợp lệ (file rỗng hoặc 0 bytes). Vui lòng kiểm tra lại.', 'error');
     return;
   }
@@ -7454,6 +7616,11 @@ function updateFinalOutputUi(output) {
   if (infoRes && output.resolution) infoRes.textContent = output.resolution;
   if (infoFps && output.fps) infoFps.textContent = `${output.fps} fps`;
   if (infoSize && output.fileSize) infoSize.textContent = `${(output.fileSize / (1024 * 1024)).toFixed(2)} MB`;
+  if (infoVerify) {
+    infoVerify.textContent = 'Đã kiểm định hợp lệ (FFprobe Verified)';
+    infoVerify.style.color = '#22c55e';
+    infoVerify.style.fontWeight = '700';
+  }
 }
 
 function exportProjectPackageZip() {
@@ -7463,12 +7630,16 @@ function exportProjectPackageZip() {
 // Global window bindings for inline HTML handlers
 window.toggleProductionUiMode = toggleProductionUiMode;
 window.triggerOneClickProduction = triggerOneClickProduction;
+window.renderMissingAssetsInProductionUi = renderMissingAssetsInProductionUi;
+window.jumpToStep2ForMissingAsset = jumpToStep2ForMissingAsset;
+window.renderQaResultInUi = renderQaResultInUi;
 window.pauseCurrentProductionJob = pauseCurrentProductionJob;
 window.resumeCurrentProductionJob = resumeCurrentProductionJob;
 window.cancelCurrentProductionJob = cancelCurrentProductionJob;
 window.runTechnicalQaUi = runTechnicalQaUi;
 window.runAutoSafeRepairUi = runAutoSafeRepairUi;
 window.clearRenderCacheUi = clearRenderCacheUi;
+window.updateFinalOutputUi = updateFinalOutputUi;
 window.exportProjectPackageZip = exportProjectPackageZip;
 window.loadSmartAssetManagerUI = loadSmartAssetManagerUI;
 window.loadDefaultAiStoryboardDemo = loadDefaultAiStoryboardDemo;

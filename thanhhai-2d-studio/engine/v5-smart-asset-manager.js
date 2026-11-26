@@ -27,15 +27,18 @@ import { getStyleProfile, buildCharacterContinuityProfile } from './v5-style-pro
 
 export class SmartAssetManager {
   constructor(projectDir, scenePlan = {}) {
-    this.projectDir = projectDir;
+    const resolvedProjectDir = (projectDir && !path.isAbsolute(projectDir) && !projectDir.includes(path.sep) && !projectDir.includes('/'))
+      ? path.resolve(process.cwd(), 'imported_projects', projectDir)
+      : projectDir;
+    this.projectDir = resolvedProjectDir;
     this.scenePlan = scenePlan;
     this.dependencyGraph = new AssetDependencyGraph();
-    this.bindingRegistry = new AssetBindingRegistry(projectDir, this.dependencyGraph);
+    this.bindingRegistry = new AssetBindingRegistry(resolvedProjectDir, this.dependencyGraph);
     this.unassignedAssets = [];
     this.contentHashes = new Map();
 
-    if (projectDir) {
-      this.bindingRegistry.load(projectDir);
+    if (resolvedProjectDir) {
+      this.bindingRegistry.load(resolvedProjectDir);
     }
   }
 
@@ -223,14 +226,48 @@ export class SmartAssetManager {
 }
 
 export function resolveAssetRequirements(scenePlan = {}, options = {}) {
-  const manager = new SmartAssetManager(null, scenePlan);
+  const projectDir = options.projectDir || options.projectId || (scenePlan?.project?.id ? path.resolve(process.cwd(), 'imported_projects', scenePlan.project.id) : null);
+  const manager = new SmartAssetManager(projectDir, scenePlan);
+
+  // If bindings dictionary passed in options, bind them into registry
+  if (options.bindings && typeof options.bindings === 'object') {
+    for (const [reqId, bVal] of Object.entries(options.bindings)) {
+      const assetId = typeof bVal === 'object' ? (bVal.resolvedAssetId || bVal.assetId || bVal.id) : bVal;
+      if (assetId) {
+        manager.bindingRegistry.bind(reqId, assetId, typeof bVal === 'object' ? bVal : {});
+      }
+    }
+  }
+
   const result = manager.scanAndResolve(options);
-  const resolutions = result?.resolution?.results || [];
-  const missing = resolutions.filter(r => r.status === 'missing' || !r.isResolved);
+  const canonicalMap = new Map((result?.dedup?.canonicalRequirements || []).map(c => [c.id, c]));
+
+  const resolutions = (result?.resolution?.results || []).map(r => {
+    const canon = canonicalMap.get(r.requirementId) || {};
+    const isReady = r.status === 'READY' || (Boolean(r.resolvedAssetId) && r.status !== 'MISSING');
+    return {
+      ...r,
+      id: r.requirementId,
+      requirementId: r.requirementId,
+      name: canon.name || r.name || r.requirementId,
+      category: canon.category || r.category || 'unknown',
+      type: canon.type || r.type || canon.category || 'unknown',
+      sceneUsages: canon.requiredByScenes || canon.sceneUsages || r.sceneUsages || [],
+      scenes: canon.requiredByScenes || canon.sceneUsages || r.sceneUsages || [],
+      isResolved: isReady,
+      status: isReady ? 'READY' : (r.status || 'MISSING'),
+      reasons: r.reasons || (r.reason ? [r.reason] : ['Chưa được gán tài nguyên phù hợp']),
+      reason: (r.reasons && r.reasons.length > 0) ? r.reasons.join('; ') : (r.reason || 'Chưa được gán tài nguyên phù hợp')
+    };
+  });
+
+  const missing = resolutions.filter(r => !r.isResolved);
   return {
     success: missing.length === 0,
     missingAssets: missing,
-    resolutions
+    resolutions,
+    dedup: result?.dedup,
+    readiness: result?.readiness
   };
 }
 
