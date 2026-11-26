@@ -3996,9 +3996,45 @@ const universalAssetState = {
   }
 };
 
+// Chuyển đổi góc nhìn trong Tab 3 (Nhân vật vs Tài nguyên dùng chung)
+function switchTab3View(view) {
+  const btnAll = document.getElementById('tab3SubBtn_all');
+  const btnChars = document.getElementById('tab3SubBtn_chars');
+  const btnAssets = document.getElementById('tab3SubBtn_assets');
+  
+  const charsSection = document.getElementById('tab3CharactersSection');
+  const assetsSection = document.getElementById('universalAssetLibrarySection');
+
+  [btnAll, btnChars, btnAssets].forEach(b => {
+    if (b) {
+      b.classList.remove('btn-primary', 'active');
+      b.classList.add('btn-secondary');
+    }
+  });
+
+  if (view === 'chars') {
+    if (btnChars) { btnChars.classList.add('btn-primary', 'active'); btnChars.classList.remove('btn-secondary'); }
+    if (charsSection) charsSection.style.display = 'block';
+    if (assetsSection) assetsSection.style.display = 'none';
+  } else if (view === 'assets') {
+    if (btnAssets) { btnAssets.classList.add('btn-primary', 'active'); btnAssets.classList.remove('btn-secondary'); }
+    if (charsSection) charsSection.style.display = 'none';
+    if (assetsSection) {
+      assetsSection.style.display = 'block';
+      loadUniversalAssetsList();
+    }
+  } else {
+    // all
+    if (btnAll) { btnAll.classList.add('btn-primary', 'active'); btnAll.classList.remove('btn-secondary'); }
+    if (charsSection) charsSection.style.display = 'block';
+    if (assetsSection) assetsSection.style.display = 'block';
+  }
+}
+
 // Cuộn mượt đến bảng Thư Viện Tài Nguyên (Tab 3)
 function scrollToAssetLibrary() {
   switchTab(3);
+  switchTab3View('assets');
   setTimeout(() => {
     const el = document.getElementById('universalAssetLibrarySection');
     if (el) {
@@ -4012,6 +4048,7 @@ function scrollToAssetLibrary() {
 // Cuộn mượt lên khu vực Quản Lý Nhân Vật (Tab 3)
 function scrollToCharacterLibrary() {
   switchTab(3);
+  switchTab3View('chars');
   setTimeout(() => {
     const el = document.getElementById('tabContent3');
     if (el) {
