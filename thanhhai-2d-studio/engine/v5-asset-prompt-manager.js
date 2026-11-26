@@ -4,8 +4,37 @@
 
 import { getStyleProfile, buildCharacterContinuityProfile } from './v5-style-profiles.js';
 
+export const NON_IMAGE_TYPES = new Set([
+  'character_rig',
+  'anchor_point',
+  'action',
+  'composite_action',
+  'camera',
+  'weather'
+]);
+
+export function isVisualAssetRequirement(req = {}) {
+  const type = req.type || req.category;
+  return !NON_IMAGE_TYPES.has(type);
+}
+
 export function buildAssetGenerationPrompt(requirement = {}, options = {}) {
   const type = requirement.type || requirement.category || 'prop';
+
+  // Do not generate image prompts for structural / procedural / engine capabilities
+  if (NON_IMAGE_TYPES.has(type)) {
+    return {
+      requirementId: requirement.id,
+      isNonImageAsset: true,
+      suggestedFilename: '',
+      prompt: '',
+      negativePrompt: '',
+      aspectRatio: '1:1',
+      recommendedDimensions: { width: 0, height: 0 },
+      transparentBackground: false
+    };
+  }
+
   const styleProfileId = requirement.styleProfileId || options.styleProfileId || 'educational_cartoon';
   const style = getStyleProfile(styleProfileId) || {};
   const continuity = buildCharacterContinuityProfile(options.protagonist || 'doc');
@@ -49,12 +78,13 @@ export function buildAssetGenerationPrompt(requirement = {}, options = {}) {
 }
 
 export function exportPromptsMarkdown(requirements = [], options = {}) {
+  const visualReqs = requirements.filter(isVisualAssetRequirement);
   let md = `# DANH SÁCH PROMPT SINH ẢNH AI — THANH HAI 2D STUDIO V5\n\n`;
   md += `> Tự động tạo bởi Smart Asset Manager V5. Copy từng prompt vào Midjourney, ChatGPT DALL-E, Google Flow, hoặc Stable Diffusion.\n\n`;
   md += `---\n\n`;
 
-  for (let i = 0; i < requirements.length; i++) {
-    const req = requirements[i];
+  for (let i = 0; i < visualReqs.length; i++) {
+    const req = visualReqs[i];
     const pInfo = buildAssetGenerationPrompt(req, options);
 
     md += `### ${i + 1}. [${req.type.toUpperCase()}] ${req.name || req.id}\n`;
@@ -72,8 +102,9 @@ export function exportPromptsMarkdown(requirements = [], options = {}) {
 }
 
 export function exportFilenameMappingCsv(requirements = [], options = {}) {
+  const visualReqs = requirements.filter(isVisualAssetRequirement);
   let csv = 'requirement_id,suggested_filename,type,name,scenes,transparent,dimensions\n';
-  for (const req of requirements) {
+  for (const req of visualReqs) {
     const pInfo = buildAssetGenerationPrompt(req, options);
     const scenes = (req.requiredByScenes || []).join(';');
     csv += `"${req.id}","${pInfo.suggestedFilename}","${req.type}","${(req.name || '').replace(/"/g, '""')}","${scenes}","${pInfo.transparentBackground}","${pInfo.recommendedDimensions.width}x${pInfo.recommendedDimensions.height}"\n`;

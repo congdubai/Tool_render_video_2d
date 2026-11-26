@@ -4,6 +4,7 @@
 
 import { getAsset, listAssets } from '../../lib/asset-registry.mjs';
 import { CAPABILITY_REGISTRY } from './v5-capability-registry.js';
+import { COMPOSITE_ACTION_TEMPLATES } from './action-engine-v4.js';
 
 // Predefined semantic aliases mapping for rule-based matching without local LLM
 const SEMANTIC_ALIASES = {
@@ -60,7 +61,7 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
   }
 
   // Also check built-in character / rig exact match
-  if (reqType === 'character' || reqType === 'character_rig') {
+  if (reqType === 'character') {
     const knownChars = ['doc', 'jake'];
     const matchedChar = knownChars.find(c => c === targetId.toLowerCase() || targetId.toLowerCase().includes(c));
     if (matchedChar) {
@@ -73,6 +74,44 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
         status: 'READY',
         reasons: [`Khớp chính xác nhân vật tích hợp "${matchedChar}" (Mode A)`],
         asset: { id: matchedChar, type: 'character', mode: 'built_in' }
+      };
+    }
+  }
+
+  // Built-in Character Rig for Mode A characters (Doc & Jake)
+  if (reqType === 'character_rig') {
+    const knownChars = ['doc', 'jake'];
+    const matchedChar = knownChars.find(c => c === targetId.toLowerCase() || targetId.toLowerCase().includes(c));
+    if (matchedChar) {
+      return {
+        requirementId: reqId,
+        resolvedAssetId: matchedChar,
+        resolutionMethod: 'BUILTIN_RIG',
+        matchScore: 100,
+        confidence: 'EXACT_MATCH',
+        status: 'READY',
+        reasons: [`Rig nhân vật tích hợp Mode A "${matchedChar}" đã có sẵn đầy đủ cấu trúc xương`],
+        asset: { id: matchedChar, type: 'character_rig', mode: 'built_in' }
+      };
+    }
+  }
+
+  // Built-in Hand Anchors for Rig
+  if (reqType === 'anchor_point') {
+    const norm = targetId.toLowerCase();
+    const isDocOrJake = norm.includes('doc') || norm.includes('jake');
+    const knownAnchors = ['left_hand', 'right_hand', 'head_top', 'chest', 'hand'];
+    const hasValidAnchor = knownAnchors.some(a => norm.includes(a));
+    if (isDocOrJake || hasValidAnchor) {
+      return {
+        requirementId: reqId,
+        resolvedAssetId: targetId,
+        resolutionMethod: 'BUILTIN_RIG_ANCHOR',
+        matchScore: 100,
+        confidence: 'EXACT_MATCH',
+        status: 'READY',
+        reasons: [`Điểm neo "${targetId}" đã sẵn có trên hệ thống xương nhân vật (Mode A)`],
+        anchor: { x: 0.5, y: 0.85 }
       };
     }
   }
@@ -95,11 +134,81 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
   }
 
   // -------------------------------------------------------------
+  // Expressions Check (Built-in + Assets)
+  // -------------------------------------------------------------
+  if (reqType === 'expression') {
+    const exprAsset = getAsset(`expr_${targetId}`) || getAsset(targetId);
+    if (exprAsset) {
+      return {
+        requirementId: reqId,
+        resolvedAssetId: exprAsset.id,
+        resolutionMethod: 'EXACT_ASSET_ID',
+        matchScore: 100,
+        confidence: 'EXACT_MATCH',
+        status: 'READY',
+        reasons: [`Khớp chính xác biểu cảm "${exprAsset.id}" trong Thư viện V4`],
+        asset: exprAsset
+      };
+    }
+    const standardExpressions = new Set([
+      'neutral', 'happy', 'laughing', 'thoughtful', 'thinking', 'focused',
+      'surprised', 'shocked', 'curious', 'sad', 'crying', 'dizzy', 'talking',
+      'furious', 'angry', 'love_eyes', 'scared'
+    ]);
+    const normExpr = targetId.toLowerCase().replace(/^expr_/, '');
+    if (standardExpressions.has(normExpr)) {
+      return {
+        requirementId: reqId,
+        resolvedAssetId: `expr_${normExpr}`,
+        resolutionMethod: 'BUILTIN_EXPRESSION',
+        matchScore: 100,
+        confidence: 'EXACT_MATCH',
+        status: 'READY',
+        reasons: [`Biểu cảm nét mặt "${normExpr}" có sẵn trong thư viện biểu cảm hoạt hình`],
+        expression: { id: normExpr }
+      };
+    }
+  }
+
+  // -------------------------------------------------------------
   // Capability Check for Actions / VFX / Weather
   // -------------------------------------------------------------
   if (reqType === 'action' || reqType === 'composite_action') {
+    // 1. Exact action asset in Universal Library
+    const actionAsset = getAsset(targetId) || getAsset(`action_${targetId}`) || getAsset(`composite_${targetId}`);
+    if (actionAsset) {
+      return {
+        requirementId: reqId,
+        resolvedAssetId: actionAsset.id,
+        resolutionMethod: 'EXACT_ASSET_ID',
+        matchScore: 100,
+        confidence: 'EXACT_MATCH',
+        status: 'READY',
+        reasons: [`Khớp chính xác file hành động "${actionAsset.id}" trong Thư viện V4`],
+        asset: actionAsset
+      };
+    }
+
+    // 2. Composite Action Templates
+    const normAct = targetId.toLowerCase();
+    const compTemplates = COMPOSITE_ACTION_TEMPLATES || {};
+    const foundComp = compTemplates[normAct] || compTemplates[`composite_${normAct}`] || compTemplates[normAct.replace(/^composite_/, '')];
+    if (foundComp) {
+      return {
+        requirementId: reqId,
+        resolvedAssetId: foundComp.id,
+        resolutionMethod: 'COMPOSITE_ACTION_TEMPLATE',
+        matchScore: 100,
+        confidence: 'EXACT_MATCH',
+        status: 'READY',
+        reasons: [`Hành động phức hợp "${foundComp.id}" được hỗ trợ sẵn bởi Composite Action Engine`],
+        action: foundComp
+      };
+    }
+
+    // 3. CAPABILITY_REGISTRY composite actions
     const verifiedActions = CAPABILITY_REGISTRY.compositeActions || [];
-    const foundAction = verifiedActions.find(a => a.id === targetId || a.id === `composite_${targetId}`);
+    const foundAction = verifiedActions.find(a => a.id === targetId || a.id === `composite_${targetId}` || a.id === targetId.replace(/^composite_/, ''));
     if (foundAction) {
       return {
         requirementId: reqId,
@@ -111,17 +220,41 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
         reasons: [`Hành động "${foundAction.id}" được hỗ trợ đầy đủ bởi engine`],
         action: foundAction
       };
-    } else {
+    }
+
+    // 4. Standard Built-in Procedural Actions supported by Universal Motion Engine
+    const STANDARD_PROCEDURAL_ACTIONS = new Set([
+      'idle', 'idle_talk', 'idle_breathe', 'stand', 'talk', 'talking',
+      'walk', 'walk_cycle', 'run', 'run_cycle', 'sneak_walk', 'approach',
+      'sit', 'sit_down', 'wave_hand', 'raise_arm', 'point_forward',
+      'scratch_head', 'fall_backward', 'celebrate', 'thinking', 'thoughtful',
+      'look_around', 'bow', 'shrug', 'nod', 'shake_head', 'dance', 'jump',
+      'surprised', 'shocked', 'angry', 'laughing'
+    ]);
+    const bareAct = normAct.replace(/^act_/, '').replace(/^action_/, '');
+    if (STANDARD_PROCEDURAL_ACTIONS.has(bareAct) || STANDARD_PROCEDURAL_ACTIONS.has(normAct)) {
       return {
         requirementId: reqId,
-        resolvedAssetId: null,
-        resolutionMethod: 'UNSUPPORTED_ACTION_CAPABILITY',
-        matchScore: 0,
-        confidence: 'MISSING_CAPABILITY',
-        status: 'MISSING_CAPABILITY',
-        reasons: [`Engine chưa hỗ trợ diễn hoạt hành động "${targetId}". Cần phương án thay thế hoặc AI Repair Package.`]
+        resolvedAssetId: bareAct,
+        resolutionMethod: 'BUILTIN_ACTION_ENGINE',
+        matchScore: 100,
+        confidence: 'EXACT_MATCH',
+        status: 'READY',
+        reasons: [`Hành động "${bareAct}" được hỗ trợ đầy đủ bởi Universal Motion Engine V4`],
+        action: { id: bareAct, type: 'action', mode: 'procedural' }
       };
     }
+
+    // 5. Truly Unsupported Action
+    return {
+      requirementId: reqId,
+      resolvedAssetId: null,
+      resolutionMethod: 'UNSUPPORTED_ACTION_CAPABILITY',
+      matchScore: 0,
+      confidence: 'MISSING_CAPABILITY',
+      status: 'MISSING_CAPABILITY',
+      reasons: [`Engine chưa hỗ trợ diễn hoạt hành động "${targetId}". Cần phương án thay thế hoặc AI Repair Package.`]
+    };
   }
 
   // -------------------------------------------------------------

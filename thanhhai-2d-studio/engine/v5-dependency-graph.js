@@ -23,6 +23,14 @@ export class AssetDependencyGraph {
   }
 
   populate(scanResult = {}) {
+    // Clear all existing state before populating to avoid node accumulation across scans
+    this.sceneToRequirements.clear();
+    this.requirementToScenes.clear();
+    this.dependencies.clear();
+    this.dependants.clear();
+    this.requirementStatus.clear();
+    this.sceneStatus.clear();
+
     const { requirements = [], sceneRequirements = {} } = scanResult;
 
     // Register requirements

@@ -10,7 +10,7 @@ export { scanScenePlanRequirements } from './v5-requirement-scanner.js';
 export { AssetDependencyGraph } from './v5-dependency-graph.js';
 export { resolveAssetRequirement, batchResolveRequirements } from './v5-asset-resolver.js';
 export { deduplicateAssetRequirements, isDistinctVariant } from './v5-asset-deduplicator.js';
-export { buildAssetGenerationPrompt, exportPromptsMarkdown, exportFilenameMappingCsv } from './v5-asset-prompt-manager.js';
+export { buildAssetGenerationPrompt, exportPromptsMarkdown, exportFilenameMappingCsv, isVisualAssetRequirement } from './v5-asset-prompt-manager.js';
 export { validateImageFile, ANCHOR_PRESETS } from './v5-image-validator.js';
 export { matchFilenameToRequirement, processImportedFiles, importZipArchive } from './v5-bulk-importer.js';
 export { AssetBindingRegistry } from './v5-asset-binding-registry.js';
@@ -20,7 +20,7 @@ import { scanScenePlanRequirements } from './v5-requirement-scanner.js';
 import { AssetDependencyGraph } from './v5-dependency-graph.js';
 import { batchResolveRequirements } from './v5-asset-resolver.js';
 import { deduplicateAssetRequirements } from './v5-asset-deduplicator.js';
-import { exportPromptsMarkdown, exportFilenameMappingCsv, buildAssetGenerationPrompt } from './v5-asset-prompt-manager.js';
+import { exportPromptsMarkdown, exportFilenameMappingCsv, buildAssetGenerationPrompt, isVisualAssetRequirement } from './v5-asset-prompt-manager.js';
 import { AssetBindingRegistry } from './v5-asset-binding-registry.js';
 import { calculateProjectReadiness } from './v5-readiness-engine.js';
 import { getStyleProfile, buildCharacterContinuityProfile } from './v5-style-profiles.js';
@@ -40,6 +40,10 @@ export class SmartAssetManager {
   }
 
   scanAndResolve(options = {}) {
+    // 0. Reset dependency graph for clean evaluation of the active scene plan
+    this.dependencyGraph = new AssetDependencyGraph();
+    this.bindingRegistry.dependencyGraph = this.dependencyGraph;
+
     // 1. Scan direct and indirect requirements
     const scan = scanScenePlanRequirements(this.scenePlan, options);
     
@@ -57,7 +61,9 @@ export class SmartAssetManager {
     const resolution = batchResolveRequirements(dedup.canonicalRequirements, existingBindings, options);
 
     // 5. Update graph with resolution statuses
+    const resMap = new Map();
     for (const res of resolution.results) {
+      resMap.set(res.requirementId, res);
       this.dependencyGraph.setRequirementStatus(res.requirementId, res.status);
       if (res.status === 'READY' && res.resolvedAssetId) {
         if (!this.bindingRegistry.getBinding(res.requirementId)) {
@@ -69,6 +75,26 @@ export class SmartAssetManager {
         }
       }
     }
+
+    // Merge status and reasons into canonicalRequirements so frontend and all consumers get rich resolution status!
+    for (const req of dedup.canonicalRequirements) {
+      const res = resMap.get(req.id);
+      if (res) {
+        req.status = res.status;
+        req.resolvedAssetId = res.resolvedAssetId;
+        req.resolutionMethod = res.resolutionMethod;
+        req.reasons = res.reasons || [];
+        req.matchScore = res.matchScore;
+        req.confidence = res.confidence;
+      } else {
+        const b = this.bindingRegistry.getBinding(req.id);
+        req.status = b ? b.status : (this.dependencyGraph.getRequirementStatus(req.id) || 'MISSING');
+        req.resolvedAssetId = b ? b.resolvedAssetId : null;
+      }
+    }
+
+    // Auto-link Mode A characters (Doc & Jake) with their built-in rigs and anchors
+    this.autoLinkModeACharacters(dedup.canonicalRequirements);
 
     // 6. Compute readiness
     const readiness = calculateProjectReadiness(this.scenePlan, this.dependencyGraph, this.bindingRegistry);
@@ -83,6 +109,51 @@ export class SmartAssetManager {
     };
   }
 
+  autoLinkModeACharacters(canonicalReqs = []) {
+    const knownChars = ['doc', 'jake'];
+    for (const req of canonicalReqs) {
+      if (req.type === 'character') {
+        const binding = this.bindingRegistry.getBinding(req.id);
+        const resolvedId = binding?.resolvedAssetId || req.resolvedAssetId || req.targetAssetId || '';
+        const matchedChar = knownChars.find(c => resolvedId.toLowerCase().includes(c));
+        if (matchedChar) {
+          // 1. Auto-link character rig
+          const rigReq = canonicalReqs.find(r => r.type === 'character_rig' && (r.id.toLowerCase().includes(matchedChar) || r.targetAssetId === matchedChar));
+          if (rigReq) {
+            rigReq.status = 'READY';
+            rigReq.resolvedAssetId = matchedChar;
+            rigReq.resolutionMethod = 'BUILTIN_RIG';
+            rigReq.reasons = [`Rig nhân vật tích hợp Mode A "${matchedChar}" đã tích hợp sẵn`];
+            this.dependencyGraph.setRequirementStatus(rigReq.id, 'READY');
+            if (!this.bindingRegistry.getBinding(rigReq.id)) {
+              this.bindingRegistry.bind(rigReq.id, matchedChar, {
+                resolutionMethod: 'BUILTIN_RIG',
+                status: 'READY',
+                autoSave: false
+              });
+            }
+          }
+          // 2. Auto-link hand anchors
+          const anchorReqs = canonicalReqs.filter(r => r.type === 'anchor_point' && (r.id.toLowerCase().includes(matchedChar) || (r.targetAssetId || '').toLowerCase().includes(matchedChar)));
+          for (const aReq of anchorReqs) {
+            aReq.status = 'READY';
+            aReq.resolvedAssetId = aReq.targetAssetId || `${matchedChar}:hand`;
+            aReq.resolutionMethod = 'BUILTIN_RIG_ANCHOR';
+            aReq.reasons = [`Điểm neo trên hệ thống xương "${matchedChar}" đã tích hợp sẵn`];
+            this.dependencyGraph.setRequirementStatus(aReq.id, 'READY');
+            if (!this.bindingRegistry.getBinding(aReq.id)) {
+              this.bindingRegistry.bind(aReq.id, aReq.targetAssetId || `${matchedChar}:hand`, {
+                resolutionMethod: 'BUILTIN_RIG_ANCHOR',
+                status: 'READY',
+                autoSave: false
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
   exportGenerationPackageZip(targetZipPath, options = {}) {
     const scan = scanScenePlanRequirements(this.scenePlan, options);
     const dedup = deduplicateAssetRequirements(scan.requirements);
@@ -91,7 +162,8 @@ export class SmartAssetManager {
       return !b || b.status !== 'READY';
     });
 
-    const targetList = options.includeAll ? dedup.canonicalRequirements : (missingOnly.length > 0 ? missingOnly : dedup.canonicalRequirements);
+    const targetList = (options.includeAll ? dedup.canonicalRequirements : (missingOnly.length > 0 ? missingOnly : dedup.canonicalRequirements))
+      .filter(isVisualAssetRequirement);
 
     const zip = new AdmZip();
 

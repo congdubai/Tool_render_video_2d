@@ -1430,9 +1430,44 @@ app.post("/api/v5/smart-assets/bind", (req, res) => {
       force
     });
 
+    // Auto-link Mode A characters (Doc & Jake) with rig and hand anchors
+    const resolvedNorm = (resolvedAssetId || '').toLowerCase();
+    const reqNorm = (requirementId || '').toLowerCase();
+    if (resolvedNorm.includes('doc') || resolvedNorm.includes('jake') || reqNorm.startsWith('req_char_')) {
+      const knownChars = ['doc', 'jake'];
+      const matchedChar = knownChars.find(c => resolvedNorm.includes(c) || reqNorm.includes(c));
+      if (matchedChar) {
+        const rigReqId = `REQ_RIG_${matchedChar.toUpperCase()}`;
+        if (!manager.bindingRegistry.getBinding(rigReqId)) {
+          manager.bindingRegistry.bind(rigReqId, matchedChar, {
+            resolutionMethod: 'BUILTIN_RIG',
+            status: 'READY'
+          });
+        }
+        manager.dependencyGraph.setRequirementStatus(rigReqId, 'READY');
+
+        // Hand anchors
+        for (const hand of ['RIGHT_HAND', 'LEFT_HAND']) {
+          const anchorReqId = `REQ_ANCHOR_${matchedChar.toUpperCase()}_${hand}`;
+          if (!manager.bindingRegistry.getBinding(anchorReqId)) {
+            manager.bindingRegistry.bind(anchorReqId, `${matchedChar}:${hand.toLowerCase()}`, {
+              resolutionMethod: 'BUILTIN_RIG_ANCHOR',
+              status: 'READY'
+            });
+          }
+          manager.dependencyGraph.setRequirementStatus(anchorReqId, 'READY');
+        }
+      }
+    }
+
+    // Recalculate project readiness immediately
+    const readiness = calculateProjectReadiness(manager.scenePlan, manager.dependencyGraph, manager.bindingRegistry);
+
     res.json({
       success: true,
-      ...bindResult
+      ...bindResult,
+      readiness,
+      bindings: manager.bindingRegistry.getAllBindings()
     });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
@@ -1449,13 +1484,113 @@ app.post("/api/v5/smart-assets/unbind", (req, res) => {
 
     const manager = getProjectManager(projectId);
     const unbindResult = manager.bindingRegistry.unbind(requirementId);
+    const readiness = calculateProjectReadiness(manager.scenePlan, manager.dependencyGraph, manager.bindingRegistry);
 
     res.json({
       success: true,
-      ...unbindResult
+      ...unbindResult,
+      readiness,
+      bindings: manager.bindingRegistry.getAllBindings()
     });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Alias for V4 Assets API
+app.get("/api/v4/assets", (req, res) => {
+  try {
+    const assets = listAssets(req.query);
+    res.json({
+      success: true,
+      assets,
+      total: assets.length
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Thư viện đầy đủ phục vụ Visual Asset Picker (Mode A characters, backgrounds, props, outfits, vfx)
+app.get("/api/v5/smart-assets/picker-library", (req, res) => {
+  try {
+    const baseAssets = listAssets(req.query) || [];
+    
+    // Built-in Mode A characters
+    const builtInCharacters = [
+      {
+        id: "doc",
+        name: "Doc (Nhà Khoa Học / Max)",
+        type: "character",
+        category: "character",
+        description: "Nhân vật White Cartoon 2D Mode A với hệ thống xương Rig đầy đủ, tóc bạc, mắt biểu cảm và điểm neo tay",
+        preview: "/assets/doc_preview.png",
+        tags: ["protagonist", "scientist", "white_cartoon", "mode_a", "rigged"]
+      },
+      {
+        id: "jake",
+        name: "Jake (Cộng Sự / Alex)",
+        type: "character",
+        category: "character",
+        description: "Nhân vật White Cartoon 2D Mode A với hệ thống xương Rig đầy đủ, tóc đen, mắt biểu cảm và điểm neo tay",
+        preview: "/assets/jake_preview.png",
+        tags: ["companion", "young", "white_cartoon", "mode_a", "rigged"]
+      }
+    ];
+
+    // Standard backgrounds
+    const builtInBackgrounds = [
+      {
+        id: "bg_historical_computer_lab",
+        name: "Phòng Thí Nghiệm Máy Tính Cổ Điển (ENIAC Lab)",
+        type: "background",
+        category: "background",
+        description: "Bối cảnh phòng máy tính đèn chân không năm 1946 phong cách hoạt hình giáo dục 16:9",
+        tags: ["educational", "lab", "vintage", "16:9"]
+      },
+      {
+        id: "bg_lab_modern",
+        name: "Phòng Nghiên Cứu Công Nghệ Hiện Đại",
+        type: "background",
+        category: "background",
+        description: "Bối cảnh phòng thí nghiệm vi xử lý và robot hiện đại phong cách hoạt hình 16:9",
+        tags: ["modern", "tech", "lab", "16:9"]
+      },
+      {
+        id: "bg_cafe_cozy",
+        name: "Quán Cà Phê Ấm Cúng (Cozy Cafe)",
+        type: "background",
+        category: "background",
+        description: "Bối cảnh quán cà phê phong cách hoạt hình thư giãn",
+        tags: ["cafe", "indoor", "warm", "16:9"]
+      },
+      {
+        id: "bg_street_night",
+        name: "Đường Phố Ban Đêm (Night Street)",
+        type: "background",
+        category: "background",
+        description: "Bối cảnh phố đi bộ về đêm với đèn đường lung linh",
+        tags: ["outdoor", "city", "night", "16:9"]
+      }
+    ];
+
+    const merged = [...builtInCharacters];
+    for (const bg of builtInBackgrounds) {
+      if (!baseAssets.some(a => a.id === bg.id)) {
+        merged.push(bg);
+      }
+    }
+    for (const a of baseAssets) {
+      merged.push(a);
+    }
+
+    res.json({
+      success: true,
+      assets: merged,
+      total: merged.length
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

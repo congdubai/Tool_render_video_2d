@@ -5638,6 +5638,15 @@ window.closeScenePlanModal = closeScenePlanModal;
 // TAB 4: SMART ASSET MANAGER & AI AUTO DIRECTOR (V5 PHASE 2)
 // =========================================================================
 
+function deriveProjectId(plan) {
+  const raw = plan?.project?.id || plan?.project?.title;
+  if (raw && typeof raw === 'string') {
+    const slug = raw.toLowerCase().replace(/[^a-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    if (slug) return 'proj_' + slug.slice(0, 32);
+  }
+  return 'proj_' + Date.now();
+}
+
 const smartAssetState = {
   projectId: 'demo_v5_computer_evolution',
   scenePlan: null,
@@ -5648,7 +5657,10 @@ const smartAssetState = {
   searchTerm: '',
   missingOnly: false,
   unassigned: [],
-  currentAnchorTarget: null
+  currentAnchorTarget: null,
+  currentPickerReqId: null,
+  pickerCategory: 'all',
+  pickerSearchTerm: ''
 };
 
 // 5-Scene Demo Storyboard "Sự Tiến Hóa Của Máy Tính" (Computer Evolution)
@@ -5935,7 +5947,13 @@ function loadScenePlanFromFile(file) {
       }
 
       // Lưu vào state và kích hoạt quét tài nguyên
+      smartAssetState.projectId = deriveProjectId(parsed);
       smartAssetState.scenePlan = parsed;
+      smartAssetState.requirements = [];
+      smartAssetState.bindings = {};
+      smartAssetState.readiness = null;
+      smartAssetState.missingOnly = false;
+      smartAssetState.activeCategory = 'all';
       scanProjectRequirementsUi();
 
       if (typeof showToast === 'function') {
@@ -6015,7 +6033,13 @@ function importScenePlanFromInput() {
       return;
     }
 
+    smartAssetState.projectId = deriveProjectId(plan);
     smartAssetState.scenePlan = plan;
+    smartAssetState.requirements = [];
+    smartAssetState.bindings = {};
+    smartAssetState.readiness = null;
+    smartAssetState.missingOnly = false;
+    smartAssetState.activeCategory = 'all';
     scanProjectRequirementsUi();
     switchWizardStep(2);
     alert(`✅ Đã nạp thành công Scene Plan gồm ${plan.scenes.length} cảnh!\nĐã chuyển sang Bước 2 (Smart Asset Manager) để quét và chuẩn bị tài nguyên.`);
@@ -6026,6 +6050,7 @@ function importScenePlanFromInput() {
 
 async function loadSmartAssetManagerUI() {
   if (!smartAssetState.scenePlan) {
+    smartAssetState.projectId = 'demo_v5_computer_evolution';
     smartAssetState.scenePlan = DEFAULT_V5_DEMO_SCENE_PLAN;
   }
   updateWizardDisplayUi();
@@ -6034,7 +6059,13 @@ async function loadSmartAssetManagerUI() {
 }
 
 function loadDefaultAiStoryboardDemo() {
+  smartAssetState.projectId = 'demo_v5_computer_evolution';
   smartAssetState.scenePlan = JSON.parse(JSON.stringify(DEFAULT_V5_DEMO_SCENE_PLAN));
+  smartAssetState.requirements = [];
+  smartAssetState.bindings = {};
+  smartAssetState.readiness = null;
+  smartAssetState.missingOnly = false;
+  smartAssetState.activeCategory = 'all';
   
   const scenePlanInput = document.getElementById('v5ScenePlanInput');
   if (scenePlanInput) {
@@ -6162,6 +6193,18 @@ function filterRequirementsByCategory(cat) {
 
 function filterMissingOnlyUi() {
   smartAssetState.missingOnly = !smartAssetState.missingOnly;
+  const btn = document.querySelector('[onclick="filterMissingOnlyUi()"]');
+  if (btn) {
+    if (smartAssetState.missingOnly) {
+      btn.style.backgroundColor = '#ef4444';
+      btn.style.color = '#fff';
+      btn.textContent = '👁️ Đang Lọc: Chỉ Tài Nguyên Thiếu';
+    } else {
+      btn.style.backgroundColor = '';
+      btn.style.color = '#f87171';
+      btn.textContent = '⚠️ Xem Tài Nguyên Còn Thiếu';
+    }
+  }
   renderSmartAssetRequirements();
 }
 
@@ -6179,7 +6222,7 @@ function renderSmartAssetRequirements() {
 
   const filtered = reqs.filter(r => {
     const b = bindings[r.id];
-    const isReady = b && b.status === 'READY';
+    const isReady = (b && b.status === 'READY') || r.status === 'READY';
 
     if (smartAssetState.missingOnly && isReady) return false;
 
@@ -6206,15 +6249,27 @@ function renderSmartAssetRequirements() {
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;">Không có tài nguyên nào phù hợp với bộ lọc hiện tại.</div>`;
+    if (smartAssetState.missingOnly) {
+      container.innerHTML = `
+        <div class="empty-state" style="grid-column: 1/-1; background: rgba(34, 197, 94, 0.12); border: 1px solid #22c55e; color: #4ade80; padding: 24px; text-align: center; border-radius: 8px;">
+          <div style="font-size: 24px; margin-bottom: 6px;">🎉</div>
+          <div style="font-size: 16px; font-weight: 700; color: #86efac; margin-bottom: 4px;">Tuyệt vời! Toàn bộ tài nguyên đã sẵn sàng 100%!</div>
+          <div style="font-size: 13px; color: #a7f3d0;">Không còn tài nguyên nào bị thiếu hoặc chưa hỗ trợ trong dự án này. Bạn có thể bấm "Sang Dựng Cảnh" để tiếp tục.</div>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;">Không có tài nguyên nào phù hợp với bộ lọc hiện tại.</div>`;
+    }
     return;
   }
 
   container.innerHTML = filtered.map(req => {
     const binding = bindings[req.id];
     const isBound = !!binding;
-    const isReady = isBound && binding.status === 'READY';
+    const isReady = (isBound && binding.status === 'READY') || req.status === 'READY';
     const isCapabilityBlocker = req.status === 'MISSING_CAPABILITY';
+    const isReview = req.status === 'REVIEW_REQUIRED';
+    const resolvedId = binding?.resolvedAssetId || req.resolvedAssetId || '';
 
     let statusBadge = `<span class="badge" style="background: #ef4444; color: #fff;">❌ Còn Thiếu</span>`;
     let borderColor = "#334155";
@@ -6223,13 +6278,26 @@ function renderSmartAssetRequirements() {
       statusBadge = `<span class="badge" style="background: #dc2626; color: #fff;">⛔ Chưa Hỗ Trợ</span>`;
       borderColor = "#ef4444";
     } else if (isReady) {
-      statusBadge = `<span class="badge" style="background: #22c55e; color: #fff;">✔ Đã Sẵn Sàng (${binding.resolvedAssetId})</span>`;
+      statusBadge = `<span class="badge" style="background: #22c55e; color: #fff;">✔ Đã Sẵn Sàng ${resolvedId ? `(${resolvedId})` : ''}</span>`;
       borderColor = "#22c55e";
+    } else if (isReview) {
+      statusBadge = `<span class="badge" style="background: #f59e0b; color: #000;">⚠️ Cần Duyệt</span>`;
+      borderColor = "#f59e0b";
     }
 
     const scenesStr = (req.requiredByScenes || []).join(', ') || 'Chung';
     const dimensionsStr = req.recommendedDimensions ? `${req.recommendedDimensions.width}x${req.recommendedDimensions.height}` : '1024x1024';
     const alphaStr = req.transparentBackground ? 'Nền trong suốt (Alpha)' : 'Khung nền 16:9';
+
+    const isNonImage = ['character_rig', 'anchor_point', 'action', 'composite_action', 'camera', 'weather'].includes(req.type);
+
+    let reasonBox = '';
+    if (req.reasons && req.reasons.length > 0) {
+      const textColor = isCapabilityBlocker ? '#fca5a5' : isReady ? '#86efac' : '#fde047';
+      reasonBox = `<div style="font-size: 11px; color: ${textColor}; background: rgba(15, 23, 42, 0.8); border: 1px dashed ${borderColor}; padding: 6px 8px; border-radius: 4px; margin-bottom: 8px;">
+        ℹ️ ${req.reasons.join(' &bull; ')}
+      </div>`;
+    }
 
     return `
       <div class="card" style="border: 1px solid ${borderColor}; background: #0f172a; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
@@ -6244,19 +6312,32 @@ function renderSmartAssetRequirements() {
           <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">
             ${req.description || 'Yêu cầu tài nguyên đồ họa cho video hoạt hình'}
           </div>
-          <div style="font-size: 11px; color: #64748b; background: #1e293b; padding: 6px 8px; border-radius: 4px; margin-bottom: 10px;">
-            📐 ${dimensionsStr} &bull; 🛡️ ${alphaStr}
-          </div>
+          ${reasonBox}
+          ${!isNonImage ? `
+            <div style="font-size: 11px; color: #64748b; background: #1e293b; padding: 6px 8px; border-radius: 4px; margin-bottom: 10px;">
+              📐 ${dimensionsStr} &bull; 🛡️ ${alphaStr}
+            </div>
+          ` : `
+            <div style="font-size: 11px; color: #c084fc; background: #3b0764; padding: 6px 8px; border-radius: 4px; margin-bottom: 10px; border: 1px solid #7e22ce;">
+              ⚙️ Thành phần Hệ thống / Rig / Engine (Không cần sinh hình ảnh AI)
+            </div>
+          `}
         </div>
 
-        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-          <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="copyRequirementPrompt('${req.id}')">📋 Copy Prompt</button>
-          ${req.type === 'prop' ? `<button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #f59e0b;" onclick="openSmartAnchorModal('${req.id}')">⚓ Điểm Neo (Anchor)</button>` : ''}
-          <button class="btn btn-sm btn-outline" onclick="promptManualBindAsset('${req.id}')">🔗 Gán Thủ Công</button>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+          ${!isNonImage ? `
+            <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="copyRequirementPrompt('${req.id}')">📋 Copy Prompt</button>
+          ` : ''}
+          ${req.type === 'prop' ? `
+            <button class="btn btn-sm btn-outline" style="border-color: #f59e0b; color: #f59e0b;" onclick="openSmartAnchorModal('${req.id}')">⚓ Điểm Neo (Anchor)</button>
+          ` : ''}
+          <button class="btn btn-sm btn-primary" style="background: #2563eb;" onclick="openVisualAssetPickerModal('${req.id}')">🖼️ Chọn Từ Thư Viện</button>
+          <button class="btn btn-sm btn-outline" style="border-color: #64748b; color: #94a3b8;" onclick="promptManualBindAsset('${req.id}')">🔗 Nhập ID</button>
         </div>
       </div>
     `;
   }).join('');
+}
 }
 
 function copyRequirementPrompt(reqId) {
@@ -6416,6 +6497,196 @@ async function saveCustomAnchorSetting() {
   alert(`💾 Đã lưu điểm neo (${x}, ${y}) cho yêu cầu "${reqId}"!`);
 }
 
+let libraryAssetsCache = null;
+
+async function openVisualAssetPickerModal(reqId) {
+  smartAssetState.currentPickerReqId = reqId;
+  const modal = document.getElementById('visualAssetPickerModal');
+  const req = (smartAssetState.requirements || []).find(r => r.id === reqId);
+  const badgeId = document.getElementById('pickerReqIdBadge');
+  const badgeType = document.getElementById('pickerReqTypeBadge');
+  if (badgeId) badgeId.textContent = reqId;
+  if (badgeType) badgeType.textContent = req?.type || 'tài nguyên';
+
+  if (modal) modal.classList.remove('hidden');
+
+  // Pre-select tab based on requirement type
+  let targetCategory = 'all';
+  if (req?.type === 'character' || req?.type === 'character_rig') targetCategory = 'character';
+  else if (req?.type === 'background') targetCategory = 'background';
+  else if (req?.type === 'prop') targetCategory = 'prop';
+  else if (req?.type === 'outfit') targetCategory = 'outfit';
+  else if (req?.type === 'expression') targetCategory = 'expression';
+  else if (req?.type === 'vfx' || req?.type === 'weather') targetCategory = 'vfx';
+
+  smartAssetState.pickerCategory = targetCategory;
+  smartAssetState.pickerSearchTerm = '';
+  const searchInput = document.getElementById('pickerSearchInput');
+  if (searchInput) searchInput.value = '';
+
+  document.querySelectorAll('[id^="pickerTab_"]').forEach(b => b.classList.remove('active'));
+  const targetTab = document.getElementById(`pickerTab_${targetCategory}`) || document.getElementById('pickerTab_all');
+  if (targetTab) targetTab.classList.add('active');
+
+  await loadPickerLibraryAssets();
+  renderPickerAssetsGrid();
+}
+
+function closeVisualAssetPickerModal() {
+  const modal = document.getElementById('visualAssetPickerModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function loadPickerLibraryAssets() {
+  if (libraryAssetsCache && libraryAssetsCache.length > 0) return;
+  try {
+    const res = await fetch('/api/v5/smart-assets/picker-library');
+    const data = await res.json();
+    libraryAssetsCache = data.assets || [];
+  } catch (err) {
+    console.error("Lỗi tải thư viện cho picker:", err);
+    libraryAssetsCache = [];
+  }
+}
+
+function filterPickerCategory(cat) {
+  smartAssetState.pickerCategory = cat;
+  document.querySelectorAll('[id^="pickerTab_"]').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`pickerTab_${cat}`);
+  if (btn) btn.classList.add('active');
+  renderPickerAssetsGrid();
+}
+
+function handlePickerSearch(event) {
+  smartAssetState.pickerSearchTerm = (event.target.value || '').trim().toLowerCase();
+  renderPickerAssetsGrid();
+}
+
+function renderPickerAssetsGrid() {
+  const grid = document.getElementById('pickerAssetsGrid');
+  const countEl = document.getElementById('pickerCountText');
+  if (!grid) return;
+
+  const assets = libraryAssetsCache || [];
+  const cat = smartAssetState.pickerCategory || 'all';
+  const term = smartAssetState.pickerSearchTerm || '';
+
+  const filtered = assets.filter(a => {
+    if (cat !== 'all') {
+      if (cat === 'character' && a.type !== 'character' && a.category !== 'character') return false;
+      if (cat === 'background' && a.type !== 'background' && a.category !== 'background') return false;
+      if (cat === 'prop' && a.type !== 'prop' && a.category !== 'prop') return false;
+      if (cat === 'outfit' && a.type !== 'outfit' && a.category !== 'outfit') return false;
+      if (cat === 'expression' && a.type !== 'expression' && a.category !== 'expression') return false;
+      if (cat === 'vfx' && a.type !== 'vfx' && a.category !== 'vfx' && a.type !== 'weather') return false;
+    }
+    if (term) {
+      const idMatch = (a.id || '').toLowerCase().includes(term);
+      const nameMatch = (a.name || '').toLowerCase().includes(term);
+      const descMatch = (a.description || '').toLowerCase().includes(term);
+      const tagMatch = (a.tags || []).some(t => t.toLowerCase().includes(term));
+      if (!idMatch && !nameMatch && !descMatch && !tagMatch) return false;
+    }
+    return true;
+  });
+
+  if (countEl) countEl.textContent = `Hiển thị ${filtered.length} tài nguyên phù hợp`;
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;">Không tìm thấy tài nguyên nào phù hợp với bộ lọc "${term || cat}".</div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(a => {
+    const currentBound = smartAssetState.bindings[smartAssetState.currentPickerReqId]?.resolvedAssetId;
+    const isCurrentBound = currentBound === a.id;
+    const border = isCurrentBound ? '#22c55e' : '#334155';
+    const bg = isCurrentBound ? '#064e3b' : '#0f172a';
+
+    let icon = '📦';
+    if (a.type === 'character') icon = '🎭';
+    else if (a.type === 'background') icon = '🏙️';
+    else if (a.type === 'outfit') icon = '👕';
+    else if (a.type === 'expression') icon = '😊';
+    else if (a.type === 'vfx') icon = '✨';
+
+    return `
+      <div style="background: ${bg}; border: 1px solid ${border}; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 8px;">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 6px;">
+            <div style="font-weight: 700; color: #38bdf8; font-size: 13px;">${icon} ${a.name || a.id}</div>
+            <span class="badge" style="background: #1e293b; color: #cbd5e1; font-size: 10px;">${a.type || 'asset'}</span>
+          </div>
+          <div style="font-size: 11px; color: #94a3b8; font-family: monospace; margin: 4px 0;">ID: ${a.id}</div>
+          <div style="font-size: 12px; color: #cbd5e1; max-height: 48px; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">
+            ${a.description || 'Tài nguyên đồ họa trong thư viện V4'}
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; border-top: 1px solid #1e293b; padding-top: 6px;">
+          <span style="font-size: 10px; color: #64748b;">${(a.tags || []).slice(0, 2).join(', ')}</span>
+          <button class="btn btn-sm ${isCurrentBound ? 'btn-success' : 'btn-primary'}" onclick="confirmPickerBinding('${a.id}')">
+            ${isCurrentBound ? '✔ Đang Dùng' : '🔗 Gán Asset Này'}
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function confirmPickerBinding(assetId) {
+  const reqId = smartAssetState.currentPickerReqId;
+  if (!reqId || !assetId) return;
+
+  try {
+    const res = await fetch('/api/v5/smart-assets/bind', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: smartAssetState.projectId,
+        requirementId: reqId,
+        resolvedAssetId: assetId
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      smartAssetState.bindings = data.bindings || smartAssetState.bindings;
+      smartAssetState.readiness = data.readiness || smartAssetState.readiness;
+
+      // Update requirement item in local array
+      const req = (smartAssetState.requirements || []).find(r => r.id === reqId);
+      if (req) {
+        req.status = 'READY';
+        req.resolvedAssetId = assetId;
+        req.reasons = [`Đã gán thành công từ Thư viện V4: ${assetId}`];
+      }
+
+      // If Mode A character was bound, also update rig and anchors
+      if (assetId === 'doc' || assetId === 'jake') {
+        const rigReq = (smartAssetState.requirements || []).find(r => r.type === 'character_rig' && r.id.toLowerCase().includes(assetId));
+        if (rigReq) {
+          rigReq.status = 'READY';
+          rigReq.resolvedAssetId = assetId;
+          rigReq.reasons = [`Rig nhân vật tích hợp Mode A "${assetId}" đã sẵn sàng`];
+        }
+        (smartAssetState.requirements || []).filter(r => r.type === 'anchor_point' && r.id.toLowerCase().includes(assetId)).forEach(a => {
+          a.status = 'READY';
+          a.resolvedAssetId = a.targetAssetId || `${assetId}:hand`;
+          a.reasons = [`Điểm neo trên hệ thống xương "${assetId}" đã sẵn sàng`];
+        });
+      }
+
+      closeVisualAssetPickerModal();
+      updateSmartAssetMetrics(data.readiness);
+      renderSmartAssetRequirements();
+    } else {
+      alert("❌ Lỗi khi gán tài nguyên: " + (data.error || "Không thể lưu liên kết."));
+    }
+  } catch (err) {
+    console.error("Lỗi confirmPickerBinding:", err);
+    alert("❌ Lỗi mạng khi gán tài nguyên: " + err.message);
+  }
+}
+
 function promptManualBindAsset(reqId) {
   const assetId = prompt(`Nhập mã Asset ID trong Thư viện V4 để gán cho "${reqId}":`);
   if (!assetId) return;
@@ -6428,7 +6699,22 @@ function promptManualBindAsset(reqId) {
       requirementId: reqId,
       resolvedAssetId: assetId.trim()
     })
-  }).then(() => scanProjectRequirementsUi());
+  }).then(async res => {
+    const data = await res.json();
+    if (data.success) {
+      smartAssetState.bindings = data.bindings || smartAssetState.bindings;
+      smartAssetState.readiness = data.readiness || smartAssetState.readiness;
+      const req = (smartAssetState.requirements || []).find(r => r.id === reqId);
+      if (req) {
+        req.status = 'READY';
+        req.resolvedAssetId = assetId.trim();
+      }
+      updateSmartAssetMetrics(data.readiness);
+      renderSmartAssetRequirements();
+    } else {
+      scanProjectRequirementsUi();
+    }
+  });
 }
 
 async function checkProjectReadinessUi() {
@@ -7082,6 +7368,11 @@ window.handleScenePlanFileSelected = handleScenePlanFileSelected;
 window.loadScenePlanFromFile = loadScenePlanFromFile;
 window.clearScenePlanInput = clearScenePlanInput;
 window.setupScenePlanDropZone = setupScenePlanDropZone;
+window.openVisualAssetPickerModal = openVisualAssetPickerModal;
+window.closeVisualAssetPickerModal = closeVisualAssetPickerModal;
+window.filterPickerCategory = filterPickerCategory;
+window.handlePickerSearch = handlePickerSearch;
+window.confirmPickerBinding = confirmPickerBinding;
 
 // Auto-initialize Tab 4 Wizard UI on page ready
 if (typeof document !== 'undefined') {
