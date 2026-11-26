@@ -103,6 +103,7 @@ body {
 }
 
 .tab-num {
+  pointer-events: none;
   background-color: #334155;
   color: #f8fafc;
   width: 22px;
