@@ -1,0 +1,70 @@
+{
+  "title": "Sự Tiến Hóa Của Máy Tính (1945 - Hiện Đại)",
+  "duration": 32,
+  "shots": [
+    {
+      "id": "s001",
+      "name": "Cảnh 1: Máy tính khổng lồ ENIAC và nhân vật Doc",
+      "line": "Năm 1945, siêu máy tính ENIAC ra đời, nặng 30 tấn và chiếm trọn cả căn phòng khổng lồ.",
+      "start": 0,
+      "end": 4,
+      "duration": 4
+    },
+    {
+      "id": "s002",
+      "name": "Cảnh 2: Hai nhà khoa học thảo luận phát minh Transistor",
+      "line": "Đến năm 1947, phát minh bóng bán dẫn transistor đã mở ra cuộc cách mạng thu nhỏ linh kiện.",
+      "start": 4,
+      "end": 8,
+      "duration": 4
+    },
+    {
+      "id": "s003",
+      "name": "Cảnh 3: Cận cảnh vi xử lý Microprocessor trên đầu ngón tay",
+      "line": "Những năm 1970, hàng ngàn bóng bán dẫn được tích hợp vào một con chip vi xử lý silicon tí hon.",
+      "start": 8,
+      "end": 12,
+      "duration": 4
+    },
+    {
+      "id": "s004",
+      "name": "Cảnh 4: Nhà khoa học suy tư bên bàn làm việc",
+      "line": "Công nghệ số tiến bước với tốc độ chóng mặt nhờ những ý tưởng sáng tạo không ngừng nghỉ.",
+      "start": 12,
+      "end": 16,
+      "duration": 4
+    },
+    {
+      "id": "s005",
+      "name": "Cảnh 5: Thử nghiệm quá tải và khói hoạt hình bốc lên",
+      "line": "Không phải thử nghiệm nào cũng suôn sẻ ngay từ đầu, nhưng thất bại là mẹ của thành công!",
+      "start": 16,
+      "end": 20,
+      "duration": 4
+    },
+    {
+      "id": "s006",
+      "name": "Cảnh 6: So sánh đèn chân không khổng lồ với vi mạch hiện đại",
+      "line": "So sánh một bóng đèn chân không đơn lẻ năm 1945 với hàng tỷ bóng bán dẫn trong vi mạch hiện đại.",
+      "start": 20,
+      "end": 24,
+      "duration": 4
+    },
+    {
+      "id": "s007",
+      "name": "Cảnh 7: Tiến trình thời gian máy tính (1945 -> Hiện đại)",
+      "line": "Từ máy tính chiếm cả căn phòng, đến máy tính để bàn, laptop và ngày nay là điện thoại thông minh.",
+      "start": 24,
+      "end": 28,
+      "duration": 4
+    },
+    {
+      "id": "s008",
+      "name": "Cảnh 8: Kết luận — Kỷ nguyên số trong lòng bàn tay",
+      "line": "Giờ đây, sức mạnh tính toán vượt xa siêu máy tính năm xưa đã nằm gọn ngay trong túi áo của chúng ta.",
+      "start": 28,
+      "end": 32,
+      "duration": 4
+    }
+  ]
+}

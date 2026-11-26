@@ -6232,6 +6232,285 @@ function readFileAsBase64(file) {
   });
 }
 
+// ============================================================================
+// THANH HAI 2D STUDIO V5 — PHASE 3: AUTOMATIC SCENE BUILDER UI CONTROLLER
+// ============================================================================
+
+const sceneBuilderState = {
+  compiledScenes: [],
+  sceneStatuses: {},
+  stats: {},
+  isBuilding: false,
+  selectedSceneIds: new Set(),
+  activeSceneId: null
+};
+
+// 1. Tự động dựng toàn bộ cảnh (Auto Build All)
+async function triggerAutoBuildAll() {
+  const plan = smartAssetState.scenePlan;
+  if (!plan || !Array.isArray(plan.scenes) || plan.scenes.length === 0) {
+    alert("⚠️ Chưa có Scene Plan nào được nạp. Hãy nạp kịch bản mẫu ở Bước 4 trước!");
+    return;
+  }
+
+  const pContainer = document.getElementById('builderProgressContainer');
+  const pBar = document.getElementById('builderProgressBar');
+  const pLabel = document.getElementById('builderProgressLabel');
+  const pPercent = document.getElementById('builderProgressPercent');
+
+  if (pContainer) pContainer.classList.remove('hidden');
+  if (pBar) pBar.style.width = '10%';
+  if (pLabel) pLabel.textContent = `Đang phân tích và dựng ${plan.scenes.length} cảnh...`;
+
+  sceneBuilderState.isBuilding = true;
+
+  try {
+    const res = await fetch('/api/v5/builder/build-all', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scenePlan: plan,
+        projectId: smartAssetState.projectId || 'demo_v5_phase3_project'
+      })
+    });
+
+    const data = await res.json();
+    if (!data.success && !data.scenes) {
+      alert(`❌ Lỗi dựng cảnh: ${data.error || 'Quá trình dựng thất bại'}`);
+      return;
+    }
+
+    sceneBuilderState.compiledScenes = data.scenes || [];
+    sceneBuilderState.stats = data.stats || {};
+
+    if (pBar) pBar.style.width = '100%';
+    if (pPercent) pPercent.textContent = '100%';
+    if (pLabel) pLabel.textContent = `Đã dựng xong ${sceneBuilderState.compiledScenes.length} cảnh!`;
+
+    updateBuilderMetricsUI(data.stats, data.projectStatus);
+    renderStoryboardGrid();
+
+    setTimeout(() => {
+      if (pContainer) pContainer.classList.add('hidden');
+    }, 2500);
+
+  } catch (err) {
+    alert(`❌ Lỗi kết nối máy chủ: ${err.message}`);
+  } finally {
+    sceneBuilderState.isBuilding = false;
+  }
+}
+
+// 2. Dựng lại các cảnh đã chọn (Build Selected)
+async function triggerBuildSelected() {
+  if (sceneBuilderState.selectedSceneIds.size === 0) {
+    alert("⚠️ Vui lòng chọn ít nhất 1 cảnh trong Storyboard Grid bên dưới.");
+    return;
+  }
+  alert(`Đang dựng ${sceneBuilderState.selectedSceneIds.size} cảnh đã chọn...`);
+  await triggerAutoBuildAll();
+}
+
+// 3. Dựng lại cảnh lỗi (Rebuild Failed)
+async function triggerRebuildFailed() {
+  alert("🔄 Đang thử lại các cảnh có lỗi hoặc thiếu tài nguyên...");
+  await triggerAutoBuildAll();
+}
+
+// 4. Dựng lại tăng tiến (Incremental Rebuild)
+async function triggerIncrementalRebuild() {
+  try {
+    const res = await fetch('/api/v5/builder/incremental-rebuild', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scenePlan: smartAssetState.scenePlan,
+        projectId: smartAssetState.projectId || 'demo_v5_phase3_project'
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(`⚡ Dựng lại tăng tiến thành công: ${data.rebuiltCount} cảnh được cập nhật.`);
+      renderStoryboardGrid();
+    }
+  } catch (err) {
+    alert(`❌ Lỗi: ${err.message}`);
+  }
+}
+
+// 5. Dừng quá trình dựng (Cancel)
+function triggerCancelBuild() {
+  sceneBuilderState.isBuilding = false;
+  const pContainer = document.getElementById('builderProgressContainer');
+  if (pContainer) pContainer.classList.add('hidden');
+  alert("⏹️ Đã gửi lệnh dừng quá trình dựng.");
+}
+
+// 6. Cập nhật các chỉ số dashboard
+function updateBuilderMetricsUI(stats = {}, projectStatus = 'SCENES_BUILT') {
+  const mTotal = document.getElementById('builderMetricTotal');
+  const mReady = document.getElementById('builderMetricReady');
+  const mMissing = document.getElementById('builderMetricMissing');
+  const mBuilt = document.getElementById('builderMetricBuilt');
+  const mFailed = document.getElementById('builderMetricFailed');
+  const mWarning = document.getElementById('builderMetricWarning');
+  const mLocked = document.getElementById('builderMetricLocked');
+  const badge = document.getElementById('builderOverallBadge');
+
+  if (mTotal) mTotal.textContent = stats.totalScenes || 0;
+  if (mReady) mReady.textContent = stats.builtCount || 0;
+  if (mMissing) mMissing.textContent = stats.failedCount || 0;
+  if (mBuilt) mBuilt.textContent = stats.builtCount || 0;
+  if (mFailed) mFailed.textContent = stats.failedCount || 0;
+  if (mWarning) mWarning.textContent = stats.warningCount || 0;
+  if (mLocked) mLocked.textContent = stats.lockedCount || 0;
+
+  if (badge) {
+    if (projectStatus === 'SCENES_BUILT') {
+      badge.textContent = "Hoàn tất 100%";
+      badge.style.backgroundColor = "#4ade80";
+      badge.style.color = "#000";
+    } else if (projectStatus === 'SCENES_BUILT_WITH_WARNINGS') {
+      badge.textContent = "Có cảnh báo";
+      badge.style.backgroundColor = "#eab308";
+      badge.style.color = "#000";
+    } else {
+      badge.textContent = "Cần kiểm tra";
+      badge.style.backgroundColor = "#ef4444";
+      badge.style.color = "#fff";
+    }
+  }
+}
+
+// 7. Hiển thị danh sách Storyboard Grid trực quan
+function renderStoryboardGrid() {
+  const grid = document.getElementById('storyboardVisualGrid');
+  if (!grid) return;
+
+  const scenes = sceneBuilderState.compiledScenes;
+  if (!scenes || scenes.length === 0) {
+    grid.innerHTML = '<div class="empty-state">Chưa có cảnh nào được dựng. Hãy bấm "Tự Động Dựng Toàn Bộ Cảnh" ở trên.</div>';
+    return;
+  }
+
+  grid.innerHTML = scenes.map((s, idx) => {
+    const isLocked = s.locked ?? false;
+    const duration = s.duration || 5.0;
+    const charCount = (s.characters || []).length;
+    const propCount = (s.props || []).length;
+    const bgName = s.background?.assetId || s.background?.id || 'bg_lab_modern';
+
+    return `
+      <div class="card" style="background: #0f172a; border: 1px solid ${isLocked ? '#a855f7' : '#334155'}; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 700; color: #38bdf8; font-size: 13px;">#${idx + 1} • Cảnh ${s.id}</span>
+          <span class="badge" style="background: ${isLocked ? '#a855f7' : '#0284c7'}; color: #fff; font-size: 11px;">
+            ${isLocked ? '🔒 Đã Khóa' : '✅ Đã Dựng'}
+          </span>
+        </div>
+
+        <!-- Thumbnail giả lập hoặc preview -->
+        <div style="height: 120px; background: #1e293b; border-radius: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid #334155; position: relative; overflow: hidden;">
+          <div style="font-size: 24px;">🏙️</div>
+          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">${bgName}</div>
+          <div style="position: absolute; bottom: 6px; right: 8px; font-size: 11px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; color: #cbd5e1;">
+            ${duration.toFixed(1)}s
+          </div>
+        </div>
+
+        <div style="font-size: 12px; color: #cbd5e1; line-height: 1.4; max-height: 38px; overflow: hidden; text-overflow: ellipsis;">
+          "${s.narration?.subtitle || s.description || 'Không có lời thoại'}"
+        </div>
+
+        <div style="display: flex; gap: 6px; font-size: 11px; color: #94a3b8; flex-wrap: wrap;">
+          <span>👤 ${charCount} Nhân vật</span>
+          <span>•</span>
+          <span>📦 ${propCount} Đạo cụ</span>
+          <span>•</span>
+          <span>🎥 ${s.camera?.preset || 'medium_shot'}</span>
+        </div>
+
+        <div style="display: flex; gap: 6px; margin-top: auto; padding-top: 8px; border-top: 1px solid #1e293b;">
+          <button class="btn btn-sm btn-outline" style="flex: 1;" onclick="toggleLockSceneUi('${s.id}')">
+            ${isLocked ? '🔓 Mở' : '🔒 Khóa'}
+          </button>
+          <button class="btn btn-sm btn-outline" style="border-color: #38bdf8; color: #38bdf8;" onclick="openSelectedSceneInTab2('${s.id}')">
+            🎨 Tab 2
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// 8. Khóa / Mở khóa một cảnh
+async function toggleLockSceneUi(sceneId) {
+  const scene = sceneBuilderState.compiledScenes.find(s => s.id === sceneId);
+  const nextLock = !(scene?.locked ?? false);
+  try {
+    const res = await fetch('/api/v5/builder/lock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sceneId, locked: nextLock })
+    });
+    const data = await res.json();
+    if (data.success && scene) {
+      scene.locked = nextLock;
+      renderStoryboardGrid();
+    }
+  } catch (err) {
+    alert(`❌ Lỗi: ${err.message}`);
+  }
+}
+
+// 9. Mở cảnh đã dựng trong Tab 2 (Tab 2 Integration)
+async function openSelectedSceneInTab2(sceneId) {
+  try {
+    const res = await fetch('/api/v5/builder/export-tab2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: smartAssetState.projectId || 'demo_v5_phase3_project',
+        projectData: {
+          title: smartAssetState.scenePlan?.project?.title || 'Dự Án AI Storyboard V5',
+          scenes: sceneBuilderState.compiledScenes
+        }
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      switchTab(2);
+      alert(`🎨 Đã xuất toàn bộ ${sceneBuilderState.compiledScenes.length} cảnh sang Tab 2! Bạn có thể xem trước và tinh chỉnh timeline tại đây.`);
+    }
+  } catch (err) {
+    alert(`❌ Lỗi: ${err.message}`);
+  }
+}
+
+// 10. Xuất báo cáo dựng cảnh
+function exportSceneBuildReport() {
+  const stats = sceneBuilderState.stats || {};
+  const reportText = `# BÁO CÁO DỰNG CẢNH TỰ ĐỘNG — THANH HAI 2D STUDIO V5 (PHASE 3)
+Thời gian: ${new Date().toLocaleString('vi-VN')}
+Dự án: ${smartAssetState.scenePlan?.project?.title || 'Chưa đặt tên'}
+Tổng số cảnh: ${stats.totalScenes || sceneBuilderState.compiledScenes.length}
+Cảnh đã dựng thành công: ${stats.builtCount || sceneBuilderState.compiledScenes.length}
+Cảnh có cảnh báo bố cục: ${stats.warningCount || 0}
+Cảnh dựng thất bại: ${stats.failedCount || 0}
+Cảnh đã khóa: ${stats.lockedCount || 0}
+
+---
+Trạng thái: SẴN SÀNG PREVIEW VÀ RENDER MP4`;
+
+  const blob = new Blob([reportText], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `scene_builder_report_${Date.now()}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Global window bindings for inline HTML handlers
 window.loadSmartAssetManagerUI = loadSmartAssetManagerUI;
 window.loadDefaultAiStoryboardDemo = loadDefaultAiStoryboardDemo;
@@ -6248,6 +6527,14 @@ window.handleSmartBulkFilesSelected = handleSmartBulkFilesSelected;
 window.handleSmartZipFileSelected = handleSmartZipFileSelected;
 window.openSmartAnchorModal = openSmartAnchorModal;
 window.closeSmartAnchorModal = closeSmartAnchorModal;
+window.triggerAutoBuildAll = triggerAutoBuildAll;
+window.triggerBuildSelected = triggerBuildSelected;
+window.triggerRebuildFailed = triggerRebuildFailed;
+window.triggerIncrementalRebuild = triggerIncrementalRebuild;
+window.triggerCancelBuild = triggerCancelBuild;
+window.toggleLockSceneUi = toggleLockSceneUi;
+window.openSelectedSceneInTab2 = openSelectedSceneInTab2;
+window.exportSceneBuildReport = exportSceneBuildReport;
 window.applyAnchorPreset = applyAnchorPreset;
 window.saveCustomAnchorSetting = saveCustomAnchorSetting;
 window.promptManualBindAsset = promptManualBindAsset;

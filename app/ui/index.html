@@ -1600,6 +1600,103 @@
         </div>
       </div>
     </section>
+
+    <!-- ================= WIZARD STEP 5: AUTOMATIC SCENE BUILDER & COMPOSITION ENGINE ================= -->
+    <section class="card" id="autoSceneBuilderSection" style="margin-top: 24px; border-color: #38bdf8;">
+      <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2>🎬 Bước 5: Automatic Scene Builder & Dựng Cảnh Tự Động</h2>
+          <span class="hint">Tự động chuyển Scene Plan JSON và tài nguyên đã liên kết thành các Scene hoạt hình V4 hoàn chỉnh có bố cục, layer, camera và timeline</span>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <span id="builderOverallBadge" class="badge" style="background-color: #0284c7; color: #fff; font-size: 13px; font-weight: 700; padding: 6px 12px;">Sẵn sàng dựng</span>
+        </div>
+      </div>
+
+      <div class="card-body" style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- 1. Bảng Thông Số Tiến Độ Dựng Cảnh (Builder Metrics Dashboard) -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px;">
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Tổng Số Cảnh</span>
+            <div id="builderMetricTotal" style="font-size: 22px; font-weight: 700; color: #38bdf8;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Đã Sẵn Sàng</span>
+            <div id="builderMetricReady" style="font-size: 22px; font-weight: 700; color: #4ade80;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Thiếu Tài Nguyên</span>
+            <div id="builderMetricMissing" style="font-size: 22px; font-weight: 700; color: #f87171;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Đã Dựng Xong</span>
+            <div id="builderMetricBuilt" style="font-size: 22px; font-weight: 700; color: #38bdf8;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Dựng Thất Bại</span>
+            <div id="builderMetricFailed" style="font-size: 22px; font-weight: 700; color: #ef4444;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Cần Kiểm Tra</span>
+            <div id="builderMetricWarning" style="font-size: 22px; font-weight: 700; color: #eab308;">0</div>
+          </div>
+          <div style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px; text-align: center;">
+            <span style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Đã Khóa</span>
+            <div id="builderMetricLocked" style="font-size: 22px; font-weight: 700; color: #a855f7;">0</div>
+          </div>
+        </div>
+
+        <!-- 2. Thanh Tiến Độ Dựng Cảnh -->
+        <div id="builderProgressContainer" class="hidden" style="background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 12px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px;">
+            <span id="builderProgressLabel" style="color: #cbd5e1;">Đang dựng cảnh...</span>
+            <span id="builderProgressPercent" style="font-weight: 700; color: #38bdf8;">0%</span>
+          </div>
+          <div style="width: 100%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden;">
+            <div id="builderProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- 3. Thanh Công Cụ Dựng Cảnh (Actions Toolbar) -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; background: #1e293b; padding: 10px 14px; border-radius: 6px; border: 1px solid #334155; align-items: center;">
+          <button id="btnAutoBuildAll" class="btn btn-primary" style="font-weight: 700; background: #0284c7; border-color: #38bdf8;" onclick="triggerAutoBuildAll()">
+            🚀 Tự Động Dựng Toàn Bộ Cảnh
+          </button>
+          <button id="btnBuildSelected" class="btn btn-secondary" onclick="triggerBuildSelected()">
+            🎯 Dựng Các Cảnh Đã Chọn
+          </button>
+          <button id="btnRebuildFailed" class="btn btn-secondary" onclick="triggerRebuildFailed()">
+            🔄 Dựng Lại Cảnh Lỗi
+          </button>
+          <button id="btnIncrementalRebuild" class="btn btn-secondary" onclick="triggerIncrementalRebuild()">
+            ⚡ Dựng Lại Tăng Tiến
+          </button>
+          <button id="btnCancelBuild" class="btn btn-outline" style="border-color: #f87171; color: #f87171;" onclick="triggerCancelBuild()">
+            ⏹️ Dừng
+          </button>
+
+          <div style="margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-outline" style="border-color: #a855f7; color: #c084fc;" onclick="openSelectedSceneInTab2()">
+              🎨 Mở Trong Tab 2
+            </button>
+            <button class="btn btn-outline" onclick="exportSceneBuildReport()">
+              📄 Xuất Báo Cáo
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Storyboard Visual Grid (Danh Sách Cảnh Đã Dựng) -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong style="color: #cbd5e1; font-size: 15px;">🎞️ Storyboard Visual Grid & Preview Cảnh</strong>
+            <span class="hint-small">Xem trước hình ảnh, bố cục nhân vật, góc máy và trạng thái dựng của từng cảnh</span>
+          </div>
+          <div id="storyboardVisualGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; min-height: 200px;">
+            <div class="empty-state">Chưa có cảnh nào được dựng. Hãy bấm "Tự Động Dựng Toàn Bộ Cảnh" ở trên.</div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- ================= MODAL THIẾT LẬP ĐIỂM NEO (ANCHOR & PIVOT ASSISTANT) ================= -->

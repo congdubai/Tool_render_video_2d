@@ -80,6 +80,15 @@ import {
   buildSceneBuilderContract,
   SmartAssetManager
 } from "../thanhhai-2d-studio/engine/v5-smart-asset-manager.js";
+import {
+  executeAutoBuildAll,
+  executeBuildSingleScene,
+  executeIncrementalRebuild,
+  executeApplyUserOverride,
+  executeLockScene,
+  executeApplyScenePatch,
+  getGlobalSceneBuilder
+} from "../thanhhai-2d-studio/engine/v5-automatic-scene-builder.js";
 
 const execAsync = promisify(exec);
 const app = express();
@@ -1589,6 +1598,144 @@ app.post("/api/v5/smart-assets/compile-contract", (req, res) => {
     res.json({
       success: true,
       contract
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ============================================================================
+// THANH HAI 2D STUDIO V5 — PHASE 3: AUTOMATIC SCENE BUILDER ENDPOINTS
+// ============================================================================
+
+// 1. Tự động dựng toàn bộ cảnh (Batch Build All)
+app.post("/api/v5/builder/build-all", async (req, res) => {
+  try {
+    const { scenePlan, projectId = "default_v5_project", resolvedBindings } = req.body;
+    if (!scenePlan || !Array.isArray(scenePlan.scenes)) {
+      return res.status(400).json({ success: false, error: "Dữ liệu Scene Plan JSON không hợp lệ." });
+    }
+
+    const manager = getProjectManager(projectId, scenePlan);
+    const bindings = resolvedBindings || manager.bindingRegistry.getAllBindings();
+    const result = await executeAutoBuildAll(scenePlan, bindings, { projectContext: { projectId } });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Dựng một cảnh đơn lẻ hoặc dựng lại (Build Single Scene)
+app.post("/api/v5/builder/build-scene", (req, res) => {
+  try {
+    const { scene, sceneDescriptor, projectId = "default_v5_project", resolvedBindings } = req.body;
+    const desc = scene || sceneDescriptor;
+    if (!desc || !desc.id) {
+      return res.status(400).json({ success: false, error: "Thiếu thông tin scene descriptor hoặc scene id." });
+    }
+
+    const manager = getProjectManager(projectId);
+    const bindings = resolvedBindings || manager.bindingRegistry.getAllBindings();
+    const result = executeBuildSingleScene(desc, bindings, { forceRebuild: true });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. Tự động dựng lại tăng tiến (Incremental Rebuild)
+app.post("/api/v5/builder/incremental-rebuild", (req, res) => {
+  try {
+    const { scenePlan, projectId = "default_v5_project", resolvedBindings } = req.body;
+    const manager = getProjectManager(projectId, scenePlan);
+    const bindings = resolvedBindings || manager.bindingRegistry.getAllBindings();
+    const result = executeIncrementalRebuild(scenePlan, bindings);
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. Lưu User Overrides cho Scene
+app.post("/api/v5/builder/override", (req, res) => {
+  try {
+    const { sceneId, overrides = {} } = req.body;
+    if (!sceneId) {
+      return res.status(400).json({ success: false, error: "Thiếu sceneId." });
+    }
+    const result = executeApplyUserOverride(sceneId, overrides);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5. Khóa hoặc Mở khóa cảnh (Lock Scene)
+app.post("/api/v5/builder/lock", (req, res) => {
+  try {
+    const { sceneId, locked = true } = req.body;
+    if (!sceneId) {
+      return res.status(400).json({ success: false, error: "Thiếu sceneId." });
+    }
+    const result = executeLockScene(sceneId, locked);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6. Áp dụng AI Scene Patch (Patch Scene)
+app.post("/api/v5/builder/patch", (req, res) => {
+  try {
+    const { targetSceneId, patch = {}, scenePlan = {} } = req.body;
+    if (!targetSceneId) {
+      return res.status(400).json({ success: false, error: "Thiếu targetSceneId." });
+    }
+    const result = executeApplyScenePatch(targetSceneId, patch, scenePlan);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 7. Lấy trạng thái hiện tại của Builder (Builder Status)
+app.get("/api/v5/builder/status", (req, res) => {
+  try {
+    const builder = getGlobalSceneBuilder();
+    const statuses = {};
+    for (const [id, st] of builder.sceneStatuses.entries()) {
+      statuses[id] = st;
+    }
+    res.json({
+      success: true,
+      compiledSceneCount: builder.compiledScenes.size,
+      lockedSceneCount: builder.lockedScenes.size,
+      statuses
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 8. Xuất sang Tab 2 (Export Project to Tab 2)
+app.post("/api/v5/builder/export-tab2", (req, res) => {
+  try {
+    const { projectId = "v5_auto_project", projectData } = req.body;
+    const safeId = path.basename(projectId).replace(/[^a-zA-Z0-9_-]/g, "");
+    const targetDir = path.resolve(projectRoot, "imported_projects", safeId);
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    const configPath = path.join(targetDir, "config.json");
+    fs.writeFileSync(configPath, JSON.stringify(projectData || {}, null, 2), "utf-8");
+
+    res.json({
+      success: true,
+      message: `Đã xuất dự án thành công sang Tab 2 tại imported_projects/${safeId}`,
+      projectId: safeId,
+      configPath
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

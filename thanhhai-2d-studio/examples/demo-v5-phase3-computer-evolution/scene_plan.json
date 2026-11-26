@@ -1,0 +1,415 @@
+{
+  "schemaVersion": "5.1",
+  "project": {
+    "title": "Sự Tiến Hóa Của Máy Tính (1945 - Hiện Đại)",
+    "targetDurationMs": 32000,
+    "fps": 24,
+    "resolution": {
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "style": {
+    "profileId": "educational_cartoon"
+  },
+  "scenes": [
+    {
+      "id": "s001",
+      "startMs": 0,
+      "endMs": 4000,
+      "sceneType": "CHARACTER_ACTING",
+      "visualObjective": "Cảnh 1: Máy tính khổng lồ ENIAC và nhân vật Doc",
+      "narrationText": "Năm 1945, siêu máy tính ENIAC ra đời, nặng 30 tấn và chiếm trọn cả căn phòng khổng lồ.",
+      "background": {
+        "assetId": "bg_historical_computer_lab",
+        "groundY": 0.8
+      },
+      "characters": [
+        {
+          "characterId": "doc",
+          "outfitId": "outfit_scientist_labcoat",
+          "expressionId": "thinking",
+          "position": {
+            "x": 0.3,
+            "y": 0.8
+          },
+          "facing": 1
+        }
+      ],
+      "props": [
+        {
+          "assetId": "REQ_PROP_ENIAC_1",
+          "position": {
+            "x": 0.72,
+            "y": 0.75
+          },
+          "scale": 1.15
+        }
+      ],
+      "camera": {
+        "preset": "medium_shot"
+      }
+    },
+    {
+      "id": "s002",
+      "startMs": 4000,
+      "endMs": 8000,
+      "sceneType": "CHARACTER_DIALOGUE",
+      "visualObjective": "Cảnh 2: Hai nhà khoa học thảo luận phát minh Transistor",
+      "narrationText": "Đến năm 1947, phát minh bóng bán dẫn transistor đã mở ra cuộc cách mạng thu nhỏ linh kiện.",
+      "background": {
+        "assetId": "bg_lab_modern",
+        "groundY": 0.8
+      },
+      "characters": [
+        {
+          "characterId": "doc",
+          "role": "scientist_lead",
+          "outfitId": "outfit_scientist_labcoat",
+          "expressionId": "happy",
+          "position": {
+            "x": 0.3,
+            "y": 0.8
+          },
+          "facing": 1
+        },
+        {
+          "characterId": "doc",
+          "instanceId": "doc_colleague",
+          "role": "scientist_assistant",
+          "outfitId": "outfit_casual_hoodie",
+          "expressionId": "neutral",
+          "position": {
+            "x": 0.7,
+            "y": 0.8
+          },
+          "facing": -1
+        }
+      ],
+      "props": [
+        {
+          "assetId": "REQ_PROP_TRANSISTOR",
+          "position": {
+            "x": 0.5,
+            "y": 0.65
+          },
+          "scale": 0.9
+        }
+      ],
+      "camera": {
+        "preset": "two_shot"
+      }
+    },
+    {
+      "id": "s003",
+      "startMs": 8000,
+      "endMs": 12000,
+      "sceneType": "OBJECT_EXPLANATION",
+      "visualObjective": "Cảnh 3: Cận cảnh vi xử lý Microprocessor trên đầu ngón tay",
+      "narrationText": "Những năm 1970, hàng ngàn bóng bán dẫn được tích hợp vào một con chip vi xử lý silicon tí hon.",
+      "background": {
+        "assetId": "bg_lab_modern",
+        "groundY": 0.8
+      },
+      "characters": [
+        {
+          "characterId": "doc",
+          "outfitId": "outfit_scientist_labcoat",
+          "position": {
+            "x": 0.2,
+            "y": 0.85
+          },
+          "scale": 0.85,
+          "facing": 1
+        }
+      ],
+      "props": [
+        {
+          "assetId": "REQ_PROP_MICROPROCESSOR",
+          "position": {
+            "x": 0.55,
+            "y": 0.58
+          },
+          "scale": 1.35
+        }
+      ],
+      "textGraphics": [
+        {
+          "type": "highlight_box",
+          "position": {
+            "x": 0.55,
+            "y": 0.22
+          },
+          "text": "Vi Xử Lý Silicon (Microprocessor)"
+        }
+      ],
+      "camera": {
+        "preset": "object_close_up"
+      }
+    },
+    {
+      "id": "s004",
+      "startMs": 12000,
+      "endMs": 16000,
+      "sceneType": "CHARACTER_ACTING",
+      "visualObjective": "Cảnh 4: Nhà khoa học suy tư bên bàn làm việc",
+      "narrationText": "Công nghệ số tiến bước với tốc độ chóng mặt nhờ những ý tưởng sáng tạo không ngừng nghỉ.",
+      "background": {
+        "assetId": "bg_lab_modern",
+        "groundY": 0.8
+      },
+      "characters": [
+        {
+          "characterId": "doc",
+          "outfitId": "outfit_scientist_labcoat",
+          "expressionId": "thinking",
+          "position": {
+            "x": 0.4,
+            "y": 0.8
+          },
+          "facing": 1
+        }
+      ],
+      "props": [
+        {
+          "assetId": "prop_coffee_cup",
+          "position": {
+            "x": 0.68,
+            "y": 0.72
+          },
+          "scale": 0.85
+        }
+      ],
+      "camera": {
+        "preset": "medium_shot"
+      }
+    },
+    {
+      "id": "s005",
+      "startMs": 16000,
+      "endMs": 20000,
+      "sceneType": "COMEDY_ACTION",
+      "visualObjective": "Cảnh 5: Thử nghiệm quá tải và khói hoạt hình bốc lên",
+      "narrationText": "Không phải thử nghiệm nào cũng suôn sẻ ngay từ đầu, nhưng thất bại là mẹ của thành công!",
+      "background": {
+        "assetId": "bg_lab_modern",
+        "groundY": 0.8
+      },
+      "characters": [
+        {
+          "characterId": "doc",
+          "outfitId": "outfit_scientist_labcoat",
+          "expressionId": "surprised",
+          "position": {
+            "x": 0.35,
+            "y": 0.8
+          },
+          "facing": 1
+        }
+      ],
+      "props": [
+        {
+          "assetId": "REQ_PROP_ENIAC_1",
+          "position": {
+            "x": 0.65,
+            "y": 0.75
+          },
+          "scale": 1
+        }
+      ],
+      "vfx": [
+        {
+          "id": "vfx_smoke",
+          "type": "smoke",
+          "position": {
+            "x": 0.65,
+            "y": 0.45
+          },
+          "scale": 1.2
+        }
+      ],
+      "camera": {
+        "preset": "full_shot"
+      }
+    },
+    {
+      "id": "s006",
+      "startMs": 20000,
+      "endMs": 24000,
+      "sceneType": "VISUAL_COMPARISON",
+      "visualObjective": "Cảnh 6: So sánh đèn chân không khổng lồ với vi mạch hiện đại",
+      "narrationText": "So sánh một bóng đèn chân không đơn lẻ năm 1945 với hàng tỷ bóng bán dẫn trong vi mạch hiện đại.",
+      "background": {
+        "assetId": "bg_classroom",
+        "groundY": 0.8
+      },
+      "props": [
+        {
+          "assetId": "REQ_PROP_TRANSISTOR",
+          "position": {
+            "x": 0.28,
+            "y": 0.65
+          },
+          "scale": 1
+        },
+        {
+          "assetId": "REQ_PROP_MICROPROCESSOR",
+          "position": {
+            "x": 0.72,
+            "y": 0.65
+          },
+          "scale": 1
+        }
+      ],
+      "textGraphics": [
+        {
+          "type": "comparison_card",
+          "text": "VS",
+          "position": {
+            "x": 0.5,
+            "y": 0.5
+          }
+        },
+        {
+          "type": "label",
+          "text": "Năm 1947: Đèn Bán Dẫn",
+          "position": {
+            "x": 0.28,
+            "y": 0.3
+          }
+        },
+        {
+          "type": "label",
+          "text": "Năm 1971: Vi Xử Lý Tích Hợp",
+          "position": {
+            "x": 0.72,
+            "y": 0.3
+          }
+        }
+      ],
+      "camera": {
+        "preset": "wide_shot"
+      }
+    },
+    {
+      "id": "s007",
+      "startMs": 24000,
+      "endMs": 28000,
+      "sceneType": "TIMELINE_EXPLANATION",
+      "visualObjective": "Cảnh 7: Tiến trình thời gian máy tính (1945 -> Hiện đại)",
+      "narrationText": "Từ máy tính chiếm cả căn phòng, đến máy tính để bàn, laptop và ngày nay là điện thoại thông minh.",
+      "background": {
+        "assetId": "bg_classroom",
+        "groundY": 0.8
+      },
+      "props": [
+        {
+          "assetId": "REQ_PROP_ENIAC_1",
+          "position": {
+            "x": 0.15,
+            "y": 0.6
+          },
+          "scale": 0.7
+        },
+        {
+          "assetId": "REQ_PROP_TRANSISTOR",
+          "position": {
+            "x": 0.38,
+            "y": 0.6
+          },
+          "scale": 0.7
+        },
+        {
+          "assetId": "REQ_PROP_MICROPROCESSOR",
+          "position": {
+            "x": 0.62,
+            "y": 0.6
+          },
+          "scale": 0.7
+        },
+        {
+          "assetId": "prop_laptop_modern",
+          "position": {
+            "x": 0.85,
+            "y": 0.6
+          },
+          "scale": 0.7
+        }
+      ],
+      "textGraphics": [
+        {
+          "type": "timeline_node",
+          "text": "1945 (ENIAC)",
+          "position": {
+            "x": 0.15,
+            "y": 0.8
+          }
+        },
+        {
+          "type": "timeline_node",
+          "text": "1950 (Transistor)",
+          "position": {
+            "x": 0.38,
+            "y": 0.8
+          }
+        },
+        {
+          "type": "timeline_node",
+          "text": "1970 (Microchip)",
+          "position": {
+            "x": 0.62,
+            "y": 0.8
+          }
+        },
+        {
+          "type": "timeline_node",
+          "text": "2000+ (Laptop)",
+          "position": {
+            "x": 0.85,
+            "y": 0.8
+          }
+        }
+      ],
+      "camera": {
+        "preset": "wide_shot"
+      }
+    },
+    {
+      "id": "s008",
+      "startMs": 28000,
+      "endMs": 32000,
+      "sceneType": "CHARACTER_ACTING",
+      "visualObjective": "Cảnh 8: Kết luận — Kỷ nguyên số trong lòng bàn tay",
+      "narrationText": "Giờ đây, sức mạnh tính toán vượt xa siêu máy tính năm xưa đã nằm gọn ngay trong túi áo của chúng ta.",
+      "background": {
+        "assetId": "bg_lab_modern",
+        "groundY": 0.8
+      },
+      "characters": [
+        {
+          "characterId": "doc",
+          "outfitId": "outfit_scientist_labcoat",
+          "expressionId": "happy",
+          "position": {
+            "x": 0.35,
+            "y": 0.8
+          },
+          "facing": 1
+        }
+      ],
+      "props": [
+        {
+          "assetId": "prop_laptop_modern",
+          "position": {
+            "x": 0.68,
+            "y": 0.7
+          },
+          "scale": 1.1
+        }
+      ],
+      "camera": {
+        "preset": "medium_shot"
+      }
+    }
+  ]
+}
