@@ -1037,16 +1037,21 @@ function handleAiProjectChanged() {
   document.getElementById("aiProjectTag").textContent = project.isDemo ? "MẪU KIỂM THỬ CHUẨN" : "DỰ ÁN ĐÃ IMPORT";
 
   const cfg = project.config || {};
+  const rawEngine = (project.engine || cfg.engine || '').toLowerCase();
+  const isPython = rawEngine.includes('python');
+  const isTH = rawEngine.includes('thanhhai') || (!isPython && !rawEngine.includes('remotion'));
+
   document.getElementById("aiBadgeRes").textContent = `${cfg.width || 1920}×${cfg.height || 1080}`;
   document.getElementById("aiBadgeFps").textContent = `${cfg.fps || 24} FPS`;
   const durSec = cfg.durationInFrames ? (cfg.durationInFrames / (cfg.fps || 24)).toFixed(1) : (cfg.durationSec || 0);
   document.getElementById("aiBadgeDuration").textContent = `~${durSec}s`;
 
+  const badgeComp = document.getElementById("aiBadgeComp");
   if (isPython) {
-    document.getElementById("aiBadgeComp").textContent = `Shots: ${cfg.shotsCount || 31} cảnh (${cfg.mood || 'mystery'} mood)`;
+    if (badgeComp) badgeComp.textContent = `Shots: ${cfg.shotsCount || 31} cảnh (${cfg.mood || 'mystery'} mood)`;
     updateAiCompositionDropdown([], null);
   } else if (isTH) {
-    document.getElementById("aiBadgeComp").textContent = `Shots: ${cfg.shotsCount || 14} cảnh (${cfg.style || 'dusk'} style)`;
+    if (badgeComp) badgeComp.textContent = `Shots: ${cfg.shotsCount || 14} cảnh (${cfg.style || 'dusk'} style)`;
     updateAiCompositionDropdown([], null);
   } else {
     const initialComps = cfg.compositions || (cfg.compositionId ? [{ id: cfg.compositionId, width: cfg.width, height: cfg.height, fps: cfg.fps, durationInFrames: cfg.durationInFrames }] : []);
@@ -7379,9 +7384,6 @@ window.confirmAssetsAndProceedToSceneBuilder = confirmAssetsAndProceedToSceneBui
 window.switchWizardStep = switchWizardStep;
 window.setWizardDisplayMode = setWizardDisplayMode;
 window.updateWizardDisplayUi = updateWizardDisplayUi;
-window.importScriptFromTab1 = importScriptFromTab1;
-window.copyAiDirectorPackagePrompt = copyAiDirectorPackagePrompt;
-window.downloadAiDirectorPackageJson = downloadAiDirectorPackageJson;
 window.importScenePlanFromInput = importScenePlanFromInput;
 window.handleScenePlanFileSelected = handleScenePlanFileSelected;
 window.loadScenePlanFromFile = loadScenePlanFromFile;
@@ -7397,11 +7399,12 @@ window.confirmPickerBinding = confirmPickerBinding;
 // PROCEDURAL ASSET GENERATOR UI CONTROLLER (V5.1)
 // ============================================================================
 
-let currentProcModalState = {
+var currentProcModalState = {
   reqId: null,
   requirement: null,
   currentAsset: null
 };
+window.currentProcModalState = currentProcModalState;
 
 async function openProceduralEditorModal(reqId) {
   const modal = document.getElementById('proceduralAssetEditorModal');
