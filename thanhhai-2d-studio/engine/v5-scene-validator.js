@@ -39,7 +39,7 @@ export function validateCompiledScene(compiledScene, sceneGraph, projectContext 
 
   // 5. Check Character Assets & Rigs
   for (const c of (compiledScene.characters || [])) {
-    const charId = c.characterId || c.instanceId;
+    const charId = c.characterId || c.instanceId || c.id || c.bindingId;
     if (!charId) {
       addValidationIssue(report, SEVERITY.ERROR, 'INVALID_CHARACTER_ID', 'Nhân vật thiếu ID định danh.');
     }
@@ -55,9 +55,9 @@ export function validateCompiledScene(compiledScene, sceneGraph, projectContext 
   // 6. Check Prop Attachments
   for (const p of (compiledScene.props || [])) {
     if (p.attachedTo) {
-      const targetChar = (compiledScene.characters || []).find(c => (c.characterId || c.instanceId) === p.attachedTo);
+      const targetChar = (compiledScene.characters || []).find(c => (c.characterId || c.instanceId || c.id) === p.attachedTo);
       if (!targetChar) {
-        addValidationIssue(report, SEVERITY.WARNING, 'ORPHAN_ATTACHMENT', `Đạo cụ "${p.id || p.assetId}" gắn vào nhân vật "${p.attachedTo}" nhưng nhân vật không có trong cảnh.`);
+        addValidationIssue(report, SEVERITY.WARNING, 'ORPHAN_ATTACHMENT', `Đạo cụ "${p.id || p.assetId || p.instanceId}" gắn vào nhân vật "${p.attachedTo}" nhưng nhân vật không có trong cảnh.`);
       }
     }
   }

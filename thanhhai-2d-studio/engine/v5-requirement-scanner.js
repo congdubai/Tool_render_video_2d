@@ -170,6 +170,27 @@ export function scanScenePlanRequirements(scenePlan = {}, projectContext = {}) {
       }
     }
 
+    // --- B2. STANDALONE SCENE PROPS ---
+    const sceneProps = Array.isArray(scene.props) ? scene.props : [];
+    for (const p of sceneProps) {
+      const propAssetId = typeof p === 'string' ? p : (p.assetId || p.id);
+      if (propAssetId) {
+        const propReqId = propAssetId.startsWith('REQ_') ? propAssetId : `REQ_PROP_${propAssetId.toUpperCase().replace(/^PROP_/, '')}`;
+        registerRequirement(requirementMap, propReqId, {
+          id: propReqId,
+          name: p.name || `Đạo cụ ${propAssetId}`,
+          type: 'prop',
+          category: 'prop',
+          targetAssetId: propAssetId,
+          description: p.description || `Đạo cụ / thiết bị trong cảnh ${sId}`,
+          transparentBackground: true,
+          requiredByScene: sId,
+          dependencies: []
+        });
+        sceneReqs.push({ reqId: propReqId, type: 'prop', direct: true });
+      }
+    }
+
     // --- C. VISUAL BEATS, ACTIONS, VFX, WEATHER ---
     const visualBeats = Array.isArray(scene.visualBeats) ? scene.visualBeats : [];
     for (const beat of visualBeats) {
@@ -232,6 +253,65 @@ export function scanScenePlanRequirements(scenePlan = {}, projectContext = {}) {
           requiredByScene: sId
         });
         sceneReqs.push({ reqId: weatherReqId, type: 'weather', direct: true });
+      }
+    }
+
+    // Root-level scene.actions
+    const sceneActions = Array.isArray(scene.actions) ? scene.actions : [];
+    for (const act of sceneActions) {
+      const actionId = act.actionId || act.id;
+      if (actionId) {
+        const isComposite = actionId.startsWith('composite_') || actionId === 'shock_reaction' || actionId === 'fight_cloud';
+        const actionReqId = `REQ_ACT_${actionId.toUpperCase()}`;
+        registerRequirement(requirementMap, actionReqId, {
+          id: actionReqId,
+          name: `Hành động ${actionId}`,
+          type: isComposite ? 'composite_action' : 'action',
+          category: isComposite ? 'composite_action' : 'action',
+          targetAssetId: actionId,
+          description: `Hành động diễn xuất (${act.startMs ?? 0}ms - ${act.endMs ?? 0}ms)`,
+          requiredByScene: sId
+        });
+        sceneReqs.push({ reqId: actionReqId, type: isComposite ? 'composite_action' : 'action', direct: true });
+      }
+    }
+
+    // Root-level scene.expressions
+    const sceneExpressions = Array.isArray(scene.expressions) ? scene.expressions : [];
+    for (const expr of sceneExpressions) {
+      const exprId = expr.expressionId || expr.id;
+      if (exprId) {
+        const exprReqId = `REQ_EXPR_${exprId.toUpperCase()}`;
+        registerRequirement(requirementMap, exprReqId, {
+          id: exprReqId,
+          name: `Biểu cảm ${exprId}`,
+          type: 'expression',
+          category: 'expression',
+          targetAssetId: exprId,
+          description: `Biểu cảm nét mặt trong cảnh ${sId}`,
+          transparentBackground: true,
+          requiredByScene: sId
+        });
+        sceneReqs.push({ reqId: exprReqId, type: 'expression', direct: true });
+      }
+    }
+
+    // Root-level scene.vfx
+    const sceneVfx = Array.isArray(scene.vfx) ? scene.vfx : [];
+    for (const v of sceneVfx) {
+      const vfxId = v.assetId || v.vfxId || v.type || v.id;
+      if (vfxId) {
+        const vfxReqId = `REQ_VFX_${vfxId.toUpperCase().replace(/^VFX_/, '')}`;
+        registerRequirement(requirementMap, vfxReqId, {
+          id: vfxReqId,
+          name: `Hiệu ứng VFX ${vfxId}`,
+          type: 'vfx',
+          category: 'vfx',
+          targetAssetId: vfxId,
+          description: `Hiệu ứng VFX ${vfxId} trong cảnh ${sId}`,
+          requiredByScene: sId
+        });
+        sceneReqs.push({ reqId: vfxReqId, type: 'vfx', direct: true });
       }
     }
 

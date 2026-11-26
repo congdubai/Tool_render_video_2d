@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "5.1",
+  "project": {"id": "v5_demo_001", "name": "Scientist Computer Test", "durationMs": 15000, "resolution": {"width": 1920, "height": 1080}, "fps": 30},
+  "styleProfileId": "educational_cartoon",
+  "characterBindings": [{"id": "scientist", "characterId": "doc"}],
+  "assetRequirements": [],
+  "scenes": [
+    {"id": "scene_001", "startMs": 0, "endMs": 5000, "durationMs": 5000, "type": "CHARACTER_ACTING", "background": {"assetId": "background_laboratory"}, "characters": [{"id": "scientist_01", "bindingId": "scientist", "position": [0.2, 0.85], "scale": 1, "facing": "right"}], "props": [{"id": "computer_01", "assetId": "prop_computer", "position": [0.75, 0.75]}], "actions": [{"target": "scientist_01", "actionId": "walk", "startMs": 0, "endMs": 3500, "parameters": {"from": [0.2, 0.85], "to": [0.55, 0.85]}}], "expressions": [{"target": "scientist_01", "expressionId": "neutral", "startMs": 0, "endMs": 5000}], "camera": {"type": "static"}},
+    {"id": "scene_002", "startMs": 5000, "endMs": 10000, "durationMs": 5000, "type": "CHARACTER_ACTING", "background": {"assetId": "background_laboratory"}, "characters": [{"id": "scientist_01", "bindingId": "scientist", "position": [0.55, 0.85], "scale": 1, "facing": "right"}], "props": [{"id": "computer_01", "assetId": "prop_computer", "position": [0.75, 0.75]}], "actions": [{"target": "scientist_01", "actionId": "shock_reaction", "startMs": 1000, "endMs": 3000}], "expressions": [{"target": "scientist_01", "expressionId": "surprised", "startMs": 1000, "endMs": 5000}], "vfx": [{"assetId": "vfx_smoke", "target": "computer_01", "startMs": 1000, "endMs": 4500}], "camera": {"type": "static"}},
+    {"id": "scene_003", "startMs": 10000, "endMs": 15000, "durationMs": 5000, "type": "CHARACTER_ACTING", "background": {"assetId": "background_laboratory"}, "characters": [{"id": "scientist_01", "bindingId": "scientist", "position": [0.55, 0.85], "scale": 1, "facing": "right"}], "props": [{"id": "computer_01", "assetId": "prop_computer", "position": [0.75, 0.75]}], "actions": [], "expressions": [{"target": "scientist_01", "expressionId": "thinking", "startMs": 0, "endMs": 2500}, {"target": "scientist_01", "expressionId": "happy", "startMs": 2500, "endMs": 5000}], "vfx": [{"assetId": "vfx_light_bulb", "target": "scientist_01", "startMs": 2500, "endMs": 5000}], "camera": {"type": "zoom", "target": "scientist_01", "startMs": 2500, "endMs": 5000, "parameters": {"from": 1, "to": 1.2}}}
+  ]
+}

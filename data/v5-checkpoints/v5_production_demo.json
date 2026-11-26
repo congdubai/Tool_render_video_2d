@@ -2,12 +2,9 @@
   "projectId": "v5_production_demo",
   "state": "WAITING_FOR_ASSETS",
   "checkpointName": "waiting_for_assets",
-  "timestamp": "2026-11-26T05:30:51.912Z",
+  "timestamp": "2026-11-26T07:23:24.835Z",
   "history": [
     "DRAFT",
-    "PLAN_IMPORTED",
-    "VALIDATING",
-    "WAITING_FOR_ASSETS",
     "PLAN_IMPORTED",
     "VALIDATING",
     "WAITING_FOR_ASSETS"

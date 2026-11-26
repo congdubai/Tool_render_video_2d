@@ -1959,9 +1959,22 @@ app.post("/api/v5/builder/build-all", async (req, res) => {
 
     const manager = getProjectManager(projectId, scenePlan);
     const bindings = resolvedBindings || manager.bindingRegistry.getAllBindings();
-    const result = await executeAutoBuildAll(scenePlan, bindings, { projectContext: { projectId } });
+    const result = await executeAutoBuildAll(scenePlan, bindings, {
+      projectContext: {
+        projectId,
+        characterBindings: scenePlan.characterBindings || []
+      }
+    });
 
-    res.json(result);
+    res.json({
+      success: result.success,
+      projectStatus: result.projectStatus,
+      stats: result.stats,
+      scenes: result.compiledScenes,
+      compiledScenes: result.compiledScenes,
+      failedScenes: result.failedScenes || [],
+      v4Project: result.v4Project || result.compiledProject
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -1978,7 +1991,13 @@ app.post("/api/v5/builder/build-scene", (req, res) => {
 
     const manager = getProjectManager(projectId);
     const bindings = resolvedBindings || manager.bindingRegistry.getAllBindings();
-    const result = executeBuildSingleScene(desc, bindings, { forceRebuild: true });
+    const result = executeBuildSingleScene(desc, bindings, {
+      forceRebuild: true,
+      projectContext: {
+        projectId,
+        characterBindings: manager.scenePlan?.characterBindings || []
+      }
+    });
 
     res.json(result);
   } catch (err) {

@@ -10,7 +10,8 @@ export const NON_IMAGE_TYPES = new Set([
   'action',
   'composite_action',
   'camera',
-  'weather'
+  'weather',
+  'expression'
 ]);
 
 export function isVisualAssetRequirement(req = {}) {

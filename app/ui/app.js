@@ -6833,12 +6833,13 @@ async function triggerAutoBuildAll() {
       return;
     }
 
-    sceneBuilderState.compiledScenes = data.scenes || [];
+    sceneBuilderState.compiledScenes = data.compiledScenes || data.scenes || [];
+    sceneBuilderState.failedScenes = data.failedScenes || [];
     sceneBuilderState.stats = data.stats || {};
 
     if (pBar) pBar.style.width = '100%';
     if (pPercent) pPercent.textContent = '100%';
-    if (pLabel) pLabel.textContent = `Đã dựng xong ${sceneBuilderState.compiledScenes.length} cảnh!`;
+    if (pLabel) pLabel.textContent = `Đã dựng xong ${sceneBuilderState.compiledScenes.length} cảnh (thất bại: ${sceneBuilderState.failedScenes.length})!`;
 
     updateBuilderMetricsUI(data.stats, data.projectStatus);
     renderStoryboardGrid();
@@ -6940,13 +6941,18 @@ function renderStoryboardGrid() {
   const grid = document.getElementById('storyboardVisualGrid');
   if (!grid) return;
 
-  const scenes = sceneBuilderState.compiledScenes;
-  if (!scenes || scenes.length === 0) {
+  const compiled = sceneBuilderState.compiledScenes || [];
+  const failed = sceneBuilderState.failedScenes || [];
+
+  if (compiled.length === 0 && failed.length === 0) {
     grid.innerHTML = '<div class="empty-state">Chưa có cảnh nào được dựng. Hãy bấm "Tự Động Dựng Toàn Bộ Cảnh" ở trên.</div>';
     return;
   }
 
-  grid.innerHTML = scenes.map((s, idx) => {
+  let html = '';
+
+  // Render các cảnh đã dựng thành công
+  html += compiled.map((s, idx) => {
     const isLocked = s.locked ?? false;
     const duration = s.duration || 5.0;
     const charCount = (s.characters || []).length;
@@ -6954,7 +6960,7 @@ function renderStoryboardGrid() {
     const bgName = s.background?.assetId || s.background?.id || 'bg_lab_modern';
 
     return `
-      <div class="card" style="background: #0f172a; border: 1px solid ${isLocked ? '#a855f7' : '#334155'}; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+      <div class="card" style="background: #0f172a; border: 1px solid ${isLocked ? '#a855f7' : '#0284c7'}; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-weight: 700; color: #38bdf8; font-size: 13px;">#${idx + 1} • Cảnh ${s.id}</span>
           <span class="badge" style="background: ${isLocked ? '#a855f7' : '#0284c7'}; color: #fff; font-size: 11px;">
@@ -6994,6 +7000,76 @@ function renderStoryboardGrid() {
       </div>
     `;
   }).join('');
+
+  // Render các cảnh dựng thất bại (với lỗi chi tiết và nút dựng lại)
+  html += failed.map((f, idx) => {
+    return `
+      <div class="card" style="background: #1e1b2e; border: 1px solid #ef4444; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 700; color: #f87171; font-size: 13px;">Cảnh ${f.sceneId}</span>
+          <span class="badge" style="background: #ef4444; color: #fff; font-size: 11px;">
+            ❌ Dựng Thất Bại
+          </span>
+        </div>
+
+        <div style="background: #2d1522; border-radius: 4px; padding: 8px; font-size: 12px; color: #fca5a5; line-height: 1.4;">
+          <strong>Lỗi:</strong> ${f.error || 'Thiếu tài nguyên hoặc lỗi validation'}<br>
+          ${f.validationReport?.errors?.map(e => `<small style="color: #f87171;">• [${e.code}] ${e.message}</small>`).join('<br>') || ''}
+        </div>
+
+        <div style="display: flex; gap: 6px; margin-top: auto; padding-top: 8px; border-top: 1px solid #3b1d28;">
+          <button class="btn btn-sm btn-danger" style="flex: 1; background: #dc2626; color: #fff; font-weight: 600;" onclick="rebuildSingleSceneUi('${f.sceneId}')">
+            🔄 Dựng Lại Cảnh Này
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  grid.innerHTML = html;
+}
+
+// 7b. Dựng lại 1 cảnh đơn lẻ
+async function rebuildSingleSceneUi(sceneId) {
+  const plan = smartAssetState.scenePlan;
+  if (!plan || !Array.isArray(plan.scenes)) {
+    alert("⚠️ Chưa có kịch bản.");
+    return;
+  }
+  const sceneDesc = plan.scenes.find(s => s.id === sceneId);
+  if (!sceneDesc) {
+    alert(`⚠️ Không tìm thấy cảnh "${sceneId}" trong kịch bản.`);
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/v5/builder/build-scene', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        scene: sceneDesc,
+        projectId: smartAssetState.projectId || 'demo_v5_phase3_project'
+      })
+    });
+    const data = await res.json();
+    if (data.success && data.compiledScene) {
+      // Bỏ cảnh này khỏi failedScenes nếu có
+      sceneBuilderState.failedScenes = (sceneBuilderState.failedScenes || []).filter(f => f.sceneId !== sceneId);
+      // Cập nhật hoặc thêm vào compiledScenes
+      const existIdx = (sceneBuilderState.compiledScenes || []).findIndex(s => s.id === sceneId);
+      if (existIdx >= 0) {
+        sceneBuilderState.compiledScenes[existIdx] = data.compiledScene;
+      } else {
+        sceneBuilderState.compiledScenes.push(data.compiledScene);
+      }
+      renderStoryboardGrid();
+      alert(`✅ Đã dựng lại thành công cảnh "${sceneId}"!`);
+    } else {
+      alert(`❌ Dựng lại cảnh "${sceneId}" thất bại: ${data.error || 'Lỗi không xác định'}`);
+    }
+  } catch (err) {
+    alert(`❌ Lỗi kết nối: ${err.message}`);
+  }
 }
 
 // 8. Khóa / Mở khóa một cảnh
@@ -7043,17 +7119,49 @@ async function openSelectedSceneInTab2(sceneId) {
 // 10. Xuất báo cáo dựng cảnh
 function exportSceneBuildReport() {
   const stats = sceneBuilderState.stats || {};
-  const reportText = `# BÁO CÁO DỰNG CẢNH TỰ ĐỘNG — THANH HAI 2D STUDIO V5 (PHASE 3)
-Thời gian: ${new Date().toLocaleString('vi-VN')}
-Dự án: ${smartAssetState.scenePlan?.project?.title || 'Chưa đặt tên'}
-Tổng số cảnh: ${stats.totalScenes || sceneBuilderState.compiledScenes.length}
-Cảnh đã dựng thành công: ${stats.builtCount || sceneBuilderState.compiledScenes.length}
-Cảnh có cảnh báo bố cục: ${stats.warningCount || 0}
-Cảnh dựng thất bại: ${stats.failedCount || 0}
-Cảnh đã khóa: ${stats.lockedCount || 0}
+  const compiled = sceneBuilderState.compiledScenes || [];
+  const failed = sceneBuilderState.failedScenes || [];
+  const total = stats.totalScenes || (compiled.length + failed.length);
+  const isReady = failed.length === 0 && compiled.length > 0;
 
----
-Trạng thái: SẴN SÀNG PREVIEW VÀ RENDER MP4`;
+  let reportText = `# BÁO CÁO DỰNG CẢNH TỰ ĐỘNG — THANH HAI 2D STUDIO V5 (PHASE 3)\n`;
+  reportText += `Thời gian: ${new Date().toLocaleString('vi-VN')}\n`;
+  reportText += `Dự án: ${smartAssetState.scenePlan?.project?.title || smartAssetState.scenePlan?.project?.name || 'Chưa đặt tên'}\n`;
+  reportText += `Tổng số cảnh: ${total}\n`;
+  reportText += `Cảnh đã dựng thành công: ${compiled.length}\n`;
+  reportText += `Cảnh có cảnh báo bố cục: ${stats.warningCount || 0}\n`;
+  reportText += `Cảnh dựng thất bại: ${failed.length}\n`;
+  reportText += `Cảnh đã khóa: ${stats.lockedCount || 0}\n\n`;
+  reportText += `## CHI TIẾT TỪNG PHÂN CẢNH\n\n`;
+
+  for (const s of compiled) {
+    reportText += `### ✅ Cảnh ${s.id} (THÀNH CÔNG)\n`;
+    reportText += `- Thời lượng: ${s.duration || 5}s\n`;
+    reportText += `- Hình nền: ${s.background?.assetId || s.background?.id}\n`;
+    reportText += `- Nhân vật: ${(s.characters || []).map(c => `${c.characterId} (${c.role || 'main'})`).join(', ') || 'Không có'}\n`;
+    reportText += `- Đạo cụ: ${(s.props || []).map(p => p.assetId).join(', ') || 'Không có'}\n`;
+    reportText += `- Camera: ${s.camera?.preset || 'medium_shot'}\n\n`;
+  }
+
+  for (const f of failed) {
+    reportText += `### ❌ Cảnh ${f.sceneId} (THẤT BẠI)\n`;
+    reportText += `- Trạng thái: ${f.status || 'FAILED'}\n`;
+    reportText += `- Nguyên nhân lỗi: ${f.error || 'Thiếu tài nguyên hoặc lỗi validation'}\n`;
+    if (f.validationReport?.errors) {
+      reportText += `- Chi tiết lỗi validation:\n`;
+      for (const err of f.validationReport.errors) {
+        reportText += `  * [${err.code}] ${err.message}\n`;
+      }
+    }
+    reportText += `\n`;
+  }
+
+  reportText += `---\n`;
+  if (isReady) {
+    reportText += `Trạng thái: SẴN SÀNG PREVIEW VÀ RENDER MP4 (100% CẢNH HỢP LỆ)\n`;
+  } else {
+    reportText += `Trạng thái: BLOCKED — CHƯA THỂ RENDER MP4 (Có ${failed.length} cảnh lỗi hoặc chưa có cảnh hợp lệ nào)\n`;
+  }
 
   const blob = new Blob([reportText], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -7065,6 +7173,7 @@ Trạng thái: SẴN SÀNG PREVIEW VÀ RENDER MP4`;
 }
 
 // Global window bindings for inline HTML handlers
+window.rebuildSingleSceneUi = rebuildSingleSceneUi;
 window.loadSmartAssetManagerUI = loadSmartAssetManagerUI;
 window.loadDefaultAiStoryboardDemo = loadDefaultAiStoryboardDemo;
 window.scanProjectRequirementsUi = scanProjectRequirementsUi;

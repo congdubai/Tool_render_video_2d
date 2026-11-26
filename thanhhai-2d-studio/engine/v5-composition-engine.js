@@ -67,6 +67,18 @@ export function calculateGroundContactY(background = {}, pose = 'stand') {
 }
 
 /**
+ * Normalizes facing value to a numerical coordinate representation
+ */
+function normalizeFacing(rawFacing, fallback = FACING_DIRECTIONS.RIGHT) {
+  if (rawFacing === 'right' || rawFacing === 1) return FACING_DIRECTIONS.RIGHT;
+  if (rawFacing === 'left' || rawFacing === -1) return FACING_DIRECTIONS.LEFT;
+  if (rawFacing === 'front' || rawFacing === 0) return FACING_DIRECTIONS.FRONT;
+  if (rawFacing === 'back' || rawFacing === 2) return FACING_DIRECTIONS.BACK;
+  if (typeof rawFacing === 'number') return rawFacing;
+  return fallback;
+}
+
+/**
  * Composes a full scene layout by picking template, assigning zones, and calculating positions
  */
 export function computeSceneComposition(sceneDescriptor = {}, projectContext = {}) {
@@ -81,15 +93,34 @@ export function computeSceneComposition(sceneDescriptor = {}, projectContext = {
   const backgroundMeta = sceneDescriptor.background || {};
   const groundY = calculateGroundContactY(backgroundMeta);
 
+  // Map characterBindings if present in projectContext
+  const charBindingsMap = new Map();
+  const cBindings = projectContext.characterBindings || projectContext.scenePlan?.characterBindings || [];
+  if (Array.isArray(cBindings)) {
+    for (const cb of cBindings) {
+      if (cb.id) charBindingsMap.set(cb.id.toLowerCase(), cb.characterId || cb.assetId);
+    }
+  }
+
   // 1. Process character placements
   const composedCharacters = (sceneDescriptor.characters || []).map((c, idx) => {
     const templateChar = layoutResult.characters?.[idx] || { position: { x: 0.5, y: groundY }, scale: 1.0, facing: 1 };
     
-    // Explicit position in sceneDescriptor takes precedence if given as valid number
-    const posX = typeof c.position?.x === 'number' ? (c.position.x <= 1.0 ? c.position.x : c.position.x / 1280) : templateChar.position.x;
-    const posY = typeof c.position?.y === 'number' ? (c.position.y <= 1.0 ? c.position.y : c.position.y / 720) : templateChar.position.y;
+    // Explicit position in sceneDescriptor takes precedence (supports both array [x,y] and object {x,y})
+    let explicitX = null;
+    let explicitY = null;
+    if (Array.isArray(c.position) && c.position.length >= 2) {
+      explicitX = typeof c.position[0] === 'number' ? (c.position[0] <= 1.0 ? c.position[0] : c.position[0] / 1280) : null;
+      explicitY = typeof c.position[1] === 'number' ? (c.position[1] <= 1.0 ? c.position[1] : c.position[1] / 720) : null;
+    } else if (c.position && typeof c.position === 'object') {
+      explicitX = typeof c.position.x === 'number' ? (c.position.x <= 1.0 ? c.position.x : c.position.x / 1280) : null;
+      explicitY = typeof c.position.y === 'number' ? (c.position.y <= 1.0 ? c.position.y : c.position.y / 720) : null;
+    }
 
-    let facing = c.facing ?? templateChar.facing ?? FACING_DIRECTIONS.RIGHT;
+    const posX = explicitX !== null ? explicitX : templateChar.position.x;
+    const posY = explicitY !== null ? explicitY : templateChar.position.y;
+
+    let facing = normalizeFacing(c.facing, templateChar.facing ?? FACING_DIRECTIONS.RIGHT);
     
     // Dialogue auto-facing: if 2 characters, ensure they face each other
     if (sceneDescriptor.characters.length === 2 && c.facing === undefined) {
@@ -99,9 +130,14 @@ export function computeSceneComposition(sceneDescriptor = {}, projectContext = {
     const visualRole = idx === 0 ? VISUAL_ROLES.PRIMARY_SUBJECT : VISUAL_ROLES.SECONDARY_SUBJECT;
     const effectiveScale = (c.scale ?? templateChar.scale ?? 1.0) * (idx === 0 ? visualRole.scaleMultiplier : 1.0);
 
+    const instanceId = c.instanceId || c.id || c.characterId || `char_${idx + 1}`;
+    const rawBindingId = (c.bindingId || '').toLowerCase();
+    const characterId = c.characterId || (rawBindingId && charBindingsMap.get(rawBindingId)) || c.id || 'doc';
+
     return {
-      instanceId: c.instanceId || c.characterId || `char_${idx + 1}`,
-      characterId: c.characterId || 'doc',
+      instanceId,
+      characterId,
+      bindingId: c.bindingId || null,
       role: c.role || (idx === 0 ? 'main' : 'supporting'),
       position: { x: posX, y: posY },
       scale: effectiveScale,
@@ -118,11 +154,21 @@ export function computeSceneComposition(sceneDescriptor = {}, projectContext = {
   const composedProps = (sceneDescriptor.props || []).map((p, idx) => {
     const templateProp = layoutResult.props?.[idx] || { position: { x: 0.70, y: groundY }, scale: 1.0 };
     
-    const posX = typeof p.position?.x === 'number' ? (p.position.x <= 1.0 ? p.position.x : p.position.x / 1280) : templateProp.position.x;
-    const posY = typeof p.position?.y === 'number' ? (p.position.y <= 1.0 ? p.position.y : p.position.y / 720) : templateProp.position.y;
+    let explicitX = null;
+    let explicitY = null;
+    if (Array.isArray(p.position) && p.position.length >= 2) {
+      explicitX = typeof p.position[0] === 'number' ? (p.position[0] <= 1.0 ? p.position[0] : p.position[0] / 1280) : null;
+      explicitY = typeof p.position[1] === 'number' ? (p.position[1] <= 1.0 ? p.position[1] : p.position[1] / 720) : null;
+    } else if (p.position && typeof p.position === 'object') {
+      explicitX = typeof p.position.x === 'number' ? (p.position.x <= 1.0 ? p.position.x : p.position.x / 1280) : null;
+      explicitY = typeof p.position.y === 'number' ? (p.position.y <= 1.0 ? p.position.y : p.position.y / 720) : null;
+    }
+
+    const posX = explicitX !== null ? explicitX : templateProp.position.x;
+    const posY = explicitY !== null ? explicitY : templateProp.position.y;
 
     return {
-      instanceId: p.instanceId || `prop_${idx + 1}`,
+      instanceId: p.instanceId || p.id || `prop_${idx + 1}`,
       assetId: p.assetId || p.id,
       position: { x: posX, y: posY },
       scale: p.scale ?? templateProp.scale ?? 1.0,
@@ -144,4 +190,3 @@ export function computeSceneComposition(sceneDescriptor = {}, projectContext = {
     textGraphics: layoutResult.textGraphics || sceneDescriptor.textGraphics || []
   };
 }
-

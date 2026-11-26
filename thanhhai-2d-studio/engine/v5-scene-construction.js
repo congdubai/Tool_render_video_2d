@@ -7,6 +7,90 @@ import { ANCHORS } from './v5-coordinate-system.js';
 import { checkCharacterOutfitCompatibility } from './compatibility-engine-v4.js';
 
 /**
+ * Resolves an asset ID against the binding registry with robust multi-key resolution:
+ * exact key, REQ_<TYPE>_<ID>, lowercase, and scenePlan characterBindings.
+ */
+export function lookupResolvedBinding(resolvedBindings = {}, rawId = '', type = '', context = {}) {
+  if (!rawId) return { resolvedAssetId: rawId, binding: null };
+  const cleanId = String(rawId).trim();
+  const lowerId = cleanId.toLowerCase();
+
+  // 1. Direct key match in resolvedBindings
+  if (resolvedBindings[cleanId]) {
+    return {
+      resolvedAssetId: resolvedBindings[cleanId].resolvedAssetId || cleanId,
+      binding: resolvedBindings[cleanId]
+    };
+  }
+
+  // 2. Case-insensitive key match
+  for (const [k, v] of Object.entries(resolvedBindings)) {
+    if (k.toLowerCase() === lowerId && v) {
+      return {
+        resolvedAssetId: v.resolvedAssetId || cleanId,
+        binding: v
+      };
+    }
+  }
+
+  // 3. Try typed prefix match (e.g. REQ_BG_background_laboratory, REQ_CHAR_SCIENTIST_01)
+  const prefixes = type ? [`REQ_${type.toUpperCase()}_`, 'REQ_'] : ['REQ_BG_', 'REQ_CHAR_', 'REQ_PROP_', 'REQ_RIG_', 'REQ_'];
+  for (const prefix of prefixes) {
+    const candidateKey = (prefix + lowerId).toLowerCase();
+    for (const [k, v] of Object.entries(resolvedBindings)) {
+      if (!v) continue;
+      const kLow = k.toLowerCase();
+      if (kLow === candidateKey || kLow.endsWith('_' + lowerId) || lowerId.endsWith('_' + kLow.replace(/^req_[a-z]+_/, ''))) {
+        return {
+          resolvedAssetId: v.resolvedAssetId || cleanId,
+          binding: v
+        };
+      }
+    }
+  }
+
+  // 4. Match by targetAssetId or requirementId inside the binding record
+  for (const [k, v] of Object.entries(resolvedBindings)) {
+    if (!v) continue;
+    const target = String(v.targetAssetId || v.requirementId || '').toLowerCase();
+    if (target === lowerId || target.includes(lowerId) || lowerId.includes(target)) {
+      return {
+        resolvedAssetId: v.resolvedAssetId || cleanId,
+        binding: v
+      };
+    }
+  }
+
+  // 5. If type is character, inspect characterBindings in context or scenePlan
+  const charBindings = context.characterBindings || context.scenePlan?.characterBindings || [];
+  if (Array.isArray(charBindings)) {
+    const cb = charBindings.find(b => (b.id && b.id.toLowerCase() === lowerId) || (b.bindingId && b.bindingId.toLowerCase() === lowerId));
+    if (cb && (cb.characterId || cb.assetId)) {
+      return {
+        resolvedAssetId: cb.characterId || cb.assetId,
+        binding: cb
+      };
+    }
+  }
+
+  // 6. Semantic fallback for scientist -> doc
+  if (type === 'char' || type === 'character') {
+    if (lowerId.includes('scientist') || lowerId.includes('bac_si') || lowerId.includes('giao_su')) {
+      return {
+        resolvedAssetId: lowerId.includes('chibi') ? 'chibi_doc' : 'doc',
+        binding: null
+      };
+    }
+  }
+
+  // 7. Default fallback to raw ID
+  return {
+    resolvedAssetId: cleanId,
+    binding: null
+  };
+}
+
+/**
  * Builds a complete SceneGraph from a composed scene descriptor and resolved assets
  */
 export function constructSceneGraph(composedScene, resolvedBindings = {}, options = {}) {
@@ -14,8 +98,9 @@ export function constructSceneGraph(composedScene, resolvedBindings = {}, option
   const graph = new SceneGraph({ sceneId });
 
   // 1. Background Node
-  const bgAssetId = composedScene.background?.assetId || composedScene.background?.id || 'bg_lab_modern';
-  const bgResolved = resolvedBindings[bgAssetId]?.resolvedAssetId || bgAssetId;
+  const rawBgId = composedScene.background?.assetId || composedScene.background?.id || 'bg_lab_modern';
+  const bgLookup = lookupResolvedBinding(resolvedBindings, rawBgId, 'bg', options);
+  const bgResolved = bgLookup.resolvedAssetId || rawBgId;
   const bgNode = graph.addNode({
     instanceId: 'bg_main',
     assetId: bgResolved,
@@ -31,8 +116,13 @@ export function constructSceneGraph(composedScene, resolvedBindings = {}, option
   // 2. Character Nodes & Outfits
   const charNodeMap = new Map();
   for (const c of (composedScene.characters || [])) {
-    const charAssetId = resolvedBindings[c.characterId]?.resolvedAssetId || c.characterId || 'doc';
-    const outfitAssetId = resolvedBindings[c.outfitId]?.resolvedAssetId || c.outfitId || 'outfit_scientist_labcoat';
+    const rawCharId = c.characterId || c.id || c.bindingId || 'doc';
+    const charLookup = lookupResolvedBinding(resolvedBindings, rawCharId, 'char', options);
+    const charAssetId = charLookup.resolvedAssetId || rawCharId || 'doc';
+
+    const rawOutfitId = c.outfitId;
+    const outfitLookup = rawOutfitId ? lookupResolvedBinding(resolvedBindings, rawOutfitId, 'outfit', options) : null;
+    const outfitAssetId = outfitLookup ? outfitLookup.resolvedAssetId : (c.outfitId || 'outfit_scientist_labcoat');
 
     // Verify outfit compatibility via V4 Outfit Engine
     const outfitComp = checkCharacterOutfitCompatibility(charAssetId, outfitAssetId);
@@ -41,7 +131,7 @@ export function constructSceneGraph(composedScene, resolvedBindings = {}, option
       instanceId: c.instanceId,
       assetId: charAssetId,
       type: NODE_TYPES.CHARACTER,
-      name: `Character (${c.role || 'Doc'})`,
+      name: `Character (${c.role || charAssetId})`,
       position: { x: c.position.x, y: c.position.y },
       scale: c.scale ?? 1.0,
       size: { width: 0.22, height: 0.42 },
@@ -49,7 +139,7 @@ export function constructSceneGraph(composedScene, resolvedBindings = {}, option
       zIndex: c.zIndex || 10,
       metadata: {
         role: c.role || 'main',
-        facing: c.facing ?? 1,
+        facing: typeof c.facing === 'number' ? c.facing : (c.facing === 'left' ? -1 : 1),
         outfitId: outfitAssetId,
         outfitCompatible: outfitComp.compatible,
         expressionId: c.expressionId || 'neutral',
@@ -80,8 +170,9 @@ export function constructSceneGraph(composedScene, resolvedBindings = {}, option
   // 3. Prop Nodes & Handheld Attachments
   for (const p of (composedScene.props || [])) {
     const rawAssetId = p.assetId || p.id;
-    const resolvedAssetId = resolvedBindings[rawAssetId]?.resolvedAssetId || rawAssetId;
-    const propAnchorPreset = resolvedBindings[rawAssetId]?.anchor || p.anchorPreset || 'center';
+    const propLookup = lookupResolvedBinding(resolvedBindings, rawAssetId, 'prop', options);
+    const resolvedAssetId = propLookup.resolvedAssetId || rawAssetId;
+    const propAnchorPreset = propLookup.binding?.anchor || resolvedBindings[rawAssetId]?.anchor || p.anchorPreset || 'center';
 
     let parentId = 'root';
     let localPos = { x: p.position.x, y: p.position.y };
@@ -89,9 +180,8 @@ export function constructSceneGraph(composedScene, resolvedBindings = {}, option
     // Check if attached to character hand / head
     if (p.attachedTo && charNodeMap.has(p.attachedTo)) {
       parentId = p.attachedTo;
-      // Position relative to character anchor (e.g. hand offset)
       if (p.anchorPreset === 'hand_grip' || p.placement?.anchor === 'right_hand') {
-        localPos = { x: 0.08, y: -0.18 }; // Right hand offset
+        localPos = { x: 0.08, y: -0.18 };
       } else if (p.placement?.anchor === 'left_hand') {
         localPos = { x: -0.08, y: -0.18 };
       } else if (p.placement?.anchor === 'head') {

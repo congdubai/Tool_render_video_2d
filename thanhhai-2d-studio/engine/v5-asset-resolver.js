@@ -9,7 +9,7 @@ import { COMPOSITE_ACTION_TEMPLATES } from './action-engine-v4.js';
 // Predefined semantic aliases mapping for rule-based matching without local LLM
 const SEMANTIC_ALIASES = {
   coffee_cup: ['coffee_cup', 'coffee_mug', 'cup_coffee', 'coc_ca_phe', 'tach_ca_phe', 'ly_ca_phe', 'prop_coffee_cup'],
-  eniac_computer: ['eniac', 'eniac_computer', 'may_tinh_eniac', 'mainframe_computer', 'vintage_computer', 'vacuum_tube_computer'],
+  eniac_computer: ['eniac', 'eniac_computer', 'may_tinh_eniac', 'mainframe_computer', 'vintage_computer', 'vacuum_tube_computer', 'computer', 'prop_computer', 'may_tinh'],
   vintage_book: ['vintage_book', 'sach_co', 'old_book', 'cuon_sach', 'prop_vintage_book'],
   smartphone: ['smartphone', 'dien_thoai', 'mobile_phone', 'prop_smartphone', 'cellphone'],
   laptop: ['laptop', 'may_tinh_xach_tay', 'prop_laptop', 'notebook'],
@@ -19,7 +19,9 @@ const SEMANTIC_ALIASES = {
   broom: ['broom', 'choi_quet', 'cleaning_broom'],
   vacuum_tube: ['vacuum_tube', 'bong_den_chan_khong', 'electronic_tube', 'den_dien_tu'],
   microprocessor: ['microprocessor', 'vi_xu_ly', 'cpu', 'chip_xu_ly', 'silicon_chip'],
-  transistor: ['transistor', 'bong_ban_dan', 'linh_kien_ban_dan']
+  transistor: ['transistor', 'bong_ban_dan', 'linh_kien_ban_dan'],
+  smoke_vfx: ['smoke', 'vfx_smoke', 'smoke_puff', 'khoi', 'vfx_smoke_cloud', 'vfx_dust_cloud', 'smoke_dust'],
+  light_bulb_vfx: ['light_bulb', 'vfx_light_bulb', 'idea_bulb', 'bong_den', 'vfx_idea_bulb', 'bulb']
 };
 
 export function resolveAssetRequirement(requirement = {}, projectBindings = {}, options = {}) {
@@ -279,6 +281,56 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
       status: 'MISSING_CAPABILITY',
       reasons: [`Engine chưa hỗ trợ diễn hoạt hành động "${targetId}". Cần phương án thay thế hoặc AI Repair Package.`]
     };
+  }
+
+  // -------------------------------------------------------------
+  // VFX Check (Built-in VFX Engine + Assets)
+  // -------------------------------------------------------------
+  if (reqType === 'vfx') {
+    const vfxAsset = getAsset(targetId) || getAsset(`vfx_${targetId.replace(/^vfx_/, '')}`);
+    if (vfxAsset) {
+      return {
+        requirementId: reqId,
+        resolvedAssetId: vfxAsset.id,
+        resolutionMethod: 'EXACT_ASSET_ID',
+        matchScore: 100,
+        confidence: 'EXACT_MATCH',
+        status: 'READY',
+        reasons: [`Khớp chính xác hiệu ứng VFX "${vfxAsset.id}" trong Thư viện V4`],
+        asset: vfxAsset
+      };
+    }
+    const normVfx = targetId.toLowerCase().replace(/^vfx_/, '');
+    if (normVfx.includes('smoke') || normVfx.includes('dust') || normVfx.includes('cloud')) {
+      const smokeAsset = getAsset('vfx_smoke_puff') || getAsset('vfx_dust_cloud');
+      if (smokeAsset) {
+        return {
+          requirementId: reqId,
+          resolvedAssetId: smokeAsset.id,
+          resolutionMethod: 'SEMANTIC_VFX_MATCH',
+          matchScore: 95,
+          confidence: 'HIGH_CONFIDENCE',
+          status: 'READY',
+          reasons: [`Khớp hiệu ứng khói "${smokeAsset.id}" từ Thư viện VFX`],
+          asset: smokeAsset
+        };
+      }
+    }
+    if (normVfx.includes('bulb') || normVfx.includes('light') || normVfx.includes('idea')) {
+      const bulbAsset = getAsset('vfx_idea_bulb');
+      if (bulbAsset) {
+        return {
+          requirementId: reqId,
+          resolvedAssetId: bulbAsset.id,
+          resolutionMethod: 'SEMANTIC_VFX_MATCH',
+          matchScore: 95,
+          confidence: 'HIGH_CONFIDENCE',
+          status: 'READY',
+          reasons: [`Khớp hiệu ứng bóng đèn ý tưởng "${bulbAsset.id}" từ Thư viện VFX`],
+          asset: bulbAsset
+        };
+      }
+    }
   }
 
   // -------------------------------------------------------------
