@@ -1,0 +1,25 @@
+{
+  "id": "proj_1795656122660_aglg2",
+  "name": "Dự án Export",
+  "revision": "1.0",
+  "createdAt": "2026-11-26T01:22:02.660Z",
+  "updatedAt": "2026-11-26T01:22:02.660Z",
+  "scriptText": "",
+  "styleProfile": "vietnamese_cartoon",
+  "audio": null,
+  "timeline": null,
+  "scenePlan": {
+    "scenes": []
+  },
+  "compiledScenes": [],
+  "animationTracks": {},
+  "lockedSceneIds": [],
+  "renderSettings": {
+    "resolution": "1920x1080",
+    "fps": 30,
+    "encoder": "libx264",
+    "quality": "Standard"
+  },
+  "userOverrides": {},
+  "revisions": []
+}

@@ -1,0 +1,18 @@
+{
+  "jobId": "job_1795656122650_uqpem",
+  "projectId": "proj_queue",
+  "projectRevision": "1.0",
+  "mode": "MODE_B_FULL_AUTO",
+  "status": "Queued",
+  "stage": "Initialized",
+  "progressPercent": 0,
+  "createdAt": "2026-11-26T01:22:02.650Z",
+  "startedAt": null,
+  "completedAt": null,
+  "checkpoints": [],
+  "logs": [],
+  "errorDetails": null,
+  "retryCount": 0,
+  "options": {},
+  "snapshot": null
+}

@@ -1,0 +1,50 @@
+{
+  "jobId": "job_1795657038933_zjf6m",
+  "projectId": "v5_production_demo",
+  "projectRevision": "1.0",
+  "mode": "MODE_B_FULL_AUTO",
+  "status": "Queued",
+  "stage": "Chờ bổ sung tài nguyên",
+  "progressPercent": 20,
+  "createdAt": "2026-11-26T01:37:18.933Z",
+  "startedAt": "2026-11-26T01:37:18.933Z",
+  "completedAt": null,
+  "checkpoints": [
+    {
+      "name": "PLAN_IMPORTED",
+      "timestamp": "2026-11-26T01:37:18.934Z",
+      "data": {
+        "reason": "Nhập dữ liệu dự án"
+      }
+    },
+    {
+      "name": "VALIDATING",
+      "timestamp": "2026-11-26T01:37:18.935Z",
+      "data": {
+        "reason": "Kiểm tra Scene Plan"
+      }
+    },
+    {
+      "name": "WAITING_FOR_ASSETS",
+      "timestamp": "2026-11-26T01:37:18.940Z",
+      "data": {
+        "reason": "Thiếu 2 tài nguyên"
+      }
+    }
+  ],
+  "logs": [
+    "[08:37:18] Trạng thái: DRAFT ➔ PLAN_IMPORTED (Nhập dữ liệu dự án)",
+    "[08:37:18] Checkpoint lưu thành công: \"PLAN_IMPORTED\".",
+    "[08:37:18] [Validate Scene Plan] Tiến độ: 5%",
+    "[08:37:18] Trạng thái: PLAN_IMPORTED ➔ VALIDATING (Kiểm tra Scene Plan)",
+    "[08:37:18] Checkpoint lưu thành công: \"VALIDATING\".",
+    "[08:37:18] [Resolve Assets] Tiến độ: 15%",
+    "[08:37:18] Trạng thái: VALIDATING ➔ WAITING_FOR_ASSETS (Thiếu 2 tài nguyên)",
+    "[08:37:18] Checkpoint lưu thành công: \"WAITING_FOR_ASSETS\".",
+    "[08:37:18] [Chờ bổ sung tài nguyên] Tiến độ: 20%"
+  ],
+  "errorDetails": null,
+  "retryCount": 0,
+  "options": {},
+  "snapshot": null
+}

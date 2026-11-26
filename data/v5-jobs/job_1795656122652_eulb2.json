@@ -1,0 +1,26 @@
+{
+  "jobId": "job_1795656122652_eulb2",
+  "projectId": "proj_restart_recov",
+  "projectRevision": "1.0",
+  "mode": "MODE_B_FULL_AUTO",
+  "status": "Queued",
+  "stage": "Initialized",
+  "progressPercent": 0,
+  "createdAt": "2026-11-26T01:22:02.652Z",
+  "startedAt": null,
+  "completedAt": null,
+  "checkpoints": [
+    {
+      "name": "CHECKPOINT_SAFE",
+      "timestamp": "2026-11-26T01:22:02.652Z",
+      "data": {}
+    }
+  ],
+  "logs": [
+    "[08:22:02] Checkpoint lưu thành công: \"CHECKPOINT_SAFE\"."
+  ],
+  "errorDetails": null,
+  "retryCount": 0,
+  "options": {},
+  "snapshot": null
+}

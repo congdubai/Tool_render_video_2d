@@ -1,0 +1,40 @@
+{
+  "jobId": "job_1795656121954_494yu",
+  "projectId": "proj_1795656121954",
+  "projectRevision": "1.0",
+  "mode": "MODE_A_PREVIEW",
+  "status": "Queued",
+  "stage": "Resolve Assets",
+  "progressPercent": 15,
+  "createdAt": "2026-11-26T01:22:01.954Z",
+  "startedAt": "2026-11-26T01:22:01.955Z",
+  "completedAt": null,
+  "checkpoints": [
+    {
+      "name": "PLAN_IMPORTED",
+      "timestamp": "2026-11-26T01:22:01.966Z",
+      "data": {
+        "reason": "Nhập dữ liệu dự án"
+      }
+    },
+    {
+      "name": "VALIDATING",
+      "timestamp": "2026-11-26T01:22:01.967Z",
+      "data": {
+        "reason": "Kiểm tra Scene Plan"
+      }
+    }
+  ],
+  "logs": [
+    "[08:22:01] Trạng thái: DRAFT ➔ PLAN_IMPORTED (Nhập dữ liệu dự án)",
+    "[08:22:01] Checkpoint lưu thành công: \"PLAN_IMPORTED\".",
+    "[08:22:01] [Validate Scene Plan] Tiến độ: 5%",
+    "[08:22:01] Trạng thái: PLAN_IMPORTED ➔ VALIDATING (Kiểm tra Scene Plan)",
+    "[08:22:01] Checkpoint lưu thành công: \"VALIDATING\".",
+    "[08:22:01] [Resolve Assets] Tiến độ: 15%"
+  ],
+  "errorDetails": null,
+  "retryCount": 0,
+  "options": {},
+  "snapshot": null
+}

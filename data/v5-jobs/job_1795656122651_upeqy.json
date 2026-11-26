@@ -1,0 +1,20 @@
+{
+  "jobId": "job_1795656122651_upeqy",
+  "projectId": "proj_cancel",
+  "projectRevision": "1.0",
+  "mode": "MODE_B_FULL_AUTO",
+  "status": "Cancelled",
+  "stage": "Initialized",
+  "progressPercent": 0,
+  "createdAt": "2026-11-26T01:22:02.651Z",
+  "startedAt": null,
+  "completedAt": null,
+  "checkpoints": [],
+  "logs": [
+    "[08:22:02] Job đã bị hủy: Test Cancel"
+  ],
+  "errorDetails": "Test Cancel",
+  "retryCount": 0,
+  "options": {},
+  "snapshot": null
+}
