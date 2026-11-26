@@ -44,9 +44,19 @@ export function canGenerateProcedurally(requirement = {}) {
  * Generates a procedural 2D asset based on requirement description, template, or vector JSON.
  */
 export function generateProceduralAsset(requirement = {}, options = {}) {
-  const type = String(requirement.type || requirement.category || 'prop').toLowerCase();
   const reqId = requirement.id || 'REQ_ASSET';
   const targetId = (requirement.targetAssetId || reqId).toLowerCase();
+  const templateCandidate = String(options.template || requirement.proceduralTemplateId || targetId).toLowerCase();
+  const isKnownBg = ['modern_lab', 'lab_modern', 'vintage_lab', 'office', 'classroom', 'city_street', 'street', 'park', 'city', 'forest', 'cafe', 'living_room', 'bedroom', 'hospital', 'factory', 'warehouse', 'store', 'mountain', 'beach', 'desert', 'countryside', 'construction', 'ancient_village', 'vintage_computer_room', 'physics_lab', 'chemistry_lab', 'research_center', 'space_station', 'inside_machine'].includes(templateCandidate) || targetId.includes('bg_') || targetId.includes('background') || targetId.includes('lab') || targetId.includes('room');
+  const isKnownDiag = ['historical_timeline', 'principle_diagram', 'comparison_chart'].includes(templateCandidate) || targetId.includes('diagram') || targetId.includes('chart');
+
+  let type = String(requirement.type || requirement.category || options.type || '').toLowerCase();
+  if (!type || type === 'prop' || type === 'unknown') {
+    if (isKnownBg) type = 'background';
+    else if (isKnownDiag) type = 'diagram';
+    else type = 'prop';
+  }
+
   const styleProfile = options.styleProfile || requirement.styleProfileId || 'white_cartoon';
   const seed = options.seed || requirement.seed || 101;
 

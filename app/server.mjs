@@ -1800,7 +1800,10 @@ app.post("/api/v5/procedural/generate", async (req, res) => {
   try {
     const { requirement, type, template, styleProfileId, options = {}, seed } = req.body;
     const reqId = requirement?.id || req.body.requirementId || `req_${type || 'prop'}_${Date.now()}`;
-    const detectedType = type || requirement?.type || (reqId.toLowerCase().includes('bg') || reqId.toLowerCase().includes('background') ? 'background' : (reqId.toLowerCase().includes('diagram') ? 'diagram' : 'prop'));
+    const templateCandidate = String(template || reqId).toLowerCase();
+    const isKnownBg = ['modern_lab', 'lab_modern', 'vintage_lab', 'office', 'classroom', 'city_street', 'street', 'park', 'city', 'forest', 'cafe', 'lab', 'room'].some(t => templateCandidate.includes(t)) || reqId.toLowerCase().includes('bg');
+    const isKnownDiag = ['historical_timeline', 'principle_diagram', 'comparison_chart'].some(t => templateCandidate.includes(t)) || reqId.toLowerCase().includes('diagram');
+    const detectedType = type || requirement?.type || (isKnownBg ? 'background' : (isKnownDiag ? 'diagram' : 'prop'));
     
     const reqObj = requirement || {
       id: reqId,
@@ -1809,7 +1812,7 @@ app.post("/api/v5/procedural/generate", async (req, res) => {
       name: options.name || template || 'Procedural Asset'
     };
     if (template) reqObj.proceduralTemplateId = template;
-    if (detectedType) reqObj.type = detectedType;
+    reqObj.type = detectedType;
 
     const asset = generateProceduralAsset(reqObj, {
       ...options,

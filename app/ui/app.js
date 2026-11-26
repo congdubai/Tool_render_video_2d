@@ -7415,17 +7415,18 @@ async function openProceduralEditorModal(reqId) {
   modal.classList.remove('hidden');
   modal.style.display = 'flex';
 
-  // 2. Tìm requirement hoặc fallback nếu chưa đồng bộ kịp
-  let req = (smartAssetState.requirements || []).find(r => r.id === reqId);
+  // 2. Tìm requirement hoặc fallback an toàn tuyệt đối
+  const safeReqId = String(reqId || currentProcModalState.reqId || 'REQ_BG_background_laboratory').trim();
+  let req = (smartAssetState.requirements || []).find(r => r.id === safeReqId);
   if (!req) {
-    const cleanId = (reqId || '').toLowerCase();
-    const isBg = cleanId.includes('bg') || cleanId.includes('background');
+    const cleanId = safeReqId.toLowerCase();
+    const isBg = cleanId.includes('bg') || cleanId.includes('background') || cleanId.includes('lab') || cleanId.includes('room');
     const isDiagram = cleanId.includes('diagram') || cleanId.includes('chart') || cleanId.includes('timeline');
     req = {
-      id: reqId,
+      id: safeReqId,
       type: isBg ? 'background' : (isDiagram ? 'diagram' : 'prop'),
-      targetAssetId: reqId.replace(/^REQ_(BG|PROP|CHAR|RIG)_/i, '').toLowerCase(),
-      description: `Procedural vector asset for ${reqId}`
+      targetAssetId: safeReqId.replace(/^REQ_(BG|PROP|CHAR|RIG)_/i, '').toLowerCase(),
+      description: `Procedural vector asset for ${safeReqId}`
     };
   }
 
@@ -7504,6 +7505,7 @@ async function updateProceduralPreviewUi() {
   const layersText = document.getElementById('procLayersText');
   const anchorText = document.getElementById('procAnchorText');
   const renderTimeBadge = document.getElementById('procRenderTimeBadge');
+  const reqTypeBadge = document.getElementById('procReqTypeBadge');
 
   if (!templateSelect || !svgWrapper) return;
 
@@ -7512,7 +7514,27 @@ async function updateProceduralPreviewUi() {
   const timeOfDay = timeOfDaySelect ? timeOfDaySelect.value : 'day';
   const seed = seedInput ? parseInt(seedInput.value, 10) || 12345 : 12345;
 
-  svgWrapper.innerHTML = `<span style="color: #64748b;">Đang dựng đồ họa vector toán học...</span>`;
+  // Tự động nhận diện loại tài nguyên từ template
+  const isBg = ['modern_lab', 'vintage_lab', 'office', 'classroom', 'city_street', 'park'].includes(template);
+  const isDiag = ['historical_timeline', 'principle_diagram', 'comparison_chart'].includes(template);
+  const activeType = isBg ? 'background' : (isDiag ? 'diagram' : 'prop');
+
+  if (!currentProcModalState.requirement) {
+    currentProcModalState.requirement = {
+      id: currentProcModalState.reqId || `REQ_${activeType.toUpperCase()}_${template}`,
+      type: activeType,
+      targetAssetId: template,
+      name: template
+    };
+    currentProcModalState.reqId = currentProcModalState.requirement.id;
+  } else {
+    currentProcModalState.requirement.type = activeType;
+    currentProcModalState.requirement.proceduralTemplateId = template;
+  }
+
+  if (reqTypeBadge) reqTypeBadge.textContent = activeType;
+
+  svgWrapper.innerHTML = `<span style="color: #64748b; font-size: 13px;">⚡ Đang tính toán và dựng đồ họa vector (${template})...</span>`;
 
   const startTime = performance.now();
 
@@ -7523,7 +7545,7 @@ async function updateProceduralPreviewUi() {
       body: JSON.stringify({
         requirement: currentProcModalState.requirement,
         requirementId: currentProcModalState.reqId,
-        type: currentProcModalState.requirement?.type,
+        type: activeType,
         template,
         styleProfileId,
         options: { timeOfDay },
