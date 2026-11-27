@@ -1,350 +1,608 @@
-// engine/v5-procedural-props.js — Procedural Prop Generator (V5.1)
-// Generates parametric, multi-layered 2D cartoon props with built-in hand grips, ground contacts,
-// and independent animatable layers on transparent backgrounds (PNG Alpha).
+// engine/v5-procedural-props.js — Advanced Procedural Prop Generator (V5.2 Phase 2)
+// Pure JS (Node + Browser Canvas 2D compatible).
+// 18 detailed multi-primitive props with gradients, highlights, shadows, anchors, pivots,
+// groundContact, gripPoint, detailLevel (low/medium/high), and independent animatable layers.
 
-import { getStyleTheme, createRng } from './v5-style-engine.js';
-import { renderToSvg, renderToPngFile } from './v5-vector-engine.js';
+import { getStyleTheme, resolveLightingProfile, buildContactShadow, createRng } from './v5-style-engine.js';
+import { renderToSvg } from './v5-vector-canvas.js';
 
 export const PROP_CATALOG = [
-  'vintage_computer', 'modern_computer', 'laptop', 'smartphone',
-  'microchip', 'transistor', 'lightbulb', 'vintage_book',
-  'coffee_cup', 'desk', 'chair', 'box', 'lab_equipment', 'machine', 'gear', 'tool'
+  'eniac',
+  'vintage_computer',
+  'modern_computer',
+  'laptop',
+  'smartphone',
+  'transistor',
+  'microchip',
+  'lightbulb',
+  'vintage_book',
+  'coffee_cup',
+  'desk',
+  'chair',
+  'cabinet',
+  'machine',
+  'lab_equipment',
+  'gear',
+  'tool',
+  'vehicle'
 ];
 
-/**
- * Builds a procedural prop vector specification
- */
-export function generateProceduralProp(templateId = 'vintage_computer', options = {}) {
-  const normId = String(templateId || 'vintage_computer').toLowerCase()
+const PROP_ALIASES = {
+  idea_bulb: 'lightbulb',
+  bulb: 'lightbulb',
+  book: 'vintage_book',
+  cup: 'coffee_cup',
+  mug: 'coffee_cup',
+  table: 'desk',
+  phone: 'smartphone',
+  desktop: 'modern_computer',
+  desktop_computer: 'modern_computer',
+  repair_tool: 'tool',
+  wrench: 'tool',
+  car: 'vehicle',
+  simple_vehicle: 'vehicle',
+  flask: 'lab_equipment',
+  box: 'cabinet'
+};
+
+function normalizePropTemplateId(templateId = 'vintage_computer') {
+  const raw = String(templateId || 'vintage_computer')
+    .toLowerCase()
     .replace(/^prop_/, '')
     .replace(/^req_prop_/, '')
     .replace(/^req_/, '');
+  return PROP_ALIASES[raw] || raw;
+}
 
-  const width = options.width || 512;
-  const height = options.height || 512;
-  const seed = options.seed || 101;
+/**
+ * Generates an upgraded multi-layer procedural prop vector specification.
+ */
+export function generateProceduralProp(templateId = 'vintage_computer', options = {}) {
+  const normId = normalizePropTemplateId(templateId);
+  const width = Number(options.width) || 512;
+  const height = Number(options.height) || 512;
+  const seed = options.seed ?? 101;
   const rng = createRng(seed);
 
-  const styleProfile = options.styleProfile || 'white_cartoon';
+  const styleProfile = options.styleProfile || 'educational_cartoon';
   const theme = getStyleTheme(styleProfile);
+  const lighting = resolveLightingProfile(options.lighting || options.timeOfDay || 'daylight');
+  const detailLevel = String(options.detailLevel || theme.detailLevel || 'medium').toLowerCase();
   const palette = { ...theme.palette, ...(options.palette || {}) };
   const strokeColor = theme.outlineColor;
-  const strokeWidth = theme.outlineWidth;
+  const strokeWidth = Math.max(2, theme.outlineWidth * 0.85);
 
   const builder = PROP_BUILDERS[normId] || PROP_BUILDERS.vintage_computer;
-  const result = builder({ width, height, palette, strokeColor, strokeWidth, rng, options });
+  const result = builder({ width, height, palette, theme, lighting, strokeColor, strokeWidth, detailLevel, rng, options });
+
+  const layers = (result.layers || [{ id: 'body', name: 'Thân chính', zIndex: 10, elements: result.elements }]).map((l, idx) => ({
+    id: l.id,
+    name: l.name,
+    zIndex: l.zIndex ?? (idx + 1) * 10,
+    animatableProperties: ['position', 'rotation', 'scale', 'opacity', 'color', 'visible'],
+    elements: l.elements
+  }));
+
+  const fullElements = layers.map(l => ({
+    type: 'group',
+    id: l.id,
+    children: l.elements
+  }));
 
   const vectorSpec = {
+    schemaVersion: '5.2',
     width,
     height,
     viewBox: `0 0 ${width} ${height}`,
-    styleProfile,
+    styleProfile: theme.id,
+    lighting: lighting.id,
+    detailLevel,
     templateId: normId,
     seed,
-    elements: result.elements
+    palette,
+    defs: result.defs || { gradients: [] },
+    anchors: {
+      gripPoint: result.gripPoint || { x: 0.5, y: 0.8 },
+      groundContact: result.groundContact || { x: 0.5, y: 0.94 }
+    },
+    pivots: {
+      center: result.pivot || { x: 0.5, y: 0.5 },
+      bottom: result.groundContact || { x: 0.5, y: 0.94 }
+    },
+    layers,
+    elements: fullElements
   };
 
   return {
     id: `prop_${normId}`,
     templateId: normId,
     type: 'prop',
-    name: result.name || getPropTitle(normId),
+    name: result.name || normId,
+    styleProfile: theme.id,
+    lighting: lighting.id,
+    detailLevel,
+    seed,
     width,
     height,
-    gripPoint: result.gripPoint || { x: 0.5, y: 0.85 },
-    groundContact: result.groundContact || { x: 0.5, y: 0.98 },
-    pivot: result.pivot || { x: 0.5, y: 0.5 },
-    layers: result.layers || [
-      { id: 'main', name: 'Thân chính (Main Body)', elements: result.elements }
-    ],
+    gripPoint: vectorSpec.anchors.gripPoint,
+    groundContact: vectorSpec.anchors.groundContact,
+    pivot: vectorSpec.pivots.center,
+    layers,
     vectorSpec,
-    getSvg: () => renderToSvg(vectorSpec),
-    renderPng: (outPath) => renderToPngFile(vectorSpec, outPath, { width, height })
+    getSvg: () => renderToSvg(vectorSpec)
   };
 }
 
-function getPropTitle(id) {
-  const map = {
-    vintage_computer: 'Máy Tính Cổ Điển (Vintage Computer)',
-    modern_computer: 'Máy Tính Để Bàn Hiện Đại',
-    laptop: 'Máy Tính Xách Tay (Laptop)',
-    smartphone: 'Điện Thoại Thông Minh (Smartphone)',
-    microchip: 'Vi Xử Lý (Microchip CPU)',
-    transistor: 'Linh Kiện Bán Dẫn (Transistor)',
-    lightbulb: 'Bóng Đèn Sáng Kiến (Idea Bulb)',
-    vintage_book: 'Cuốn Sách Cổ (Vintage Book)',
-    coffee_cup: 'Cốc Cà Phê Nóng (Coffee Cup)',
-    desk: 'Bàn Làm Việc Phòng Lab',
-    chair: 'Ghế Tựa Văn Phòng',
-    box: 'Thùng Gỗ / Thùng Carton',
-    lab_equipment: 'Bình Cầu Thí Nghiệm (Lab Flask)',
-    gear: 'Bánh Răng Cơ Khí (Gear)'
-  };
-  return map[id] || `Đạo cụ ${id}`;
-}
-
-// =========================================================================
-// PROP TEMPLATE BUILDERS
-// =========================================================================
+// ============================================================================
+// DETAILED MULTI-LAYER PROP BUILDERS (18 PROPS)
+// ============================================================================
 
 const PROP_BUILDERS = {
-  // 1. VINTAGE COMPUTER (Mainframe / 1950s Terminal with separate screen & dials)
-  vintage_computer: ({ width, height, palette, strokeColor, strokeWidth, rng }) => {
-    // Separate layers: main_body, screen, vacuum_tubes, dials_and_lights
-    const mainBody = [
-      // Chassis
-      { type: 'rounded_rect', x: 60, y: 100, width: 392, height: 350, rx: 16, fill: '#3f3f46', stroke: strokeColor, strokeWidth },
-      // Ventilation Grill at bottom
-      { type: 'line', x1: 100, y1: 400, x2: 412, y2: 400, stroke: '#18181b', strokeWidth: 4 },
-      { type: 'line', x1: 100, y1: 415, x2: 412, y2: 415, stroke: '#18181b', strokeWidth: 4 }
-    ];
-
-    const screen = [
-      // CRT Bezel
-      { type: 'rounded_rect', x: 90, y: 130, width: 220, height: 160, rx: 12, fill: '#18181b', stroke: strokeColor, strokeWidth: 4 },
-      // Glowing green phosphor screen
-      { type: 'rounded_rect', x: 105, y: 145, width: 190, height: 130, rx: 10, fill: '#14532d', stroke: '#22c55e', strokeWidth: 2 },
-      // Scanlines & terminal cursor
-      { type: 'line', x1: 120, y1: 175, x2: 240, y2: 175, stroke: '#4ade80', strokeWidth: 4 },
-      { type: 'line', x1: 120, y1: 195, x2: 210, y2: 195, stroke: '#4ade80', strokeWidth: 4 },
-      { type: 'rect', x: 120, y: 210, width: 12, height: 16, fill: '#4ade80' } // Blinking cursor
-    ];
-
-    const vacuumTubes = [
-      // Top row of vacuum tubes
-      { type: 'rounded_rect', x: 140, y: 55, width: 35, height: 45, rx: 14, fill: '#fef08a', opacity: 0.85, stroke: strokeColor, strokeWidth: 3 },
-      { type: 'rounded_rect', x: 235, y: 55, width: 35, height: 45, rx: 14, fill: '#fef08a', opacity: 0.85, stroke: strokeColor, strokeWidth: 3 },
-      { type: 'rounded_rect', x: 330, y: 55, width: 35, height: 45, rx: 14, fill: '#fef08a', opacity: 0.85, stroke: strokeColor, strokeWidth: 3 }
-    ];
-
-    const dialsAndLights = [
-      // Dials on the right panel
-      { type: 'circle', cx: 370, cy: 160, r: 24, fill: '#27272a', stroke: strokeColor, strokeWidth: 3 },
-      { type: 'line', x1: 370, y1: 160, x2: 385, y2: 150, stroke: '#ef4444', strokeWidth: 3 },
-      { type: 'circle', cx: 370, cy: 230, r: 24, fill: '#27272a', stroke: strokeColor, strokeWidth: 3 },
-      { type: 'line', x1: 370, y1: 230, x2: 360, y2: 215, stroke: '#38bdf8', strokeWidth: 3 },
-      // Colored indicator lights
-      { type: 'circle', cx: 120, cy: 330, r: 10, fill: '#ef4444', stroke: strokeColor, strokeWidth: 2 },
-      { type: 'circle', cx: 160, cy: 330, r: 10, fill: '#facc15', stroke: strokeColor, strokeWidth: 2 },
-      { type: 'circle', cx: 200, cy: 330, r: 10, fill: '#22c55e', stroke: strokeColor, strokeWidth: 2 },
-      // Patch cable ports
-      { type: 'circle', cx: 280, cy: 330, r: 8, fill: '#09090b', stroke: strokeColor, strokeWidth: 2 },
-      { type: 'circle', cx: 320, cy: 330, r: 8, fill: '#09090b', stroke: strokeColor, strokeWidth: 2 },
-      { type: 'circle', cx: 360, cy: 330, r: 8, fill: '#09090b', stroke: strokeColor, strokeWidth: 2 }
-    ];
-
-    const layers = [
-      { id: 'vacuum_tubes', name: 'Đèn Chân Không (Vacuum Tubes)', zIndex: 5, elements: vacuumTubes },
-      { id: 'main_body', name: 'Thân Máy Cổ (Main Body)', zIndex: 10, elements: mainBody },
-      { id: 'screen', name: 'Màn Hình CRT (Screen)', zIndex: 20, elements: screen },
-      { id: 'dials_and_lights', name: 'Đèn Báo & Nút Vặn (Dials & Lights)', zIndex: 30, elements: dialsAndLights }
-    ];
-
-    return {
-      name: 'Máy Tính Cổ Điển Thập Niên 1950',
-      elements: [...vacuumTubes, ...mainBody, ...screen, ...dialsAndLights],
-      layers,
-      gripPoint: { x: 0.5, y: 0.8 },
-      groundContact: { x: 0.5, y: 0.95 },
-      pivot: { x: 0.5, y: 0.5 }
+  // 1. VINTAGE COMPUTER (Body, Screen, Keyboard, Buttons, Indicator Lights, Cables, Shadow)
+  vintage_computer: ({ strokeColor, strokeWidth, lighting, detailLevel }) => {
+    const defs = {
+      gradients: [
+        { id: 'vc_chassis', type: 'linear', x1: '0%', y1: '0%', x2: '0%', y2: '100%', stops: [{ offset: 0, color: '#52525b' }, { offset: 1, color: '#27272a' }] },
+        { id: 'vc_crt', type: 'linear', x1: '0%', y1: '0%', x2: '100%', y2: '100%', stops: [{ offset: 0, color: '#064e3b' }, { offset: 1, color: '#022c22' }] }
+      ]
     };
-  },
 
-  // 2. LIGHTBULB / IDEA BULB (Yellow glow, filament, idea sparkles)
-  lightbulb: ({ width, height, palette, strokeColor, strokeWidth }) => {
-    const glass = [
-      // Yellow Bulb Glass
-      { type: 'circle', cx: 256, cy: 190, r: 120, fill: '#fde047', stroke: strokeColor, strokeWidth },
-      { type: 'polygon', points: [[176, 260], [336, 260], [300, 340], [212, 340]], fill: '#fde047', stroke: strokeColor, strokeWidth },
-      // Inner glowing filament
-      { type: 'polyline', points: [[230, 260], [240, 180], [256, 160], [272, 180], [282, 260]], stroke: '#eab308', strokeWidth: 5, strokeLinejoin: 'round' }
-    ];
-
-    const base = [
-      // Screw Base (Metallic bands)
-      { type: 'rounded_rect', x: 210, y: 340, width: 92, height: 22, rx: 6, fill: '#94a3b8', stroke: strokeColor, strokeWidth: 4 },
-      { type: 'rounded_rect', x: 215, y: 365, width: 82, height: 20, rx: 6, fill: '#64748b', stroke: strokeColor, strokeWidth: 4 },
-      { type: 'rounded_rect', x: 225, y: 388, width: 62, height: 18, rx: 6, fill: '#475569', stroke: strokeColor, strokeWidth: 4 },
-      // Bottom contact point
-      { type: 'circle', cx: 256, cy: 412, r: 10, fill: '#1e293b' }
-    ];
-
-    const sparkles = [
-      // Energy / Idea Rays popping around the bulb
-      { type: 'line', x1: 256, y1: 20, x2: 256, y2: 50, stroke: '#f59e0b', strokeWidth: 6, strokeLinecap: 'round' },
-      { type: 'line', x1: 100, y1: 80, x2: 125, y2: 105, stroke: '#f59e0b', strokeWidth: 6, strokeLinecap: 'round' },
-      { type: 'line', x1: 412, y1: 80, x2: 387, y2: 105, stroke: '#f59e0b', strokeWidth: 6, strokeLinecap: 'round' },
-      { type: 'line', x1: 50, y1: 190, x2: 80, y2: 190, stroke: '#f59e0b', strokeWidth: 6, strokeLinecap: 'round' },
-      { type: 'line', x1: 462, y1: 190, x2: 432, y2: 190, stroke: '#f59e0b', strokeWidth: 6, strokeLinecap: 'round' }
-    ];
-
-    const layers = [
-      { id: 'sparkles', name: 'Tia Sáng Ý Tưởng (Idea Sparkles)', zIndex: 5, elements: sparkles },
-      { id: 'glass', name: 'Bóng Đèn Thủy Tinh (Glass Bulb)', zIndex: 10, elements: glass },
-      { id: 'base', name: 'Đui Đèn Kim Loại (Screw Base)', zIndex: 20, elements: base }
-    ];
-
-    return {
-      name: 'Bóng Đèn Sáng Kiến (Idea Bulb)',
-      elements: [...sparkles, ...glass, ...base],
-      layers,
-      gripPoint: { x: 0.5, y: 0.8 },
-      groundContact: { x: 0.5, y: 0.95 },
-      pivot: { x: 0.5, y: 0.5 }
-    };
-  },
-
-  // 3. COFFEE CUP
-  coffee_cup: ({ width, height, palette, strokeColor, strokeWidth }) => {
-    const saucer = [
-      { type: 'ellipse', cx: 256, cy: 400, rx: 160, ry: 24, fill: '#e2e8f0', stroke: strokeColor, strokeWidth }
-    ];
-    const mug = [
-      // Cup Body
-      { type: 'path', d: 'M 140 180 L 160 380 Q 256 410 352 380 L 372 180 Z', fill: '#f8fafc', stroke: strokeColor, strokeWidth },
-      // Cup Rim & Coffee liquid
-      { type: 'ellipse', cx: 256, cy: 180, rx: 116, ry: 22, fill: '#78350f', stroke: strokeColor, strokeWidth: 4 },
-      // Handle
-      { type: 'path', d: 'M 360 210 Q 430 210 430 280 Q 430 350 340 350', fill: 'none', stroke: strokeColor, strokeWidth: 12, strokeLinecap: 'round' }
-    ];
-    const steam = [
-      // Steam curls
-      { type: 'path', d: 'M 220 140 Q 200 100 220 60', fill: 'none', stroke: '#cbd5e1', strokeWidth: 4, strokeLinecap: 'round', opacity: 0.7 },
-      { type: 'path', d: 'M 260 130 Q 280 90 260 50', fill: 'none', stroke: '#cbd5e1', strokeWidth: 4, strokeLinecap: 'round', opacity: 0.7 },
-      { type: 'path', d: 'M 300 140 Q 290 100 310 60', fill: 'none', stroke: '#cbd5e1', strokeWidth: 4, strokeLinecap: 'round', opacity: 0.7 }
-    ];
-
-    const layers = [
-      { id: 'steam', name: 'Làn Khói Nóng (Steam)', zIndex: 5, elements: steam },
-      { id: 'saucer', name: 'Đĩa Lót (Saucer)', zIndex: 10, elements: saucer },
-      { id: 'mug', name: 'Tách Cà Phê (Mug)', zIndex: 20, elements: mug }
-    ];
-
-    return {
-      name: 'Tách Cà Phê Nóng',
-      elements: [...saucer, ...mug, ...steam],
-      layers,
-      gripPoint: { x: 0.8, y: 0.55 },
-      groundContact: { x: 0.5, y: 0.95 },
-      pivot: { x: 0.5, y: 0.5 }
-    };
-  },
-
-  // 4. LAPTOP
-  laptop: ({ width, height, palette, strokeColor, strokeWidth }) => {
-    const screen = [
-      // Screen Housing
-      { type: 'polygon', points: [[90, 80], [422, 80], [392, 330], [120, 330]], fill: '#1e293b', stroke: strokeColor, strokeWidth },
-      // Screen Display
-      { type: 'polygon', points: [[115, 100], [397, 100], [372, 310], [140, 310]], fill: palette.screenGlow || '#38bdf8', stroke: strokeColor, strokeWidth: 3 }
-    ];
-    const base = [
-      // Keyboard base
-      { type: 'polygon', points: [[120, 330], [392, 330], [452, 430], [60, 430]], fill: '#64748b', stroke: strokeColor, strokeWidth },
-      // Trackpad
-      { type: 'rounded_rect', x: 216, y: 395, width: 80, height: 26, rx: 4, fill: '#475569', stroke: strokeColor, strokeWidth: 2 }
-    ];
-
-    return {
-      name: 'Máy Tính Xách Tay (Laptop)',
-      elements: [...screen, ...base],
-      layers: [
-        { id: 'screen', name: 'Màn Hình (Display)', zIndex: 10, elements: screen },
-        { id: 'base', name: 'Thân Phím (Keyboard Base)', zIndex: 20, elements: base }
-      ],
-      gripPoint: { x: 0.5, y: 0.85 },
-      groundContact: { x: 0.5, y: 0.95 },
-      pivot: { x: 0.5, y: 0.5 }
-    };
-  },
-
-  // 5. MICROCHIP (CPU with pins)
-  microchip: ({ width, height, palette, strokeColor, strokeWidth }) => {
-    const pins = [];
-    // Top and bottom pins
-    for (let x = 110; x <= 400; x += 36) {
-      pins.push({ type: 'rect', x: x - 6, y: 60, width: 12, height: 35, fill: '#f59e0b', stroke: strokeColor, strokeWidth: 2 });
-      pins.push({ type: 'rect', x: x - 6, y: 417, width: 12, height: 35, fill: '#f59e0b', stroke: strokeColor, strokeWidth: 2 });
-    }
-    // Left and right pins
-    for (let y = 110; y <= 400; y += 36) {
-      pins.push({ type: 'rect', x: 60, y: y - 6, width: 35, height: 12, fill: '#f59e0b', stroke: strokeColor, strokeWidth: 2 });
-      pins.push({ type: 'rect', x: 417, y: y - 6, width: 35, height: 12, fill: '#f59e0b', stroke: strokeColor, strokeWidth: 2 });
-    }
+    const shadow = [buildContactShadow(256, 466, 175, 16, lighting.id)];
 
     const body = [
-      { type: 'rounded_rect', x: 90, y: 90, width: 332, height: 332, rx: 16, fill: '#18181b', stroke: strokeColor, strokeWidth },
-      // Silicon die in center
-      { type: 'rounded_rect', x: 156, y: 156, width: 200, height: 200, rx: 8, fill: '#334155', stroke: '#f59e0b', strokeWidth: 4 },
-      { type: 'text', x: 256, y: 265, text: 'CPU 2D', fontSize: 30, fill: '#f8fafc', fontWeight: 'bold', textAnchor: 'middle' }
+      // Main chassis & top bevel highlight
+      { type: 'rounded_rect', x: 64, y: 88, width: 384, height: 300, rx: 18, fill: 'url(#vc_chassis)', stroke: strokeColor, strokeWidth },
+      { type: 'rounded_rect', x: 74, y: 96, width: 364, height: 12, rx: 6, fill: '#71717a', opacity: 0.5 },
+      // Desk console extension
+      { type: 'polygon', points: [[64, 388], [448, 388], [472, 462], [40, 462]], fill: '#3f3f46', stroke: strokeColor, strokeWidth }
+    ];
+
+    const screen = [
+      { type: 'rounded_rect', x: 92, y: 118, width: 224, height: 168, rx: 14, fill: '#18181b', stroke: strokeColor, strokeWidth: 3.5 },
+      { type: 'rounded_rect', x: 108, y: 134, width: 192, height: 136, rx: 10, fill: 'url(#vc_crt)', stroke: '#22c55e', strokeWidth: 2.5 },
+      // Glass reflection highlight
+      { type: 'polygon', points: [[116, 142], [186, 142], [140, 224], [116, 224]], fill: '#ffffff', opacity: 0.12 },
+      // Waveform signal
+      { type: 'polyline', points: [[124, 210], [150, 176], [176, 228], [204, 166], [234, 214], [274, 186]], stroke: '#4ade80', strokeWidth: 4, strokeLinecap: 'round', strokeLinejoin: 'round' }
+    ];
+
+    const keyboard = [
+      { type: 'rounded_rect', x: 84, y: 400, width: 244, height: 46, rx: 6, fill: '#18181b', stroke: strokeColor, strokeWidth: 2.5 },
+      { type: 'rect', x: 96, y: 408, width: 30, height: 12, rx: 2, fill: '#d4d4d8' },
+      { type: 'rect', x: 134, y: 408, width: 30, height: 12, rx: 2, fill: '#d4d4d8' },
+      { type: 'rect', x: 172, y: 408, width: 30, height: 12, rx: 2, fill: '#d4d4d8' },
+      { type: 'rect', x: 210, y: 408, width: 30, height: 12, rx: 2, fill: '#d4d4d8' },
+      { type: 'rect', x: 248, y: 408, width: 64, height: 12, rx: 2, fill: '#eab308' },
+      { type: 'rect', x: 120, y: 426, width: 172, height: 12, rx: 2, fill: '#a1a1aa' }
+    ];
+
+    const buttons = [
+      // Control panel dials on right
+      { type: 'rounded_rect', x: 332, y: 118, width: 92, height: 168, rx: 10, fill: '#27272a', stroke: strokeColor, strokeWidth: 3 },
+      { type: 'circle', cx: 378, cy: 160, r: 22, fill: '#18181b', stroke: strokeColor, strokeWidth: 2.5 },
+      { type: 'line', x1: 378, y1: 160, x2: 392, y2: 148, stroke: '#f97316', strokeWidth: 3.5, strokeLinecap: 'round' },
+      { type: 'circle', cx: 378, cy: 226, r: 22, fill: '#18181b', stroke: strokeColor, strokeWidth: 2.5 },
+      { type: 'line', x1: 378, y1: 226, x2: 364, y2: 214, stroke: '#38bdf8', strokeWidth: 3.5, strokeLinecap: 'round' },
+      // Toggle switches
+      { type: 'rounded_rect', x: 356, y: 404, width: 22, height: 34, rx: 4, fill: '#ef4444', stroke: strokeColor, strokeWidth: 2 },
+      { type: 'rounded_rect', x: 390, y: 404, width: 22, height: 34, rx: 4, fill: '#22c55e', stroke: strokeColor, strokeWidth: 2 }
+    ];
+
+    const indicatorLights = [
+      // Vacuum tubes on top + LED bank
+      { type: 'rounded_rect', x: 130, y: 44, width: 34, height: 46, rx: 14, fill: '#fef08a', stroke: strokeColor, strokeWidth: 3 },
+      { type: 'rounded_rect', x: 205, y: 44, width: 34, height: 46, rx: 14, fill: '#fb923c', stroke: strokeColor, strokeWidth: 3 },
+      { type: 'rounded_rect', x: 280, y: 44, width: 34, height: 46, rx: 14, fill: '#fef08a', stroke: strokeColor, strokeWidth: 3 },
+      { type: 'circle', cx: 116, cy: 326, r: 10, fill: '#ef4444', stroke: strokeColor, strokeWidth: 2 },
+      { type: 'circle', cx: 152, cy: 326, r: 10, fill: '#facc15', stroke: strokeColor, strokeWidth: 2 },
+      { type: 'circle', cx: 188, cy: 326, r: 10, fill: '#22c55e', stroke: strokeColor, strokeWidth: 2 }
+    ];
+
+    const cables = detailLevel === 'low' ? [] : [
+      { type: 'bezier', points: [[260, 326], [300, 360], [340, 300], [390, 330]], stroke: '#0ea5e9', strokeWidth: 5, strokeLinecap: 'round' },
+      { type: 'bezier', points: [[280, 344], [320, 380], [370, 355], [410, 326]], stroke: '#f59e0b', strokeWidth: 4, strokeLinecap: 'round' }
     ];
 
     return {
-      name: 'Vi Xử Lý (Microchip CPU)',
-      elements: [...pins, ...body],
+      name: 'Máy Tính Cổ Điển (Vintage Computer)',
+      defs,
       layers: [
-        { id: 'pins', name: 'Chân Nối Đồng (Pins)', zIndex: 5, elements: pins },
-        { id: 'body', name: 'Đế Silicon (Chip Body)', zIndex: 10, elements: body }
+        { id: 'shadow', name: 'Bóng Đổ (Shadow)', zIndex: 2, elements: shadow },
+        { id: 'body', name: 'Thân Máy (Body)', zIndex: 10, elements: body },
+        { id: 'screen', name: 'Màn Hình CRT (Screen)', zIndex: 20, elements: screen },
+        { id: 'keyboard', name: 'Bàn Phím (Keyboard)', zIndex: 25, elements: keyboard },
+        { id: 'buttons', name: 'Nút & Núm Xoay (Buttons)', zIndex: 30, elements: buttons },
+        { id: 'indicator_lights', name: 'Đèn Báo & Đèn Chân Không (Indicator Lights)', zIndex: 35, elements: indicatorLights },
+        { id: 'cables', name: 'Dây Cáp (Cables)', zIndex: 40, elements: cables }
       ],
-      gripPoint: { x: 0.5, y: 0.5 },
-      groundContact: { x: 0.5, y: 0.95 },
+      gripPoint: { x: 0.5, y: 0.85 },
+      groundContact: { x: 0.5, y: 0.92 },
       pivot: { x: 0.5, y: 0.5 }
     };
   },
 
-  // 6. TRANSISTOR (3-pin component)
-  transistor: ({ width, height, palette, strokeColor, strokeWidth }) => {
-    const pins = [
-      { type: 'line', x1: 200, y1: 260, x2: 200, y2: 440, stroke: '#94a3b8', strokeWidth: 8, strokeLinecap: 'round' },
-      { type: 'line', x1: 256, y1: 260, x2: 256, y2: 460, stroke: '#94a3b8', strokeWidth: 8, strokeLinecap: 'round' },
-      { type: 'line', x1: 312, y1: 260, x2: 312, y2: 440, stroke: '#94a3b8', strokeWidth: 8, strokeLinecap: 'round' }
-    ];
-    const can = [
-      // Metal cylinder
-      { type: 'path', d: 'M 176 260 L 176 160 A 80 80 0 0 1 336 160 L 336 260 Z', fill: '#334155', stroke: strokeColor, strokeWidth }
-    ];
+  // 2. ENIAC MAINFRAME
+  eniac: ({ strokeColor, strokeWidth, lighting }) => ({
+    name: 'Hệ Thống Mainframe ENIAC',
+    layers: [
+      { id: 'shadow', name: 'Bóng Đổ', zIndex: 2, elements: [buildContactShadow(256, 468, 195, 16, lighting.id)] },
+      {
+        id: 'body', name: 'Tủ Máy Chính', zIndex: 10,
+        elements: [
+          { type: 'rounded_rect', x: 52, y: 66, width: 132, height: 396, rx: 8, fill: '#27272a', stroke: strokeColor, strokeWidth },
+          { type: 'rounded_rect', x: 192, y: 66, width: 128, height: 396, rx: 8, fill: '#3f3f46', stroke: strokeColor, strokeWidth },
+          { type: 'rounded_rect', x: 328, y: 66, width: 132, height: 396, rx: 8, fill: '#27272a', stroke: strokeColor, strokeWidth }
+        ]
+      },
+      {
+        id: 'indicator_lights', name: 'Đèn Chân Không & Công Tắc', zIndex: 20,
+        elements: [
+          { type: 'circle', cx: 118, cy: 130, r: 28, fill: '#18181b', stroke: strokeColor, strokeWidth: 3 },
+          { type: 'circle', cx: 394, cy: 130, r: 28, fill: '#18181b', stroke: strokeColor, strokeWidth: 3 },
+          { type: 'circle', cx: 224, cy: 120, r: 10, fill: '#fb923c' },
+          { type: 'circle', cx: 256, cy: 120, r: 10, fill: '#facc15' },
+          { type: 'circle', cx: 288, cy: 120, r: 10, fill: '#fb923c' },
+          { type: 'rect', x: 214, y: 170, width: 84, height: 64, rx: 6, fill: '#052e16', stroke: '#22c55e', strokeWidth: 2.5 }
+        ]
+      },
+      {
+        id: 'cables', name: 'Dây Cáp Nối Mạch', zIndex: 30,
+        elements: [
+          { type: 'bezier', points: [[118, 280], [160, 370], [220, 370], [256, 290]], stroke: '#ef4444', strokeWidth: 5 },
+          { type: 'bezier', points: [[256, 290], [300, 390], [360, 380], [394, 280]], stroke: '#38bdf8', strokeWidth: 5 }
+        ]
+      }
+    ],
+    groundContact: { x: 0.5, y: 0.92 }
+  }),
 
+  // 3. MODERN DESKTOP COMPUTER
+  modern_computer: ({ palette, strokeColor, strokeWidth, lighting }) => ({
+    name: 'Máy Tính Để Bàn Hiện Đại',
+    layers: [
+      { id: 'shadow', name: 'Bóng Đổ', zIndex: 2, elements: [buildContactShadow(256, 444, 165, 14, lighting.id)] },
+      {
+        id: 'body', name: 'Khung Màn Hình & Chân Đế', zIndex: 10,
+        elements: [
+          { type: 'polygon', points: [[226, 340], [286, 340], [312, 424], [200, 424]], fill: '#64748b', stroke: strokeColor, strokeWidth },
+          { type: 'rounded_rect', x: 168, y: 422, width: 176, height: 18, rx: 6, fill: '#475569', stroke: strokeColor, strokeWidth },
+          { type: 'rounded_rect', x: 56, y: 74, width: 400, height: 270, rx: 14, fill: '#1e293b', stroke: strokeColor, strokeWidth }
+        ]
+      },
+      {
+        id: 'screen', name: 'Màn Hình Hiển Thị', zIndex: 20,
+        elements: [
+          { type: 'rounded_rect', x: 74, y: 92, width: 364, height: 226, rx: 8, fill: palette.screenGlow || '#0ea5e9', stroke: strokeColor, strokeWidth: 2.5 },
+          { type: 'polygon', points: [[86, 104], [190, 104], [120, 260], [86, 260]], fill: '#ffffff', opacity: 0.2 }
+        ]
+      }
+    ],
+    groundContact: { x: 0.5, y: 0.87 }
+  }),
+
+  // 4. LAPTOP
+  laptop: ({ palette, strokeColor, strokeWidth, lighting }) => ({
+    name: 'Máy Tính Xách Tay (Laptop)',
+    layers: [
+      { id: 'shadow', name: 'Bóng Đổ', zIndex: 2, elements: [buildContactShadow(256, 434, 195, 14, lighting.id)] },
+      {
+        id: 'screen', name: 'Màn Hình', zIndex: 10,
+        elements: [
+          { type: 'polygon', points: [[92, 86], [420, 86], [392, 326], [120, 326]], fill: '#1e293b', stroke: strokeColor, strokeWidth },
+          { type: 'polygon', points: [[114, 106], [398, 106], [374, 306], [138, 306]], fill: palette.screenGlow || '#38bdf8', stroke: strokeColor, strokeWidth: 2.5 }
+        ]
+      },
+      {
+        id: 'keyboard', name: 'Thân & Bàn Phím', zIndex: 20,
+        elements: [
+          { type: 'polygon', points: [[120, 326], [392, 326], [452, 428], [60, 428]], fill: '#64748b', stroke: strokeColor, strokeWidth },
+          { type: 'rounded_rect', x: 212, y: 392, width: 88, height: 26, rx: 4, fill: '#334155', stroke: strokeColor, strokeWidth: 2 }
+        ]
+      }
+    ],
+    gripPoint: { x: 0.5, y: 0.82 },
+    groundContact: { x: 0.5, y: 0.86 }
+  }),
+
+  // 5. SMARTPHONE
+  smartphone: ({ palette, strokeColor, strokeWidth }) => ({
+    name: 'Điện Thoại Thông Minh',
+    layers: [
+      {
+        id: 'body', name: 'Vỏ Máy', zIndex: 10,
+        elements: [
+          { type: 'rounded_rect', x: 156, y: 60, width: 200, height: 392, rx: 28, fill: '#1e293b', stroke: strokeColor, strokeWidth }
+        ]
+      },
+      {
+        id: 'screen', name: 'Màn Hình Cảm Ứng', zIndex: 20,
+        elements: [
+          { type: 'rounded_rect', x: 172, y: 84, width: 168, height: 332, rx: 18, fill: palette.screenGlow || '#38bdf8', stroke: strokeColor, strokeWidth: 2.5 },
+          { type: 'rounded_rect', x: 224, y: 92, width: 64, height: 10, rx: 5, fill: '#0f172a' }
+        ]
+      }
+    ],
+    gripPoint: { x: 0.5, y: 0.65 },
+    groundContact: { x: 0.5, y: 0.9 }
+  }),
+
+  // 6. TRANSISTOR
+  transistor: ({ strokeColor, strokeWidth }) => ({
+    name: 'Linh Kiện Bán Dẫn (Transistor)',
+    layers: [
+      {
+        id: 'cables', name: 'Chân Kim Loại (Pins)', zIndex: 5,
+        elements: [
+          { type: 'rect', x: 178, y: 270, width: 14, height: 180, rx: 4, fill: '#94a3b8', stroke: strokeColor, strokeWidth: 3 },
+          { type: 'rect', x: 249, y: 270, width: 14, height: 180, rx: 4, fill: '#94a3b8', stroke: strokeColor, strokeWidth: 3 },
+          { type: 'rect', x: 320, y: 270, width: 14, height: 180, rx: 4, fill: '#94a3b8', stroke: strokeColor, strokeWidth: 3 }
+        ]
+      },
+      {
+        id: 'body', name: 'Vỏ Nhựa Bán Dẫn', zIndex: 15,
+        elements: [
+          { type: 'rounded_rect', x: 146, y: 110, width: 220, height: 170, rx: 26, fill: '#1e293b', stroke: strokeColor, strokeWidth },
+          { type: 'ellipse', cx: 256, cy: 116, rx: 98, ry: 18, fill: '#475569', stroke: strokeColor, strokeWidth: 3 }
+        ]
+      }
+    ],
+    gripPoint: { x: 0.5, y: 0.55 }
+  }),
+
+  // 7. MICROCHIP
+  microchip: ({ strokeColor, strokeWidth }) => {
+    const pins = [];
+    for (let i = 0; i < 6; i++) {
+      const p = 136 + i * 44;
+      pins.push({ type: 'rect', x: p, y: 66, width: 16, height: 48, rx: 3, fill: '#fbbf24', stroke: strokeColor, strokeWidth: 2.5 });
+      pins.push({ type: 'rect', x: p, y: 398, width: 16, height: 48, rx: 3, fill: '#fbbf24', stroke: strokeColor, strokeWidth: 2.5 });
+      pins.push({ type: 'rect', x: 66, y: p, width: 48, height: 16, rx: 3, fill: '#fbbf24', stroke: strokeColor, strokeWidth: 2.5 });
+      pins.push({ type: 'rect', x: 398, y: p, width: 48, height: 16, rx: 3, fill: '#fbbf24', stroke: strokeColor, strokeWidth: 2.5 });
+    }
     return {
-      name: 'Linh Kiện Bán Dẫn (Transistor)',
-      elements: [...pins, ...can],
+      name: 'Vi Mạch Tích Hợp (Microchip)',
       layers: [
-        { id: 'pins', name: '3 Chân Linh Kiện (Pins)', zIndex: 5, elements: pins },
-        { id: 'can', name: 'Vỏ Kim Loại (Metal Can)', zIndex: 10, elements: can }
-      ],
-      gripPoint: { x: 0.5, y: 0.6 },
-      groundContact: { x: 0.5, y: 0.95 },
-      pivot: { x: 0.5, y: 0.5 }
+        { id: 'cables', name: 'Chân Vàng (Gold Pins)', zIndex: 5, elements: pins },
+        {
+          id: 'body', name: 'Đế Chip Silicon', zIndex: 15,
+          elements: [
+            { type: 'rounded_rect', x: 112, y: 112, width: 288, height: 288, rx: 18, fill: '#1e293b', stroke: strokeColor, strokeWidth },
+            { type: 'rounded_rect', x: 166, y: 166, width: 180, height: 180, rx: 10, fill: '#334155', stroke: '#38bdf8', strokeWidth: 3 },
+            { type: 'circle', cx: 138, cy: 138, r: 10, fill: '#94a3b8' }
+          ]
+        }
+      ]
     };
   },
 
-  // 7. LAB EQUIPMENT (Flask)
-  lab_equipment: ({ width, height, palette, strokeColor, strokeWidth }) => {
-    const flask = [
-      // Flask outline
-      { type: 'polygon', points: [[216, 80], [296, 80], [296, 180], [420, 390], [92, 390], [216, 180]], fill: 'none', stroke: strokeColor, strokeWidth: 6 },
-      // Bubbling colored liquid
-      { type: 'polygon', points: [[130, 380], [382, 380], [332, 290], [180, 290]], fill: '#38bdf8', opacity: 0.75 },
-      { type: 'circle', cx: 220, cy: 330, r: 8, fill: '#ffffff' },
-      { type: 'circle', cx: 280, cy: 310, r: 12, fill: '#ffffff' }
-    ];
+  // 8. LIGHTBULB (IDEA BULB)
+  lightbulb: ({ strokeColor, strokeWidth }) => ({
+    name: 'Bóng Đèn Ý Tưởng (Idea Bulb)',
+    defs: {
+      gradients: [
+        { id: 'bulb_glow', type: 'radial', cx: '50%', cy: '45%', r: '50%', stops: [{ offset: 0, color: '#fef9c3' }, { offset: 0.7, color: '#fde047' }, { offset: 1, color: '#eab308' }] }
+      ]
+    },
+    layers: [
+      {
+        id: 'indicator_lights', name: 'Tia Sáng Ý Tưởng', zIndex: 5,
+        elements: [
+          { type: 'line', x1: 256, y1: 18, x2: 256, y2: 52, stroke: '#f59e0b', strokeWidth: 7, strokeLinecap: 'round' },
+          { type: 'line', x1: 96, y1: 76, x2: 124, y2: 104, stroke: '#f59e0b', strokeWidth: 7, strokeLinecap: 'round' },
+          { type: 'line', x1: 416, y1: 76, x2: 388, y2: 104, stroke: '#f59e0b', strokeWidth: 7, strokeLinecap: 'round' },
+          { type: 'line', x1: 44, y1: 190, x2: 80, y2: 190, stroke: '#f59e0b', strokeWidth: 7, strokeLinecap: 'round' },
+          { type: 'line', x1: 468, y1: 190, x2: 432, y2: 190, stroke: '#f59e0b', strokeWidth: 7, strokeLinecap: 'round' }
+        ]
+      },
+      {
+        id: 'body', name: 'Bầu Thủy Tinh & Dây Tóc', zIndex: 15,
+        elements: [
+          { type: 'circle', cx: 256, cy: 190, r: 118, fill: 'url(#bulb_glow)', stroke: strokeColor, strokeWidth },
+          { type: 'polygon', points: [[178, 260], [334, 260], [298, 340], [214, 340]], fill: '#fde047', stroke: strokeColor, strokeWidth },
+          { type: 'polyline', points: [[230, 262], [242, 182], [256, 162], [270, 182], [282, 262]], stroke: '#ffffff', strokeWidth: 5, strokeLinecap: 'round', strokeLinejoin: 'round' }
+        ]
+      },
+      {
+        id: 'buttons', name: 'Đui Đèn Kim Loại', zIndex: 20,
+        elements: [
+          { type: 'rounded_rect', x: 210, y: 340, width: 92, height: 22, rx: 6, fill: '#94a3b8', stroke: strokeColor, strokeWidth: 3.5 },
+          { type: 'rounded_rect', x: 215, y: 364, width: 82, height: 20, rx: 6, fill: '#64748b', stroke: strokeColor, strokeWidth: 3.5 },
+          { type: 'rounded_rect', x: 225, y: 386, width: 62, height: 18, rx: 6, fill: '#475569', stroke: strokeColor, strokeWidth: 3.5 }
+        ]
+      }
+    ],
+    gripPoint: { x: 0.5, y: 0.8 },
+    groundContact: { x: 0.5, y: 0.92 }
+  }),
 
+  // 9. VINTAGE BOOK
+  vintage_book: ({ palette, strokeColor, strokeWidth }) => ({
+    name: 'Sách Nghiên Cứu',
+    layers: [
+      {
+        id: 'body', name: 'Bìa & Trang Sách', zIndex: 10,
+        elements: [
+          { type: 'rounded_rect', x: 110, y: 80, width: 292, height: 356, rx: 12, fill: palette.wood || '#92400e', stroke: strokeColor, strokeWidth },
+          { type: 'rect', x: 110, y: 80, width: 42, height: 356, fill: '#78350f', stroke: strokeColor, strokeWidth },
+          { type: 'rounded_rect', x: 184, y: 140, width: 176, height: 86, rx: 6, fill: '#fef3c7', stroke: strokeColor, strokeWidth: 3 }
+        ]
+      }
+    ],
+    gripPoint: { x: 0.25, y: 0.55 }
+  }),
+
+  // 10. COFFEE CUP
+  coffee_cup: ({ strokeColor, strokeWidth, lighting }) => ({
+    name: 'Cốc Cà Phê',
+    layers: [
+      { id: 'shadow', name: 'Bóng Đổ', zIndex: 2, elements: [buildContactShadow(256, 412, 145, 18, lighting.id)] },
+      {
+        id: 'body', name: 'Thân Cốc & Quai', zIndex: 10,
+        elements: [
+          { type: 'ellipse', cx: 256, cy: 396, rx: 154, ry: 24, fill: '#e2e8f0', stroke: strokeColor, strokeWidth },
+          { type: 'path', d: 'M 142 180 L 162 378 Q 256 408 350 378 L 370 180 Z', fill: '#f8fafc', stroke: strokeColor, strokeWidth },
+          { type: 'ellipse', cx: 256, cy: 180, rx: 114, ry: 22, fill: '#78350f', stroke: strokeColor, strokeWidth: 3.5 },
+          { type: 'path', d: 'M 360 212 Q 428 212 428 280 Q 428 348 342 348', stroke: strokeColor, strokeWidth: 12, strokeLinecap: 'round' }
+        ]
+      },
+      {
+        id: 'indicator_lights', name: 'Làn Khói Nóng', zIndex: 20,
+        elements: [
+          { type: 'bezier', points: [[220, 140], [200, 100], [235, 75], [220, 48]], stroke: '#cbd5e1', strokeWidth: 5, strokeLinecap: 'round', opacity: 0.75 },
+          { type: 'bezier', points: [[280, 140], [300, 100], [265, 75], [280, 48]], stroke: '#cbd5e1', strokeWidth: 5, strokeLinecap: 'round', opacity: 0.75 }
+        ]
+      }
+    ],
+    gripPoint: { x: 0.8, y: 0.56 },
+    groundContact: { x: 0.5, y: 0.86 }
+  }),
+
+  // 11. DESK / TABLE
+  desk: ({ palette, strokeColor, strokeWidth, lighting }) => ({
+    name: 'Bàn Làm Việc',
+    layers: [
+      { id: 'shadow', name: 'Bóng Đổ', zIndex: 2, elements: [buildContactShadow(256, 444, 195, 16, lighting.id)] },
+      {
+        id: 'body', name: 'Mặt Bàn & Chân Bàn', zIndex: 10,
+        elements: [
+          { type: 'rect', x: 76, y: 210, width: 26, height: 226, fill: '#475569', stroke: strokeColor, strokeWidth },
+          { type: 'rect', x: 410, y: 210, width: 26, height: 226, fill: '#475569', stroke: strokeColor, strokeWidth },
+          { type: 'rounded_rect', x: 48, y: 184, width: 416, height: 32, rx: 6, fill: palette.wood || '#b45309', stroke: strokeColor, strokeWidth }
+        ]
+      }
+    ],
+    groundContact: { x: 0.5, y: 0.88 }
+  }),
+
+  // 12. CHAIR
+  chair: ({ palette, strokeColor, strokeWidth, lighting }) => ({
+    name: 'Ghế Tựa',
+    layers: [
+      { id: 'shadow', name: 'Bóng Đổ', zIndex: 2, elements: [buildContactShadow(256, 444, 110, 14, lighting.id)] },
+      {
+        id: 'body', name: 'Lưng Tựa, Đệm & Chân Ghế', zIndex: 10,
+        elements: [
+          { type: 'rounded_rect', x: 162, y: 92, width: 188, height: 150, rx: 14, fill: palette.primary || '#0284c7', stroke: strokeColor, strokeWidth },
+          { type: 'rect', x: 170, y: 290, width: 20, height: 148, fill: '#334155', stroke: strokeColor, strokeWidth: 3 },
+          { type: 'rect', x: 322, y: 290, width: 20, height: 148, fill: '#334155', stroke: strokeColor, strokeWidth: 3 },
+          { type: 'rounded_rect', x: 148, y: 264, width: 216, height: 34, rx: 10, fill: palette.primary || '#0284c7', stroke: strokeColor, strokeWidth }
+        ]
+      }
+    ],
+    groundContact: { x: 0.5, y: 0.88 }
+  }),
+
+  // 13. CABINET
+  cabinet: ({ palette, strokeColor, strokeWidth, lighting }) => ({
+    name: 'Tủ Thiết Bị',
+    layers: [
+      { id: 'shadow', name: 'Bóng Đổ', zIndex: 2, elements: [buildContactShadow(256, 464, 140, 14, lighting.id)] },
+      {
+        id: 'body', name: 'Thân Tủ & Ngăn Kéo', zIndex: 10,
+        elements: [
+          { type: 'rounded_rect', x: 124, y: 56, width: 264, height: 400, rx: 10, fill: palette.metal || '#64748b', stroke: strokeColor, strokeWidth },
+          { type: 'rounded_rect', x: 144, y: 78, width: 224, height: 106, rx: 6, fill: '#475569', stroke: strokeColor, strokeWidth: 3 },
+          { type: 'rounded_rect', x: 144, y: 202, width: 224, height: 106, rx: 6, fill: '#475569', stroke: strokeColor, strokeWidth: 3 },
+          { type: 'rounded_rect', x: 144, y: 326, width: 224, height: 106, rx: 6, fill: '#475569', stroke: strokeColor, strokeWidth: 3 }
+        ]
+      }
+    ],
+    groundContact: { x: 0.5, y: 0.91 }
+  }),
+
+  // 14. MACHINE
+  machine: ({ strokeColor, strokeWidth, lighting }) => ({
+    name: 'Máy Móc Công Nghiệp',
+    layers: [
+      { id: 'shadow', name: 'Bóng Đổ', zIndex: 2, elements: [buildContactShadow(256, 456, 175, 16, lighting.id)] },
+      {
+        id: 'body', name: 'Thân Máy & Đồng Hồ Đo', zIndex: 10,
+        elements: [
+          { type: 'rounded_rect', x: 84, y: 120, width: 344, height: 326, rx: 14, fill: '#475569', stroke: strokeColor, strokeWidth },
+          { type: 'circle', cx: 180, cy: 220, r: 44, fill: '#f8fafc', stroke: strokeColor, strokeWidth: 3.5 },
+          { type: 'line', x1: 180, y1: 220, x2: 206, y2: 196, stroke: '#ef4444', strokeWidth: 4, strokeLinecap: 'round' },
+          { type: 'rounded_rect', x: 266, y: 178, width: 124, height: 84, rx: 8, fill: '#0f172a', stroke: strokeColor, strokeWidth: 3 }
+        ]
+      }
+    ],
+    groundContact: { x: 0.5, y: 0.9 }
+  }),
+
+  // 15. LAB EQUIPMENT
+  lab_equipment: ({ strokeColor, strokeWidth, lighting }) => ({
+    name: 'Dụng Cụ Thí Nghiệm',
+    layers: [
+      { id: 'shadow', name: 'Bóng Đổ', zIndex: 2, elements: [buildContactShadow(256, 444, 125, 14, lighting.id)] },
+      {
+        id: 'body', name: 'Bình Tam Giác & Dung Dịch', zIndex: 10,
+        elements: [
+          { type: 'polygon', points: [[222, 86], [290, 86], [290, 190], [380, 412], [132, 412], [222, 190]], fill: 'rgba(224, 242, 254, 0.55)', stroke: strokeColor, strokeWidth },
+          { type: 'polygon', points: [[172, 316], [340, 316], [374, 408], [138, 408]], fill: '#38bdf8', opacity: 0.88 },
+          { type: 'rounded_rect', x: 212, y: 74, width: 88, height: 18, rx: 6, fill: '#94a3b8', stroke: strokeColor, strokeWidth: 3 }
+        ]
+      }
+    ],
+    gripPoint: { x: 0.5, y: 0.3 },
+    groundContact: { x: 0.5, y: 0.87 }
+  }),
+
+  // 16. GEAR
+  gear: ({ strokeColor, strokeWidth }) => {
+    const teeth = [];
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      const cx = Math.round(256 + Math.cos(a) * 145);
+      const cy = Math.round(256 + Math.sin(a) * 145);
+      teeth.push({ type: 'circle', cx, cy, r: 30, fill: '#94a3b8', stroke: strokeColor, strokeWidth: 3 });
+    }
     return {
-      name: 'Bình Cầu Thí Nghiệm',
-      elements: flask,
-      layers: [{ id: 'flask', name: 'Bình Hóa Chất (Flask)', zIndex: 10, elements: flask }],
-      gripPoint: { x: 0.5, y: 0.35 },
-      groundContact: { x: 0.5, y: 0.95 },
-      pivot: { x: 0.5, y: 0.5 }
+      name: 'Bánh Răng Cơ Khí',
+      layers: [
+        {
+          id: 'body', name: 'Bánh Răng', zIndex: 10,
+          elements: [
+            ...teeth,
+            { type: 'circle', cx: 256, cy: 256, r: 132, fill: '#cbd5e1', stroke: strokeColor, strokeWidth },
+            { type: 'circle', cx: 256, cy: 256, r: 48, fill: '#334155', stroke: strokeColor, strokeWidth }
+          ]
+        }
+      ]
     };
-  }
+  },
+
+  // 17. REPAIR TOOL (WRENCH)
+  tool: ({ strokeColor, strokeWidth }) => ({
+    name: 'Công Cụ Sửa Chữa (Cờ Lê)',
+    layers: [
+      {
+        id: 'body', name: 'Thân Cờ Lê', zIndex: 10,
+        elements: [
+          { type: 'rounded_rect', x: 224, y: 120, width: 64, height: 290, rx: 22, fill: '#94a3b8', stroke: strokeColor, strokeWidth },
+          { type: 'circle', cx: 256, cy: 118, r: 66, fill: '#cbd5e1', stroke: strokeColor, strokeWidth },
+          { type: 'rect', x: 234, y: 50, width: 44, height: 74, fill: '#1e293b', stroke: strokeColor, strokeWidth: 3 }
+        ]
+      }
+    ],
+    gripPoint: { x: 0.5, y: 0.68 }
+  }),
+
+  // 18. SIMPLE VEHICLE
+  vehicle: ({ palette, strokeColor, strokeWidth, lighting }) => ({
+    name: 'Phương Tiện (Ô Tô Đơn Giản)',
+    layers: [
+      { id: 'shadow', name: 'Bóng Đổ', zIndex: 2, elements: [buildContactShadow(256, 396, 200, 18, lighting.id)] },
+      {
+        id: 'body', name: 'Thân Xe & Cửa Kính', zIndex: 10,
+        elements: [
+          { type: 'polygon', points: [[120, 224], [178, 134], [342, 134], [398, 224]], fill: '#38bdf8', stroke: strokeColor, strokeWidth },
+          { type: 'rounded_rect', x: 48, y: 220, width: 416, height: 112, rx: 24, fill: palette.primary || '#ef4444', stroke: strokeColor, strokeWidth },
+          { type: 'circle', cx: 136, cy: 336, r: 52, fill: '#1e293b', stroke: strokeColor, strokeWidth },
+          { type: 'circle', cx: 136, cy: 336, r: 22, fill: '#cbd5e1' },
+          { type: 'circle', cx: 376, cy: 336, r: 52, fill: '#1e293b', stroke: strokeColor, strokeWidth },
+          { type: 'circle', cx: 376, cy: 336, r: 22, fill: '#cbd5e1' }
+        ]
+      }
+    ],
+    groundContact: { x: 0.5, y: 0.78 }
+  })
 };
-
-// Aliases
-PROP_BUILDERS.eniac = PROP_BUILDERS.vintage_computer;
-PROP_BUILDERS.eniac_computer = PROP_BUILDERS.vintage_computer;
-PROP_BUILDERS.prop_laptop = PROP_BUILDERS.laptop;
-PROP_BUILDERS.prop_coffee_cup = PROP_BUILDERS.coffee_cup;
-PROP_BUILDERS.idea_bulb = PROP_BUILDERS.lightbulb;
-PROP_BUILDERS.prop_eniac = PROP_BUILDERS.vintage_computer;
-PROP_BUILDERS.prop_transistor = PROP_BUILDERS.transistor;
-
