@@ -159,6 +159,21 @@ export function solveTwoBoneIKAngles(rootPt, targetPt, len1, len2, options = {})
   };
 }
 
+/**
+ * Computes Foot-to-Ground IK angles so planted foot avoids sinking into or floating above ground.
+ */
+export function evaluateFootGroundIK(hipOffsetY = -44, footTargetOffset = [0, 0], thighLen = 22, shinLen = 22) {
+  const hipPt = [0, hipOffsetY];
+  const targetPt = [footTargetOffset[0] || 0, footTargetOffset[1] || 0];
+  const ik = solveTwoBoneIKAngles(hipPt, targetPt, thighLen, shinLen, { poleDir: 1, faceSign: 1 });
+  return {
+    reachable: ik.reachable,
+    thighDeg: ik.upperDeg,
+    shinDeg: Math.max(0, ik.foreDeg),
+    ankleDeg: clamp(-(ik.upperDeg + Math.max(0, ik.foreDeg)) * 0.65, -25, 25)
+  };
+}
+
 // ============================================================================
 // 4. TRUE MULTI-PHASE WALK, RUN & JUMP CYCLES
 // ============================================================================
@@ -336,6 +351,30 @@ export const SUPPORTED_ACTING_EXPRESSIONS = [
   'confused', 'thinking', 'excited', 'disappointed', 'embarrassed',
   'dizzy', 'shocked', 'tired'
 ];
+
+/**
+ * Computes normalized eye look vector [-1..1, -1..1] from character world position to a target.
+ */
+export function computeEyeTrackingLook(charPos = [510, 560], targetPos = [960, 520]) {
+  const dx = (targetPos[0] - charPos[0]) / 260;
+  const dy = (targetPos[1] - (charPos[1] - 120)) / 180;
+  return [clamp(dx, -1, 1), clamp(dy, -1, 1)];
+}
+
+/**
+ * Evaluates deterministic talking mouth openness (0..1) and mouthShape from intervals or syllable envelope.
+ */
+export function evaluateTalkingState(action = {}, tLocal = 0) {
+  let active = true;
+  if (Array.isArray(action.speechIntervals) && action.speechIntervals.length > 0) {
+    active = action.speechIntervals.some(([s, e]) => tLocal >= s && tLocal <= e);
+  }
+  if (!active) return { talk: 0, mouthShape: 'closed' };
+  const amp = 0.25 + 0.72 * Math.abs(Math.sin(tLocal * 9.5) * Math.cos(tLocal * 4.1));
+  const talk = clamp(amp, 0, 1);
+  const mouthShape = talk < 0.18 ? 'closed' : (talk < 0.42 ? 'small' : (talk < 0.7 ? 'mid' : (Math.sin(tLocal * 5) > 0.3 ? 'round' : 'wide')));
+  return { talk, mouthShape };
+}
 
 /**
  * Evaluates a single Motion Primitive at normalized progress u (0..1) and local time t.
@@ -527,7 +566,13 @@ export function evaluateMotionPrimitive(action, tLocal, u, context = {}) {
     } else if (type === 'look_at' || type === 'look_at_target') {
       if (Array.isArray(action.look)) look = action.look;
       else if (action.targetId === 'camera') { viewOverride = 'front'; look = [0, 0]; }
-      else look = [0.6, -0.15];
+      else if (Array.isArray(action.targetPosition)) {
+        const tx = action.targetPosition[0] <= 1.5 ? action.targetPosition[0] * 1920 : action.targetPosition[0];
+        const ty = action.targetPosition[1] <= 1.5 ? action.targetPosition[1] * 1080 : action.targetPosition[1];
+        look = computeEyeTrackingLook(context.charPos || [510, 560], [tx, ty]);
+      } else if (context.sceneEntities && action.targetId && context.sceneEntities[action.targetId]) {
+        look = computeEyeTrackingLook(context.charPos || [510, 560], context.sceneEntities[action.targetId]);
+      } else look = [0.6, -0.15];
     }
 
     return {
@@ -558,13 +603,14 @@ export function evaluateMotionPrimitive(action, tLocal, u, context = {}) {
 
   // --- TALKING / EXPRESSION / IDLE ---
   if (type === 'talk' || type === 'talking') {
-    const g = Math.sin(tLocal * 6.5) * 14 * intensity;
-    const talkAmp = 0.35 + 0.55 * Math.abs(Math.sin(tLocal * 9.5));
+    const tState = evaluateTalkingState(action, tLocal);
+    const g = tState.talk > 0.1 ? Math.sin(tLocal * 6.5) * 14 * intensity : 0;
     return {
       supported: true,
-      talk: talkAmp,
+      talk: tState.talk,
+      mouthShape: tState.mouthShape,
       channels: {
-        head: { weight: 0.5, mode: 'additive', angles: { head: Math.sin(tLocal * 4) * 3.5 } },
+        head: { weight: 0.5, mode: 'additive', angles: { head: tState.talk > 0.1 ? Math.sin(tLocal * 4) * 3.5 : 0 } },
         right_arm: { weight: 0.8, mode: 'override', angles: { upper_arm_R: 30 + g * 0.5, forearm_R: -62 + g } }
       }
     };
@@ -603,11 +649,82 @@ const ALL_BONE_KEYS = [
 ];
 
 /**
+ * Expands Motion Composition constructs:
+ * - sequential: chains steps back-to-back within start..end
+ * - parallel: runs steps concurrently in the parent window
+ * - repeat: repeats step `count` times or until `end`
+ * - conditionalFallback: picks `primary` if condition holds else `fallback`
+ */
+export function expandComposedActions(rawActions = [], sceneDurationSec = 5, context = {}) {
+  const out = [];
+  for (const a of (Array.isArray(rawActions) ? rawActions : [])) {
+    if (!a || typeof a !== 'object') continue;
+    const kind = String(a.compose || a.mode || a.type || '').toLowerCase();
+    const baseStart = Number(a.start ?? (a.startMs !== undefined ? a.startMs / 1000 : 0));
+
+    if (kind === 'sequential' && Array.isArray(a.steps)) {
+      let cursor = baseStart;
+      for (const st of a.steps) {
+        const dur = Number(st.duration ?? (st.end !== undefined ? st.end - cursor : 1.0));
+        out.push(...expandComposedActions([{ ...st, start: st.start ?? cursor, duration: dur }], sceneDurationSec, context));
+        cursor = (st.start ?? cursor) + dur;
+      }
+      continue;
+    }
+
+    if (kind === 'parallel' && Array.isArray(a.steps)) {
+      const parentDur = Number(a.duration ?? (a.end !== undefined ? a.end - baseStart : sceneDurationSec - baseStart));
+      for (const st of a.steps) {
+        out.push(...expandComposedActions([{
+          ...st,
+          start: st.start ?? baseStart,
+          duration: st.duration ?? (st.end !== undefined ? st.end - (st.start ?? baseStart) : parentDur)
+        }], sceneDurationSec, context));
+      }
+      continue;
+    }
+
+    if (kind === 'repeat' && a.step) {
+      const stepDur = Math.max(0.1, Number(a.step.duration || 1.0));
+      const endLimit = Number(a.end ?? (a.duration !== undefined ? baseStart + a.duration : sceneDurationSec));
+      const maxCount = Number(a.count || Math.floor((endLimit - baseStart) / stepDur));
+      let cursor = baseStart;
+      for (let i = 0; i < maxCount && cursor < endLimit - 0.01; i++) {
+        const d = Math.min(stepDur, endLimit - cursor);
+        out.push(...expandComposedActions([{ ...a.step, start: cursor, duration: d }], sceneDurationSec, context));
+        cursor += d;
+      }
+      continue;
+    }
+
+    if (kind === 'conditionalfallback' || kind === 'conditional_fallback') {
+      const usePrimary = typeof a.condition === 'function'
+        ? !!a.condition(context)
+        : (a.condition !== false);
+      const chosen = usePrimary ? a.primary : a.fallback;
+      if (chosen) {
+        out.push(...expandComposedActions([{
+          ...chosen,
+          start: chosen.start ?? baseStart,
+          duration: chosen.duration ?? a.duration
+        }], sceneDurationSec, context));
+      }
+      continue;
+    }
+
+    out.push(a);
+  }
+  return out;
+}
+
+export const composeActions = expandComposedActions;
+
+/**
  * Compiles a character's declarative actions / presets into deterministic acting tracks.
  */
 export function compileCharacterActingTracks(charSpec = {}, sceneDurationSec = 5, seed = 101) {
   const durationMs = Math.round(sceneDurationSec * 1000);
-  const rawActions = Array.isArray(charSpec.actions) ? charSpec.actions : [];
+  const rawActions = expandComposedActions(Array.isArray(charSpec.actions) ? charSpec.actions : [], sceneDurationSec, charSpec);
   const compiledActions = [];
   const warnings = [];
 
@@ -687,6 +804,9 @@ export function evaluateActingFrame(track, tSec, options = {}) {
 
   let curLook = [...idle.look];
   let curTalk = 0;
+  let mouthShape = 'closed';
+  let prevExpression = track.baseExpression || 'neutral';
+  let exprBlend = 1.0;
   let squashStretch = [1, 1];
   let visible = true;
 
@@ -695,6 +815,7 @@ export function evaluateActingFrame(track, tSec, options = {}) {
   active.sort((a, b) => (a.priority || 1) - (b.priority || 1));
 
   // Root X interpolation & persistent state (view/expression) from completed or active actions
+  let lastExprChangeMs = 0;
   for (const act of (track.actions || [])) {
     if (act.fromX !== undefined && act.toX !== undefined && act.fromX !== act.toX) {
       if (tMs >= act.endMs) {
@@ -709,10 +830,11 @@ export function evaluateActingFrame(track, tSec, options = {}) {
       if ((act.type === 'turn_head' || act.type === 'turn_body' || act.type === 'turn') && (act.targetView || act.view)) {
         curView = act.targetView || act.view;
       }
-      if (act.type === 'expression' && (act.value || act.expression)) {
-        curExpr = act.value || act.expression;
-      } else if (act.expression) {
-        curExpr = act.expression;
+      const nextE = act.type === 'expression' ? (act.value || act.expression) : act.expression;
+      if (nextE && nextE !== curExpr) {
+        prevExpression = curExpr;
+        curExpr = nextE;
+        lastExprChangeMs = act.endMs;
       }
     }
   }
@@ -720,13 +842,18 @@ export function evaluateActingFrame(track, tSec, options = {}) {
   for (const act of active) {
     const localT = (tMs - act.startMs) / 1000;
     const u = clamp((tMs - act.startMs) / Math.max(1, act.durationMs), 0, 1);
-    const evalRes = evaluateMotionPrimitive(act, localT, u, options);
+    const evalRes = evaluateMotionPrimitive(act, localT, u, { ...options, charPos: [curX, curY] });
 
     if (evalRes.viewOverride) curView = evalRes.viewOverride;
-    if (evalRes.expression) curExpr = evalRes.expression;
-    else if (act.expression) curExpr = act.expression;
+    const nextE = evalRes.expression || act.expression;
+    if (nextE && nextE !== curExpr) {
+      prevExpression = curExpr;
+      curExpr = nextE;
+      lastExprChangeMs = act.startMs;
+    }
     if (evalRes.look) curLook = evalRes.look;
     if (evalRes.talk !== undefined) curTalk = Math.max(curTalk, evalRes.talk);
+    if (evalRes.mouthShape) mouthShape = evalRes.mouthShape;
     if (evalRes.squashStretch) squashStretch = evalRes.squashStretch;
 
     for (const chData of Object.values(evalRes.channels || {})) {
@@ -741,6 +868,10 @@ export function evaluateActingFrame(track, tSec, options = {}) {
     }
   }
 
+  if (prevExpression !== curExpr && tMs >= lastExprChangeMs) {
+    exprBlend = clamp((tMs - lastExprChangeMs) / 220, 0, 1);
+  }
+
   // Secondary motion (hair/coat spring oscillation reacting to velocity & torso angle)
   const secondaryMotion = {
     hairBounce: Math.sin(tSec * 7.5) * (Math.abs(angles.hipY + 44) * 0.25 + 0.6),
@@ -752,8 +883,11 @@ export function evaluateActingFrame(track, tSec, options = {}) {
     y: curY,
     view: curView,
     expression: curExpr,
+    prevExpression,
+    exprBlend,
     look: curLook,
     talk: curTalk,
+    mouthShape,
     blink: idle.blink,
     squashStretch,
     secondaryMotion,

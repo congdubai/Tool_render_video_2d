@@ -40,7 +40,11 @@ export const REQUIRED_EXPRESSIONS = [
   'confused',
   'scared',
   'excited',
-  'tired'
+  'tired',
+  'disappointed',
+  'embarrassed',
+  'dizzy',
+  'shocked'
 ];
 
 export const EXPRESSION_ALIAS_MAP = {
@@ -68,9 +72,21 @@ export const EXPRESSION_ALIAS_MAP = {
   tuc_gian: 'angry',
 
   surprised: 'surprised',
-  shocked: 'surprised',
   awe: 'surprised',
   ngac_nhien: 'surprised',
+
+  shocked: 'shocked',
+  soc: 'shocked',
+
+  disappointed: 'disappointed',
+  that_vong: 'disappointed',
+
+  embarrassed: 'embarrassed',
+  shy: 'embarrassed',
+  nguong: 'embarrassed',
+
+  dizzy: 'dizzy',
+  chong_mat: 'dizzy',
 
   thinking: 'thinking',
   ponder: 'thinking',
@@ -1116,103 +1132,166 @@ function drawIndependentFacialExpression(ctx, headRadius, profile, view, exprRaw
   }
 
   // Expression parameters for independent layers
-  const cfg = {
-    eyeOpen: 1.0,
-    scleraVisible: false,
-    pupilScale: 1.0,
-    pupilOffset: [look[0] * 2.2, look[1] * 2.0],
-    upperLid: 0.0,       // 0 = open, 0.5 = half-closed (tired), 1.0 = closed
-    upperLidTilt: 0.0,   // + = angry inward slant, - = sad/worried outer droop
-    lowerLid: 0.0,       // 0 = none, 0.4 = happy cheek push
-    browY: 0.0,          // - = raised, + = lowered
-    browTiltL: 0.0,      // inner-to-outer slope
-    browTiltR: 0.0,
-    browArch: 1.5,
-    mouthType: 'smile',  // smile, neutral, frown, open_happy, o_surprised, wavy, flat_think, grimace, yawn_tired, excited_grin
-    blushBoost: 0
-  };
+  function getExpressionConfig(eName) {
+    const c = {
+      eyeOpen: 1.0,
+      scleraVisible: false,
+      pupilScale: 1.0,
+      pupilOffset: [look[0] * 2.2, look[1] * 2.0],
+      upperLid: 0.0,
+      upperLidTilt: 0.0,
+      lowerLid: 0.0,
+      browY: 0.0,
+      browTiltL: 0.0,
+      browTiltR: 0.0,
+      browArch: 1.5,
+      mouthType: 'neutral',
+      blushBoost: 0
+    };
+    switch (eName) {
+      case 'happy':
+        c.lowerLid = 0.42;
+        c.browY = -2.2;
+        c.browArch = 2.6;
+        c.mouthType = 'open_happy';
+        c.blushBoost = 0.2;
+        break;
+      case 'sad':
+        c.upperLid = 0.25;
+        c.upperLidTilt = -0.35;
+        c.pupilOffset = [dirSign * 0.5, 1.5];
+        c.browY = -1.0;
+        c.browTiltL = -3.2;
+        c.browTiltR = 3.2;
+        c.mouthType = 'frown';
+        break;
+      case 'disappointed':
+        c.upperLid = 0.45;
+        c.upperLidTilt = -0.25;
+        c.pupilOffset = [0, 1.8];
+        c.browY = 0.8;
+        c.browTiltL = -2.4;
+        c.browTiltR = 2.4;
+        c.mouthType = 'frown';
+        break;
+      case 'embarrassed':
+        c.lowerLid = 0.22;
+        c.pupilOffset = [dirSign * 2.1, 1.2];
+        c.browY = -1.8;
+        c.browTiltL = -2.2;
+        c.browTiltR = 2.2;
+        c.mouthType = 'wavy';
+        c.blushBoost = 0.55;
+        break;
+      case 'angry':
+        c.upperLid = 0.32;
+        c.upperLidTilt = 0.48;
+        c.pupilScale = 0.85;
+        c.browY = 3.0;
+        c.browTiltL = 4.2;
+        c.browTiltR = -4.2;
+        c.browArch = 0.2;
+        c.mouthType = 'grimace';
+        break;
+      case 'surprised':
+        c.eyeOpen = 1.2;
+        c.scleraVisible = true;
+        c.pupilScale = 0.62;
+        c.browY = -5.2;
+        c.browArch = 3.2;
+        c.mouthType = 'o_surprised';
+        break;
+      case 'shocked':
+        c.eyeOpen = 1.32;
+        c.scleraVisible = true;
+        c.pupilScale = 0.42;
+        c.browY = -6.0;
+        c.browArch = 3.6;
+        c.mouthType = 'o_surprised';
+        break;
+      case 'dizzy':
+        c.eyeOpen = 0.85;
+        c.scleraVisible = true;
+        c.pupilScale = 0.5;
+        c.pupilOffset = [Math.sin((opts.t || 0) * 10) * 2.5, Math.cos((opts.t || 0) * 10) * 2.0];
+        c.browY = -1.5;
+        c.browTiltL = 3.0;
+        c.browTiltR = -3.0;
+        c.mouthType = 'wavy';
+        break;
+      case 'thinking':
+        c.upperLid = 0.18;
+        c.pupilOffset = [dirSign * 2.4, -2.4];
+        c.browY = -1.2;
+        c.browTiltL = 1.5;
+        c.browTiltR = -2.2;
+        c.mouthType = 'flat_think';
+        break;
+      case 'confused':
+        c.scleraVisible = true;
+        c.pupilScale = 0.82;
+        c.pupilOffset = [dirSign * 1.6, -1.0];
+        c.browY = -2.0;
+        c.browTiltL = 3.4;
+        c.browTiltR = -3.8;
+        c.mouthType = 'wavy';
+        break;
+      case 'scared':
+        c.eyeOpen = 1.18;
+        c.scleraVisible = true;
+        c.pupilScale = 0.52;
+        c.browY = -4.0;
+        c.browTiltL = -3.6;
+        c.browTiltR = 3.6;
+        c.mouthType = 'wavy';
+        break;
+      case 'excited':
+        c.eyeOpen = 1.12;
+        c.pupilScale = 1.12;
+        c.browY = -4.0;
+        c.browArch = 3.2;
+        c.mouthType = 'excited_grin';
+        c.blushBoost = 0.35;
+        break;
+      case 'tired':
+        c.upperLid = 0.54;
+        c.lowerLid = 0.18;
+        c.pupilOffset = [0, 1.2];
+        c.browY = 1.2;
+        c.browTiltL = -2.0;
+        c.browTiltR = 2.0;
+        c.mouthType = 'yawn_tired';
+        break;
+      default:
+        c.mouthType = 'neutral';
+        break;
+    }
+    return c;
+  }
 
-  switch (expr) {
-    case 'happy':
-      cfg.lowerLid = 0.42;
-      cfg.browY = -2.2;
-      cfg.browArch = 2.6;
-      cfg.mouthType = 'open_happy';
-      cfg.blushBoost = 0.2;
-      break;
-    case 'sad':
-      cfg.upperLid = 0.25;
-      cfg.upperLidTilt = -0.35;
-      cfg.pupilOffset = [dirSign * 0.5, 1.5];
-      cfg.browY = -1.0;
-      cfg.browTiltL = -3.2;
-      cfg.browTiltR = 3.2;
-      cfg.mouthType = 'frown';
-      break;
-    case 'angry':
-      cfg.upperLid = 0.32;
-      cfg.upperLidTilt = 0.48;
-      cfg.pupilScale = 0.85;
-      cfg.browY = 3.0;
-      cfg.browTiltL = 4.2;
-      cfg.browTiltR = -4.2;
-      cfg.browArch = 0.2;
-      cfg.mouthType = 'grimace';
-      break;
-    case 'surprised':
-      cfg.eyeOpen = 1.2;
-      cfg.scleraVisible = true;
-      cfg.pupilScale = 0.62;
-      cfg.browY = -5.2;
-      cfg.browArch = 3.2;
-      cfg.mouthType = 'o_surprised';
-      break;
-    case 'thinking':
-      cfg.upperLid = 0.18;
-      cfg.pupilOffset = [dirSign * 2.4, -2.4];
-      cfg.browY = -1.2;
-      cfg.browTiltL = 1.5;
-      cfg.browTiltR = -2.2;
-      cfg.mouthType = 'flat_think';
-      break;
-    case 'confused':
-      cfg.scleraVisible = true;
-      cfg.pupilScale = 0.82;
-      cfg.pupilOffset = [dirSign * 1.6, -1.0];
-      cfg.browY = -2.0;
-      cfg.browTiltL = 3.4;
-      cfg.browTiltR = -3.8;
-      cfg.mouthType = 'wavy';
-      break;
-    case 'scared':
-      cfg.eyeOpen = 1.18;
-      cfg.scleraVisible = true;
-      cfg.pupilScale = 0.52;
-      cfg.browY = -4.0;
-      cfg.browTiltL = -3.6;
-      cfg.browTiltR = 3.6;
-      cfg.mouthType = 'wavy';
-      break;
-    case 'excited':
-      cfg.eyeOpen = 1.12;
-      cfg.pupilScale = 1.12;
-      cfg.browY = -4.0;
-      cfg.browArch = 3.2;
-      cfg.mouthType = 'excited_grin';
-      cfg.blushBoost = 0.35;
-      break;
-    case 'tired':
-      cfg.upperLid = 0.54;
-      cfg.lowerLid = 0.18;
-      cfg.pupilOffset = [0, 1.2];
-      cfg.browY = 1.2;
-      cfg.browTiltL = -2.0;
-      cfg.browTiltR = 2.0;
-      cfg.mouthType = 'yawn_tired';
-      break;
-    default: // neutral
-      cfg.mouthType = 'neutral';
-      break;
+  let cfg = getExpressionConfig(expr);
+  if (opts.prevExpr && opts.exprBlend !== undefined && opts.exprBlend < 1) {
+    const prevCfg = getExpressionConfig(normalizeExpression(opts.prevExpr));
+    const b = clamp(Number(opts.exprBlend), 0, 1);
+    const l = (k) => prevCfg[k] + (cfg[k] - prevCfg[k]) * b;
+    cfg = {
+      ...cfg,
+      eyeOpen: l('eyeOpen'),
+      pupilScale: l('pupilScale'),
+      pupilOffset: [
+        prevCfg.pupilOffset[0] + (cfg.pupilOffset[0] - prevCfg.pupilOffset[0]) * b,
+        prevCfg.pupilOffset[1] + (cfg.pupilOffset[1] - prevCfg.pupilOffset[1]) * b
+      ],
+      upperLid: l('upperLid'),
+      upperLidTilt: l('upperLidTilt'),
+      lowerLid: l('lowerLid'),
+      browY: l('browY'),
+      browTiltL: l('browTiltL'),
+      browTiltR: l('browTiltR'),
+      browArch: l('browArch'),
+      blushBoost: l('blushBoost'),
+      mouthType: b >= 0.45 ? cfg.mouthType : prevCfg.mouthType
+    };
   }
 
   ctx.save();

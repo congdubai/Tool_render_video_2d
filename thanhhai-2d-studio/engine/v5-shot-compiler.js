@@ -353,6 +353,8 @@ function renderCompiledScene(ctx, scene, t) {
       jointAngles: acting.jointAngles,
       squashStretch: acting.squashStretch,
       expr: acting.expression,
+      prevExpr: acting.prevExpression,
+      exprBlend: acting.exprBlend,
       look: acting.look,
       talk: acting.talk,
       blink: acting.blink,
