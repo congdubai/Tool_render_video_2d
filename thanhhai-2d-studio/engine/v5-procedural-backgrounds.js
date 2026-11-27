@@ -344,11 +344,11 @@ function buildModernLab(ctx, variantId) {
   return {
     defs,
     layers: [
-      { id: 'wall_floor', name: 'Tường & Sàn Phối Cảnh', zIndex: 10, elements: wallFloor },
+      { id: 'layer_background', name: 'Tường & Sàn Phối Cảnh', zIndex: 10, elements: wallFloor },
       { id: 'window_door', name: 'Cửa Sổ & Cửa Ra Vào', zIndex: 15, elements: windowDoor },
-      { id: 'furniture_cabinets', name: 'Bàn Thí Nghiệm & Tủ Thiết Bị', zIndex: 20, elements: furnitureCabinets },
+      { id: 'layer_midground', name: 'Bàn Thí Nghiệm & Tủ Thiết Bị', zIndex: 20, elements: furnitureCabinets },
       { id: 'equipment_cables', name: 'Thiết Bị, Dụng Cụ & Dây Điện', zIndex: 25, elements: equipmentCables },
-      { id: 'lighting_lamps', name: 'Đèn Trần & Ánh Sáng', zIndex: 30, elements: lightingLamps }
+      { id: 'layer_foreground', name: 'Đèn Trần & Ánh Sáng', zIndex: 30, elements: lightingLamps }
     ],
     placementZones: {
       characterZone: { xMin: 0.18, xMax: 0.52, groundY: groundY / H },

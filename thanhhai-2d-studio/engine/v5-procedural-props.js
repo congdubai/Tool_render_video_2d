@@ -188,11 +188,13 @@ const PROP_BUILDERS = {
       { type: 'rounded_rect', x: 390, y: 404, width: 22, height: 34, rx: 4, fill: '#22c55e', stroke: strokeColor, strokeWidth: 2 }
     ];
 
-    const indicatorLights = [
-      // Vacuum tubes on top + LED bank
+    const vacuumTubes = [
       { type: 'rounded_rect', x: 130, y: 44, width: 34, height: 46, rx: 14, fill: '#fef08a', stroke: strokeColor, strokeWidth: 3 },
       { type: 'rounded_rect', x: 205, y: 44, width: 34, height: 46, rx: 14, fill: '#fb923c', stroke: strokeColor, strokeWidth: 3 },
-      { type: 'rounded_rect', x: 280, y: 44, width: 34, height: 46, rx: 14, fill: '#fef08a', stroke: strokeColor, strokeWidth: 3 },
+      { type: 'rounded_rect', x: 280, y: 44, width: 34, height: 46, rx: 14, fill: '#fef08a', stroke: strokeColor, strokeWidth: 3 }
+    ];
+
+    const indicatorLights = [
       { type: 'circle', cx: 116, cy: 326, r: 10, fill: '#ef4444', stroke: strokeColor, strokeWidth: 2 },
       { type: 'circle', cx: 152, cy: 326, r: 10, fill: '#facc15', stroke: strokeColor, strokeWidth: 2 },
       { type: 'circle', cx: 188, cy: 326, r: 10, fill: '#22c55e', stroke: strokeColor, strokeWidth: 2 }
@@ -208,11 +210,12 @@ const PROP_BUILDERS = {
       defs,
       layers: [
         { id: 'shadow', name: 'Bóng Đổ (Shadow)', zIndex: 2, elements: shadow },
+        { id: 'vacuum_tubes', name: 'Đèn Chân Không (Vacuum Tubes)', zIndex: 5, elements: vacuumTubes },
         { id: 'body', name: 'Thân Máy (Body)', zIndex: 10, elements: body },
         { id: 'screen', name: 'Màn Hình CRT (Screen)', zIndex: 20, elements: screen },
         { id: 'keyboard', name: 'Bàn Phím (Keyboard)', zIndex: 25, elements: keyboard },
         { id: 'buttons', name: 'Nút & Núm Xoay (Buttons)', zIndex: 30, elements: buttons },
-        { id: 'indicator_lights', name: 'Đèn Báo & Đèn Chân Không (Indicator Lights)', zIndex: 35, elements: indicatorLights },
+        { id: 'indicator_lights', name: 'Đèn Báo (Indicator Lights)', zIndex: 35, elements: indicatorLights },
         { id: 'cables', name: 'Dây Cáp (Cables)', zIndex: 40, elements: cables }
       ],
       gripPoint: { x: 0.5, y: 0.85 },
@@ -385,7 +388,7 @@ const PROP_BUILDERS = {
     },
     layers: [
       {
-        id: 'indicator_lights', name: 'Tia Sáng Ý Tưởng', zIndex: 5,
+        id: 'sparkles', name: 'Tia Sáng Ý Tưởng', zIndex: 5,
         elements: [
           { type: 'line', x1: 256, y1: 18, x2: 256, y2: 52, stroke: '#f59e0b', strokeWidth: 7, strokeLinecap: 'round' },
           { type: 'line', x1: 96, y1: 76, x2: 124, y2: 104, stroke: '#f59e0b', strokeWidth: 7, strokeLinecap: 'round' },
@@ -446,7 +449,7 @@ const PROP_BUILDERS = {
         ]
       },
       {
-        id: 'indicator_lights', name: 'Làn Khói Nóng', zIndex: 20,
+        id: 'steam', name: 'Làn Khói Nóng', zIndex: 20,
         elements: [
           { type: 'bezier', points: [[220, 140], [200, 100], [235, 75], [220, 48]], stroke: '#cbd5e1', strokeWidth: 5, strokeLinecap: 'round', opacity: 0.75 },
           { type: 'bezier', points: [[280, 140], [300, 100], [265, 75], [280, 48]], stroke: '#cbd5e1', strokeWidth: 5, strokeLinecap: 'round', opacity: 0.75 }

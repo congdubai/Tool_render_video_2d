@@ -369,7 +369,14 @@ function resolveCanvasColor(ctx, colorStr, defsMap, w, h) {
       }
       for (const s of (g.stops || [])) {
         const off = typeof s.offset === 'number' ? s.offset : (parseFloat(String(s.offset || '0').replace('%', '')) / 100);
-        grad.addColorStop(Math.max(0, Math.min(1, off)), s.color || '#000');
+        let col = s.color || '#000';
+        if (s.opacity !== undefined && typeof col === 'string' && col.startsWith('#') && col.length === 7) {
+          const r = parseInt(col.slice(1, 3), 16);
+          const gr = parseInt(col.slice(3, 5), 16);
+          const b = parseInt(col.slice(5, 7), 16);
+          col = `rgba(${r}, ${gr}, ${b}, ${Number(s.opacity)})`;
+        }
+        grad.addColorStop(Math.max(0, Math.min(1, off)), col);
       }
       return grad;
     }
@@ -610,3 +617,4 @@ export function renderToCanvas2d(ctx, vectorSpec = {}, options = {}) {
 
   ctx.restore();
 }
+
