@@ -33,14 +33,32 @@ export function lookupResolvedBinding(resolvedBindings = {}, rawId = '', type = 
     }
   }
 
+  // Helper: ensure a binding key/record is compatible with the requested asset type
+  const isTypeCompatible = (k = '', v = {}) => {
+    if (!type) return true;
+    const tLow = type.toLowerCase();
+    const kLow = String(k).toLowerCase();
+    const recType = String(v.type || v.category || '').toLowerCase();
+    if (tLow === 'char' || tLow === 'character') {
+      if (kLow.startsWith('req_bg_') || kLow.startsWith('req_prop_') || kLow.startsWith('req_outfit_') || kLow.startsWith('req_vfx_')) return false;
+      if (recType && !recType.includes('char')) return false;
+    } else if (tLow === 'bg' || tLow === 'background') {
+      if (kLow.startsWith('req_char_') || kLow.startsWith('req_prop_') || kLow.startsWith('req_rig_')) return false;
+    } else if (tLow === 'prop') {
+      if (kLow.startsWith('req_bg_') || kLow.startsWith('req_char_') || kLow.startsWith('req_rig_')) return false;
+    }
+    return true;
+  };
+
   // 3. Try typed prefix match (e.g. REQ_BG_background_laboratory, REQ_CHAR_SCIENTIST_01)
   const prefixes = type ? [`REQ_${type.toUpperCase()}_`, 'REQ_'] : ['REQ_BG_', 'REQ_CHAR_', 'REQ_PROP_', 'REQ_RIG_', 'REQ_'];
   for (const prefix of prefixes) {
     const candidateKey = (prefix + lowerId).toLowerCase();
     for (const [k, v] of Object.entries(resolvedBindings)) {
-      if (!v) continue;
+      if (!v || !isTypeCompatible(k, v)) continue;
       const kLow = k.toLowerCase();
-      if (kLow === candidateKey || kLow.endsWith('_' + lowerId) || lowerId.endsWith('_' + kLow.replace(/^req_[a-z]+_/, ''))) {
+      const stripped = kLow.replace(/^req_[a-z]+_/, '');
+      if (kLow === candidateKey || kLow.endsWith('_' + lowerId) || (stripped && lowerId.endsWith('_' + stripped))) {
         return {
           resolvedAssetId: v.resolvedAssetId || cleanId,
           binding: v
@@ -49,10 +67,11 @@ export function lookupResolvedBinding(resolvedBindings = {}, rawId = '', type = 
     }
   }
 
-  // 4. Match by targetAssetId or requirementId inside the binding record
+  // 4. Match by non-empty targetAssetId or requirementId inside the binding record (type-safe!)
   for (const [k, v] of Object.entries(resolvedBindings)) {
-    if (!v) continue;
-    const target = String(v.targetAssetId || v.requirementId || '').toLowerCase();
+    if (!v || !isTypeCompatible(k, v)) continue;
+    const target = String(v.targetAssetId || v.requirementId || '').trim().toLowerCase();
+    if (!target) continue;
     if (target === lowerId || target.includes(lowerId) || lowerId.includes(target)) {
       return {
         resolvedAssetId: v.resolvedAssetId || cleanId,

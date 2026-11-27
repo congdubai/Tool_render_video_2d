@@ -10,6 +10,8 @@ import { buildBatchScenes } from './v5-batch-scene-builder.js';
 import { resolveAssetRequirements } from './v5-smart-asset-manager.js';
 import { defaultQaEngine } from './v5-technical-qa-engine.js';
 import { defaultFfmpegAssembler } from './v5-ffmpeg-assembler.js';
+import { compileProjectToShots } from './v5-shot-compiler.js';
+import { renderThanhHaiVideo } from '../../lib/thanhhai-render-adapter.mjs';
 
 export const PRODUCTION_STATES = {
   DRAFT: 'DRAFT',
@@ -187,8 +189,19 @@ export class ProductionOrchestrator {
         targetScenes = scenePlan.scenes.filter(s => options.selectedSceneIds.includes(s.id));
       }
 
-      const buildResult = buildBatchScenes(targetScenes, projectData.styleProfile || 'vietnamese_cartoon', {
-        bindings: projectData.bindings || options.bindings
+      const resolvedBindings = {
+        ...(assetResolution.bindings || {}),
+        ...(projectData.bindings || {}),
+        ...(options.bindings || {})
+      };
+
+      const buildResult = buildBatchScenes(targetScenes, {
+        projectContext: {
+          styleProfile: projectData.styleProfile || scenePlan.style?.profileId || 'flat_vector',
+          scenePlan
+        },
+        resolvedBindings,
+        characterBindings: scenePlan.characterBindings || []
       });
       if (!buildResult.success && buildResult.failedScenes?.length > 0) {
         throw new Error(`Lỗi dựng cảnh tại các scene: ${buildResult.failedScenes.map(s => s.sceneId).join(', ')}`);
@@ -207,7 +220,7 @@ export class ProductionOrchestrator {
       const qaCheckData = {
         ...projectData,
         scenes: buildResult.compiledScenes || targetScenes,
-        bindings: projectData.bindings || options.bindings,
+        bindings: resolvedBindings,
         missingAssets: assetResolution.missingAssets || []
       };
       const qaResult = options.qaResult || defaultQaEngine.validateProject(qaCheckData);
@@ -235,10 +248,10 @@ export class ProductionOrchestrator {
         };
       }
 
-      // 6. Rendering (Mode B / C)
+      // 6. Real Shot Compilation & Rendering (Mode B / C) — ZERO demo video copy!
       this.transitionTo(PRODUCTION_STATES.READY_TO_RENDER, 'Chuẩn bị kết xuất video');
-      defaultJobManager.updateJobStage(job.jobId, 'Kết xuất Render', 75);
-      this.transitionTo(PRODUCTION_STATES.RENDERING, 'Tiến hành render frames');
+      defaultJobManager.updateJobStage(job.jobId, 'Biên dịch Shot & Kết xuất Render', 75);
+      this.transitionTo(PRODUCTION_STATES.RENDERING, 'Tiến hành render frames thực tế');
 
       // Create snapshot before render
       defaultJobManager.createImmutableSnapshot(job.jobId, {
@@ -247,7 +260,44 @@ export class ProductionOrchestrator {
         animationTracks: animResult.scenes
       });
 
-      // 7. Merging
+      const fps = scenePlan?.project?.fps || projectData.fps || 30;
+      const width = scenePlan?.project?.resolution?.width || 1920;
+      const height = scenePlan?.project?.resolution?.height || 1080;
+
+      // 6a. Compile real scenes + live characters + animations into executable Canvas shots
+      const shotCompileRes = compileProjectToShots(projectDir, {
+        projectId,
+        scenePlan,
+        compiledScenes: buildResult.compiledScenes,
+        animationTracks: animResult.scenes,
+        bindings: resolvedBindings,
+        fps,
+        width,
+        height
+      });
+
+      const outputPath = options.outputPath || path.resolve(process.cwd(), 'out', `${projectId}_final.mp4`);
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+
+      // Remove any stale output file before rendering so we NEVER reuse old videos
+      if (fs.existsSync(outputPath)) {
+        fs.unlinkSync(outputPath);
+      }
+
+      // 6b. Execute REAL Playwright Canvas -> FFmpeg video rendering
+      await renderThanhHaiVideo({
+        projectDir,
+        outputPath,
+        isTest: false,
+        scale: options.scale ?? 1.0,
+        characterRenderer: 'chibi',
+        onProgress: (p) => {
+          const pct = 75 + Math.round((p.progress || 0) * 15);
+          defaultJobManager.updateJobStage(job.jobId, `Render Frames (${p.renderedFrames || 0}/${p.totalFrames || 0})`, pct);
+        }
+      });
+
+      // 7. Merging (completed by renderThanhHaiVideo audio+video pipeline)
       defaultJobManager.updateJobStage(job.jobId, 'Ghép âm thanh và phụ đề', 90);
       this.transitionTo(PRODUCTION_STATES.MERGING, 'Ghép video, audio và SRT');
 
@@ -255,22 +305,18 @@ export class ProductionOrchestrator {
       defaultJobManager.updateJobStage(job.jobId, 'Kiểm tra thành phẩm MP4', 95);
       this.transitionTo(PRODUCTION_STATES.VERIFYING_OUTPUT, 'Kiểm định luồng stream MP4');
 
-      const outputPath = options.outputPath || path.resolve(process.cwd(), 'out', `${projectId}_final.mp4`);
-      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-
-      // If target video does not exist yet on disk, link or copy rendered demo if matching, or check project
       if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size < 1024) {
-        const demoPath = path.resolve(process.cwd(), 'out', 'demo_v5_procedural_15s.mp4');
-        if (fs.existsSync(demoPath) && fs.statSync(demoPath).size > 1024) {
-          fs.copyFileSync(demoPath, outputPath);
-        }
+        throw new Error(`Render thất bại: Không tạo được file MP4 thực tế tại ${outputPath}`);
       }
 
-      // Inspect real file with FFprobe — NEVER use fake mock sizes
+      const expectedDuration = shotCompileRes.totalDuration || projectData.duration || 5.0;
+      const expectedResolution = `${width}x${height}`;
+
+      // Inspect real file with FFprobe — NEVER use fake mock sizes or demo copies
       const probeRes = await defaultFfmpegAssembler.verifyFinalOutput(outputPath, {
-        duration: projectData.duration || 15.0,
-        resolution: '1920x1080',
-        fps: 30
+        duration: expectedDuration,
+        resolution: expectedResolution,
+        fps
       });
 
       if (!probeRes.isValid || !probeRes.fileSize || probeRes.fileSize < 1024) {
@@ -279,9 +325,9 @@ export class ProductionOrchestrator {
 
       const finalOutput = {
         outputPath,
-        duration: probeRes.duration || projectData.duration || 15.0,
-        resolution: probeRes.resolution || '1920x1080',
-        fps: probeRes.fps || 30,
+        duration: probeRes.duration || expectedDuration,
+        resolution: probeRes.resolution || expectedResolution,
+        fps: probeRes.fps || fps,
         fileSize: probeRes.fileSize,
         videoCodec: probeRes.videoCodec || 'h264',
         audioCodec: probeRes.audioCodec || 'aac',

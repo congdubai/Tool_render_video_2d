@@ -268,6 +268,7 @@ export function resolveAssetRequirements(scenePlan = {}, options = {}) {
     success: missing.length === 0,
     missingAssets: missing,
     resolutions,
+    bindings: result?.bindings || {},
     dedup: result?.dedup,
     readiness: result?.readiness
   };
