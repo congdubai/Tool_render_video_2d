@@ -278,7 +278,12 @@ import {
   registerCharacterProfiles
 } from '/engine/unified-character-renderer.js';
 import { renderToCanvas2d } from '/engine/v5-vector-canvas.js';
-import { evaluateActingFrame } from '/engine/v5-character-acting-engine.js';
+import {
+  evaluateActingFrame,
+  evaluatePropState,
+  evaluateObjectInteractions,
+  resolveSceneChoreography
+} from '/engine/v5-character-acting-engine.js';
 import { cast } from '../cast.js';
 
 registerCharacterProfiles(cast.characters || []);
@@ -298,35 +303,15 @@ function renderCompiledScene(ctx, scene, t) {
   const blinkCycle = t % 3.4;
   const isBlinking = blinkCycle > 3.22 && blinkCycle < 3.36;
 
-  // 2. Render Grounded Props behind/beside characters
-  let primaryCharX = 510;
-  let primaryCharHeadY = 260;
   const chars = scene.characters || [];
-  if (chars.length > 0) {
-    const c0 = chars[0];
-    const isMoving = c0.action.includes('walk') || c0.action.includes('run');
-    primaryCharX = isMoving ? (c0.x + (c0.targetX - c0.x) * progress) : c0.x;
-    primaryCharHeadY = c0.y - Math.round(145 * (c0.scale || 2.45));
-  }
-
-  for (const prop of (scene.props || [])) {
-    if (!prop.vectorSpec || prop.isBulb) continue;
-    ctx.save();
-    // Anchor bottom-center of prop at (prop.x, prop.y)
-    ctx.translate(prop.x - prop.width / 2, prop.y - prop.height * 0.92);
-    renderToCanvas2d(ctx, prop.vectorSpec, {
-      useLayers: true,
-      targetWidth: prop.width,
-      targetHeight: prop.height
-    });
-    ctx.restore();
-  }
-
-  // 3. Render Characters via Unified Character Renderer + Acting Engine (V5.2 Phase 3)
+  const choreography = resolveSceneChoreography(chars, t);
+  const actingFrames = {};
+  const charTracksList = [];
   for (let i = 0; i < chars.length; i++) {
     const c = chars[i];
+    if (c.actingTrack) charTracksList.push({ ...c.actingTrack, scale: c.scale || 2.45 });
     const acting = c.actingTrack
-      ? evaluateActingFrame(c.actingTrack, t)
+      ? evaluateActingFrame(c.actingTrack, t, { sceneEntities: choreography.entities })
       : {
           x: (c.action.includes('walk') || c.action.includes('run')) ? (c.x + (c.targetX - c.x) * progress) : c.x,
           y: c.y,
@@ -337,10 +322,56 @@ function renderCompiledScene(ctx, scene, t) {
           blink: isBlinking,
           squashStretch: [1, 1],
           visible: true,
+          vfxEffects: [],
           jointAngles: null
         };
+    actingFrames[c.characterId] = acting;
+  }
 
-    if (i === 0) primaryCharX = acting.x;
+  let primaryCharX = chars.length > 0 ? actingFrames[chars[0].characterId].x : 510;
+  let primaryCharHeadY = chars.length > 0 ? (actingFrames[chars[0].characterId].y - Math.round(145 * (chars[0].scale || 2.45))) : 260;
+
+  // 2. Render Grounded / Held / Thrown Props + Object Interaction States
+  const objStates = evaluateObjectInteractions(scene.props || [], charTracksList, t);
+  for (const prop of (scene.props || [])) {
+    if (!prop.vectorSpec || prop.isBulb) continue;
+    const pState = evaluatePropState(prop, charTracksList, actingFrames, t);
+    const oState = objStates[prop.assetId] || {};
+    ctx.save();
+    ctx.translate(pState.worldX + (oState.shakeX || 0), pState.worldY);
+    if (pState.rotationDeg) ctx.rotate((pState.rotationDeg * Math.PI) / 180);
+    ctx.translate(-prop.width / 2, -prop.height * 0.92);
+    renderToCanvas2d(ctx, prop.vectorSpec, {
+      useLayers: true,
+      targetWidth: prop.width,
+      targetHeight: prop.height
+    });
+    if (oState.screenGlow) {
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.28)';
+      ctx.beginPath();
+      ctx.roundRect(prop.width * 0.25, prop.height * 0.22, prop.width * 0.5, prop.height * 0.32, 8);
+      ctx.fill();
+    }
+    if (oState.emitSmoke) {
+      for (let sm = 0; sm < 3; sm++) {
+        const off = (t * 45 + sm * 20) % 60;
+        ctx.fillStyle = 'rgba(203, 213, 225, ' + (0.55 * (1 - off / 60)) + ')';
+        ctx.beginPath();
+        ctx.arc(prop.width * 0.5 + Math.sin(t * 6 + sm) * 12, prop.height * 0.15 - off, 14 + sm * 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  // 3. Render Characters via Unified Character Renderer + Acting Engine (V5.2 Phase 3)
+  const collectedVfx = [];
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i];
+    const acting = actingFrames[c.characterId];
+    for (const fx of (acting.vfxEffects || [])) {
+      collectedVfx.push({ ...fx, scale: c.scale || 2.45 });
+    }
     if (!acting.visible) continue;
 
     drawUnifiedCharacter(ctx, {
@@ -394,8 +425,76 @@ function renderCompiledScene(ctx, scene, t) {
     ctx.restore();
   }
 
-  // 5. Render Scene VFX (Smoke, Sparkles)
+  // 5. Render Scene VFX (Smoke, Sparkles) + Bounded Composite Acting VFX (Fight Cloud, Dizzy Stars, Power Aura)
+  for (const fx of collectedVfx) {
+    if (!fx.active) continue;
+    if (fx.type === 'fight_cloud') {
+      ctx.save();
+      const cx = fx.x;
+      const cy = fx.y - 70 * (fx.scale || 2.45);
+      const puffCount = 8;
+      for (let p = 0; p < puffCount; p++) {
+        const ang = (p / puffCount) * Math.PI * 2 + fx.tLocal * 7;
+        const rad = 52 + Math.sin(fx.tLocal * 12 + p) * 16;
+        ctx.fillStyle = p % 2 === 0 ? 'rgba(241, 245, 249, 0.92)' : 'rgba(203, 213, 225, 0.88)';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(ang) * 44, cy + Math.sin(ang) * 32, rad, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      // Cartoon impact stars & exclamation bursts around cloud
+      ctx.fillStyle = '#facc15';
+      for (let st = 0; st < 4; st++) {
+        const sa = fx.tLocal * 6 + st * (Math.PI / 2);
+        const sx = cx + Math.cos(sa) * 98;
+        const sy = cy + Math.sin(sa) * 72;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    } else if (fx.type === 'dizzy_stars') {
+      ctx.save();
+      const hx = fx.x;
+      const hy = fx.y - 165 * (fx.scale || 2.45);
+      ctx.fillStyle = '#fde047';
+      ctx.strokeStyle = '#854d0e';
+      ctx.lineWidth = 2;
+      for (let st = 0; st < 3; st++) {
+        const a = fx.tLocal * 5 + st * ((Math.PI * 2) / 3);
+        ctx.beginPath();
+        ctx.arc(hx + Math.cos(a) * 38, hy + Math.sin(a) * 12, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else if (fx.type === 'power_aura') {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.72)';
+      ctx.lineWidth = 5;
+      const r = 68 + Math.sin(fx.tLocal * 15) * 10;
+      ctx.beginPath();
+      ctx.ellipse(fx.x, fx.y - 70 * (fx.scale || 2.45), r, r * 1.45, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    } else if (fx.type === 'smoke_burst') {
+      ctx.save();
+      for (let sm = 0; sm < 5; sm++) {
+        const off = (fx.tLocal * 50 + sm * 18) % 80;
+        ctx.fillStyle = 'rgba(148, 163, 184, ' + (0.65 * (1 - off / 80)) + ')';
+        ctx.beginPath();
+        ctx.arc(fx.x + Math.cos(sm * 1.4) * 30, fx.y - 110 - off, 18 + sm * 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
   for (const v of (scene.vfx || [])) {
+    if (v.start !== undefined && t < Number(v.start)) continue;
+    if (v.end !== undefined && t > Number(v.end)) continue;
     const vtype = String(v.type || '').toLowerCase();
     if (vtype.includes('smoke')) {
       const vx = Array.isArray(v.position) ? (v.position[0] <= 1.5 ? v.position[0] * 1280 : v.position[0]) : 920;

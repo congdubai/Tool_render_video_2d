@@ -616,6 +616,135 @@ export function evaluateMotionPrimitive(action, tLocal, u, context = {}) {
     };
   }
 
+  // --- COMPOSITE CARTOON ACTIONS (V5.2 Phase 3C) ---
+  if (type === 'fight_cloud') {
+    const spin = tLocal * 16 * speed;
+    const hideBody = u > 0.08 && u < 0.94;
+    return {
+      supported: true,
+      visible: !hideBody,
+      expression: 'angry',
+      squashStretch: [1 + Math.sin(spin) * 0.12, 1 - Math.sin(spin) * 0.12],
+      vfxEffect: { type: 'fight_cloud', active: u < 0.98, progress: u, tLocal, intensity },
+      channels: {
+        body: { weight, mode: 'override', angles: { hipY: -44 + Math.sin(spin) * 14, torso: Math.cos(spin) * 28 } },
+        left_arm: { weight, mode: 'override', angles: { upper_arm_L: -115 + Math.sin(spin) * 45, forearm_L: -35 } },
+        right_arm: { weight, mode: 'override', angles: { upper_arm_R: 115 + Math.cos(spin) * 45, forearm_R: -35 } },
+        left_leg: { weight, mode: 'override', angles: { thigh_L: Math.sin(spin) * 40, shin_L: 45 } },
+        right_leg: { weight, mode: 'override', angles: { thigh_R: -Math.sin(spin) * 40, shin_R: 45 } }
+      }
+    };
+  }
+
+  if (type === 'cartoon_chase') {
+    const r = evaluateRunCycle(tLocal, { speed: speed * 1.35, intensity: intensity * 1.15 });
+    return {
+      supported: true,
+      expression: 'scared',
+      vfxEffect: { type: 'speed_lines', active: true, tLocal },
+      channels: {
+        body: { weight, mode: 'override', angles: { hipY: r.hipY, torso: r.torso + 6, neck: r.neck } },
+        head: { weight, mode: 'override', angles: { head: r.head } },
+        left_arm: { weight, mode: 'override', angles: { upper_arm_L: r.upper_arm_L, forearm_L: r.forearm_L } },
+        right_arm: { weight, mode: 'override', angles: { upper_arm_R: r.upper_arm_R, forearm_R: r.forearm_R } },
+        left_leg: { weight, mode: 'override', angles: { thigh_L: r.thigh_L, shin_L: r.shin_L, ankle_L: r.ankle_L } },
+        right_leg: { weight, mode: 'override', angles: { thigh_R: r.thigh_R, shin_R: r.shin_R, ankle_R: r.ankle_R } }
+      }
+    };
+  }
+
+  if (type === 'funny_fall') {
+    const fallK = applyEasing(clamp(u / 0.55, 0, 1), 'bounceOut');
+    const isDizzy = u > 0.55;
+    return {
+      supported: true,
+      expression: isDizzy ? 'dizzy' : 'surprised',
+      squashStretch: u > 0.45 && u < 0.65 ? [1.14, 0.86] : [1, 1],
+      vfxEffect: isDizzy ? { type: 'dizzy_stars', active: true, tLocal } : null,
+      channels: {
+        body: { weight, mode: 'override', angles: { hipY: -44 + fallK * 24, torso: fallK * 68 } },
+        left_arm: { weight, mode: 'override', angles: { upper_arm_L: -95 * fallK, forearm_L: -25 } },
+        right_arm: { weight, mode: 'override', angles: { upper_arm_R: 95 * fallK, forearm_R: -25 } },
+        left_leg: { weight, mode: 'override', angles: { thigh_L: -35 * fallK, shin_L: 25 * fallK } },
+        right_leg: { weight, mode: 'override', angles: { thigh_R: 25 * fallK, shin_R: 45 * fallK } }
+      }
+    };
+  }
+
+  if (type === 'power_up') {
+    const pulse = Math.sin(tLocal * 18) * 4;
+    return {
+      supported: true,
+      expression: 'excited',
+      squashStretch: [1 + Math.sin(tLocal * 12) * 0.04, 1 - Math.sin(tLocal * 12) * 0.04],
+      vfxEffect: { type: 'power_aura', active: true, tLocal, intensity },
+      channels: {
+        body: { weight, mode: 'override', angles: { hipY: -40 + pulse * 0.4, torso: -8 } },
+        left_arm: { weight, mode: 'override', angles: { upper_arm_L: -72, forearm_L: -65 } },
+        right_arm: { weight, mode: 'override', angles: { upper_arm_R: 72, forearm_R: -65 } },
+        left_leg: { weight, mode: 'override', angles: { thigh_L: -18, shin_L: 22 } },
+        right_leg: { weight, mode: 'override', angles: { thigh_R: 18, shin_R: 22 } }
+      }
+    };
+  }
+
+  if (type === 'shock_reaction') {
+    const jump = Math.sin(clamp(u / 0.5, 0, 1) * Math.PI) * 28;
+    return {
+      supported: true,
+      expression: 'shocked',
+      squashStretch: u < 0.3 ? [0.9, 1.12] : [1, 1],
+      vfxEffect: { type: 'shock_lines', active: u < 0.85, tLocal },
+      channels: {
+        body: { weight, mode: 'override', angles: { hipY: -44 - jump, torso: -12 } },
+        left_arm: { weight, mode: 'override', angles: { upper_arm_L: -135, forearm_L: -15 } },
+        right_arm: { weight, mode: 'override', angles: { upper_arm_R: 135, forearm_R: -15 } }
+      }
+    };
+  }
+
+  if (type === 'angry_argument') {
+    const jab = Math.sin(tLocal * 11 * speed) * 22;
+    return {
+      supported: true,
+      expression: 'angry',
+      talk: 0.45 + 0.5 * Math.abs(Math.sin(tLocal * 10)),
+      channels: {
+        body: { weight, mode: 'override', angles: { hipY: -44, torso: 10 + Math.sin(tLocal * 7) * 4 } },
+        right_arm: { weight, mode: 'override', angles: { upper_arm_R: 75 + jab * 0.5, forearm_R: -30 + jab } },
+        left_arm: { weight, mode: 'override', angles: { upper_arm_L: -35, forearm_L: -55 } }
+      }
+    };
+  }
+
+  if (type === 'experiment_failure') {
+    const recoil = Math.sin(clamp(u / 0.4, 0, 1) * Math.PI) * 18;
+    return {
+      supported: true,
+      expression: u > 0.35 ? 'dizzy' : 'shocked',
+      vfxEffect: { type: 'smoke_burst', active: u > 0.15 && u < 0.95, tLocal },
+      channels: {
+        body: { weight, mode: 'override', angles: { hipY: -44, torso: -14 - recoil * 0.5 } },
+        left_arm: { weight, mode: 'override', angles: { upper_arm_L: -65, forearm_L: -45 } },
+        right_arm: { weight, mode: 'override', angles: { upper_arm_R: 65, forearm_R: -45 } }
+      }
+    };
+  }
+
+  if (type === 'idea_discovery') {
+    const pop = Math.sin(clamp(u / 0.35, 0, 1) * Math.PI) * 12;
+    return {
+      supported: true,
+      expression: 'excited',
+      vfxEffect: { type: 'idea_sparkles', active: u < 0.95, tLocal },
+      channels: {
+        body: { weight, mode: 'override', angles: { hipY: -44 - pop, torso: -6 } },
+        right_arm: { weight, mode: 'override', angles: { upper_arm_R: 138, forearm_R: -10 } },
+        left_arm: { weight, mode: 'override', angles: { upper_arm_L: -18, forearm_L: -28 } }
+      }
+    };
+  }
+
   if (type === 'expression') {
     return {
       supported: true,
@@ -728,7 +857,16 @@ export function compileCharacterActingTracks(charSpec = {}, sceneDurationSec = 5
   const compiledActions = [];
   const warnings = [];
 
-  let rollingX = charSpec.x ?? 510;
+  const logicalW = Number(charSpec.logicalWidth || 1280);
+  const logicalH = Number(charSpec.logicalHeight || 720);
+  const initX = charSpec.x !== undefined
+    ? Number(charSpec.x)
+    : (Array.isArray(charSpec.position) ? (charSpec.position[0] <= 1.5 ? charSpec.position[0] * logicalW : charSpec.position[0]) : 510);
+  const initY = charSpec.y !== undefined
+    ? Number(charSpec.y)
+    : (Array.isArray(charSpec.position) ? (charSpec.position[1] <= 1.5 ? charSpec.position[1] * logicalH : charSpec.position[1]) : 560);
+
+  let rollingX = initX;
   for (let i = 0; i < rawActions.length; i++) {
     const a = rawActions[i];
     const startMs = Math.max(0, Math.round(a.startMs ?? (a.start !== undefined ? a.start * 1000 : 0)));
@@ -739,7 +877,8 @@ export function compileCharacterActingTracks(charSpec = {}, sceneDurationSec = 5
     const resolveCoordX = (v, fallback) => {
       if (v === undefined || v === null) return fallback;
       const num = Number(v);
-      return num <= 1.5 && num >= 0 ? num * 1920 : num;
+      const logicalW = Number(charSpec.logicalWidth || 1280);
+      return num <= 1.5 && num >= 0 ? num * logicalW : num;
     };
     const fromX = a.fromX !== undefined ? resolveCoordX(a.fromX, rollingX) : (Array.isArray(a.from) ? resolveCoordX(a.from[0], rollingX) : rollingX);
     const toX = a.toX !== undefined ? resolveCoordX(a.toX, fromX) : (Array.isArray(a.to) ? resolveCoordX(a.to[0], fromX) : fromX);
@@ -775,8 +914,8 @@ export function compileCharacterActingTracks(charSpec = {}, sceneDurationSec = 5
     characterId: charSpec.characterId,
     durationMs,
     seed,
-    baseX: charSpec.x ?? 510,
-    baseY: charSpec.y ?? 560,
+    baseX: initX,
+    baseY: initY,
     baseView: charSpec.view || 'three_quarter_right',
     baseExpression: charSpec.emotion || 'neutral',
     secondaryExpression: charSpec.secondaryEmotion || null,
@@ -809,6 +948,7 @@ export function evaluateActingFrame(track, tSec, options = {}) {
   let exprBlend = 1.0;
   let squashStretch = [1, 1];
   let visible = true;
+  const vfxEffects = [];
 
   // Channel accumulators: each bone starts from natural idle and gets blended by active actions
   const active = (track.actions || []).filter(a => tMs >= a.startMs && tMs <= a.endMs);
@@ -855,6 +995,10 @@ export function evaluateActingFrame(track, tSec, options = {}) {
     if (evalRes.talk !== undefined) curTalk = Math.max(curTalk, evalRes.talk);
     if (evalRes.mouthShape) mouthShape = evalRes.mouthShape;
     if (evalRes.squashStretch) squashStretch = evalRes.squashStretch;
+    if (evalRes.visible === false) visible = false;
+    if (evalRes.vfxEffect && evalRes.vfxEffect.active) {
+      vfxEffects.push({ ...evalRes.vfxEffect, x: curX, y: curY });
+    }
 
     for (const chData of Object.values(evalRes.channels || {})) {
       const w = clamp(chData.weight ?? 1, 0, 1);
@@ -892,7 +1036,165 @@ export function evaluateActingFrame(track, tSec, options = {}) {
     squashStretch,
     secondaryMotion,
     visible,
+    vfxEffects,
     jointAngles: angles
   };
+}
+
+// ============================================================================
+// 7. PROP ATTACHMENT, OBJECT INTERACTION & MULTI-CHARACTER CHOREOGRAPHY
+// ============================================================================
+
+/**
+ * Evaluates a prop's world transform & attachment state at `tSec` with zero-jump hand-to-world release.
+ * States: 'on_surface' | 'free' | 'held' | 'attached' | 'released' | 'thrown' | 'dropped'
+ */
+export function evaluatePropState(propSpec = {}, charTracks = [], actingFrames = {}, tSec = 0) {
+  const tMs = Math.max(0, Math.round(tSec * 1000));
+  const baseX = Number(propSpec.x ?? 760);
+  const baseY = Number(propSpec.y ?? 560);
+  let state = propSpec.initialState || (propSpec.attachedTo ? 'attached' : 'on_surface');
+  let holderId = propSpec.attachedTo || null;
+  let hand = propSpec.hand || 'right';
+  let worldX = baseX;
+  let worldY = baseY;
+  let rotationDeg = 0;
+
+  const getHandWorld = (cid, handSide, atSec) => {
+    const tr = charTracks.find(c => c.characterId === cid);
+    if (!tr) return [baseX, baseY];
+    const af = (atSec === tSec && actingFrames[cid]) ? actingFrames[cid] : evaluateActingFrame(tr, atSec);
+    const scale = tr.scale || 2.45;
+    const armAng = ((handSide === 'left' ? af.jointAngles?.upper_arm_L : af.jointAngles?.upper_arm_R) || 0) * Math.PI / 180;
+    const handDx = (handSide === 'left' ? -18 : 18) * scale + Math.sin(armAng) * 28 * scale;
+    const handDy = -68 * scale + Math.cos(armAng) * 26 * scale;
+    return [af.x + handDx, af.y + handDy];
+  };
+
+  // Scan character prop events chronologically
+  const propId = propSpec.assetId || propSpec.id;
+  const events = [];
+  for (const tr of charTracks) {
+    for (const act of (tr.actions || [])) {
+      if (act.propId && propId && act.propId !== propId) continue;
+      if (['pick_up', 'grab', 'hold_object', 'drink', 'transfer_prop', 'put_down', 'release_prop', 'drop_prop', 'throw_object'].includes(act.type)) {
+        events.push({ ...act, characterId: tr.characterId });
+      }
+    }
+  }
+  events.sort((a, b) => a.startMs - b.startMs);
+
+  let releaseOrigin = [baseX, baseY];
+  let releaseStartMs = 0;
+  for (const ev of events) {
+    if (tMs < ev.startMs) break;
+    if (ev.type === 'pick_up' || ev.type === 'grab' || ev.type === 'hold_object' || ev.type === 'drink') {
+      state = 'held';
+      holderId = ev.characterId;
+      hand = ev.hand || 'right';
+      const hw = getHandWorld(holderId, hand, tSec);
+      worldX = hw[0];
+      worldY = hw[1];
+      if (ev.type === 'drink' && tMs <= ev.endMs) {
+        const u = clamp((tMs - ev.startMs) / Math.max(1, ev.durationMs), 0, 1);
+        const lift = Math.sin(u * Math.PI);
+        worldY -= lift * 36;
+        rotationDeg = -32 * lift;
+      }
+    } else if (ev.type === 'transfer_prop') {
+      const fromHand = ev.fromHand || 'right';
+      const toHand = ev.toHand || 'left';
+      holderId = ev.characterId;
+      if (tMs <= ev.endMs) {
+        state = 'held';
+        const u = applyEasing((tMs - ev.startMs) / Math.max(1, ev.durationMs), 'easeInOut');
+        const pA = getHandWorld(holderId, fromHand, tSec);
+        const pB = getHandWorld(holderId, toHand, tSec);
+        worldX = lerp(pA[0], pB[0], u);
+        worldY = lerp(pA[1], pB[1], u);
+        hand = u < 0.5 ? fromHand : toHand;
+      } else {
+        state = 'held';
+        hand = toHand;
+        const pB = getHandWorld(holderId, toHand, tSec);
+        worldX = pB[0];
+        worldY = pB[1];
+      }
+    } else if (ev.type === 'put_down' || ev.type === 'release_prop' || ev.type === 'drop_prop' || ev.type === 'throw_object') {
+      // Zero-jump local->world: sample hand world position at exact release moment
+      const relSec = ev.startMs / 1000;
+      releaseOrigin = holderId ? getHandWorld(holderId, hand, relSec) : [worldX, worldY];
+      releaseStartMs = ev.startMs;
+      holderId = null;
+      const dt = (tMs - releaseStartMs) / 1000;
+      if (ev.type === 'throw_object') {
+        state = 'thrown';
+        const vx = Number(ev.vx ?? 220);
+        const vy = Number(ev.vy ?? -280);
+        worldX = releaseOrigin[0] + vx * dt;
+        worldY = Math.min(baseY, releaseOrigin[1] + vy * dt + 0.5 * 680 * dt * dt);
+        rotationDeg = dt * 360;
+      } else if (ev.type === 'drop_prop') {
+        state = 'dropped';
+        worldX = releaseOrigin[0];
+        worldY = Math.min(baseY, releaseOrigin[1] + 0.5 * 720 * dt * dt);
+      } else {
+        state = ev.type === 'put_down' ? 'on_surface' : 'released';
+        const u = clamp((tMs - ev.startMs) / Math.max(1, ev.durationMs), 0, 1);
+        worldX = lerp(releaseOrigin[0], baseX, u);
+        worldY = lerp(releaseOrigin[1], baseY, u);
+      }
+    }
+  }
+
+  return { state, holderId, hand, worldX, worldY, rotationDeg };
+}
+
+/**
+ * Evaluates interactive scene object states (e.g. computer screen glow & smoke on press_button / failure).
+ */
+export function evaluateObjectInteractions(propSpecs = [], charTracks = [], tSec = 0) {
+  const tMs = Math.max(0, Math.round(tSec * 1000));
+  const states = {};
+  for (const p of propSpecs) {
+    const pid = p.assetId || p.id;
+    states[pid] = { active: false, screenGlow: false, indicatorColor: '#22c55e', shakeX: 0, emitSmoke: false, emitSparks: false };
+    for (const tr of charTracks) {
+      for (const act of (tr.actions || [])) {
+        if (act.targetId && act.targetId !== pid) continue;
+        if (tMs >= act.startMs) {
+          if (act.type === 'press_button' || act.type === 'type_keyboard' || act.type === 'repair') {
+            states[pid].active = true;
+            states[pid].screenGlow = true;
+            states[pid].indicatorColor = '#38bdf8';
+            if (tMs <= act.endMs) {
+              states[pid].shakeX = Math.sin(tSec * 28) * 2.5;
+            }
+          }
+          if (act.type === 'experiment_failure') {
+            states[pid].active = true;
+            states[pid].indicatorColor = '#ef4444';
+            states[pid].emitSmoke = tMs <= act.endMs;
+            states[pid].emitSparks = tMs <= act.endMs;
+            if (tMs <= act.endMs) states[pid].shakeX = Math.sin(tSec * 36) * 4.5;
+          }
+        }
+      }
+    }
+  }
+  return states;
+}
+
+/**
+ * Resolves multi-character choreography entities (positions for look_at & anti-overlap).
+ */
+export function resolveSceneChoreography(charTracks = [], tSec = 0) {
+  const entities = {};
+  for (const tr of charTracks) {
+    if (!tr?.actingTrack) continue;
+    const f = evaluateActingFrame(tr.actingTrack, tSec);
+    entities[tr.characterId] = [f.x, f.y];
+  }
+  return { entities };
 }
 
