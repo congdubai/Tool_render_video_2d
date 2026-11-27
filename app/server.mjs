@@ -2123,7 +2123,15 @@ import { defaultProjectManager } from "../thanhhai-2d-studio/engine/v5-project-m
 // 1. One-Click Production Orchestrator (Run Mode A / B / C)
 app.post("/api/v5/production/orchestrate", async (req, res) => {
   try {
-    const { projectData, mode = PRODUCTION_MODES.MODE_B_FULL_AUTO, options = {} } = req.body;
+    const { projectData, mode = PRODUCTION_MODES.MODE_B_FULL_AUTO, options = {}, async: isAsync = false } = req.body;
+    if (isAsync) {
+      const jobId = options.jobId || `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      // Start real render in background and immediately return jobId so UI polls real-time progress
+      defaultOrchestrator.produceVideo(projectData || {}, mode, { ...options, jobId }).catch((err) => {
+        console.error("[Orchestrate Async Error]", err);
+      });
+      return res.json({ success: true, async: true, jobId, status: "RUNNING" });
+    }
     const result = await defaultOrchestrator.produceVideo(projectData || {}, mode, options);
     res.json(result);
   } catch (err) {

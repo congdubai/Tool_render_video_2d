@@ -170,12 +170,15 @@ export class ProductionOrchestrator {
         this.transitionTo(PRODUCTION_STATES.WAITING_FOR_ASSETS, `Thiếu ${assetResolution.missingAssets.length} tài nguyên`);
         this.saveCheckpoint(projectId, 'waiting_for_assets', { missingAssets: assetResolution.missingAssets });
         defaultJobManager.updateJobStage(job.jobId, `Tạm dừng: Thiếu ${assetResolution.missingAssets.length} tài nguyên bắt buộc`, 20);
-        return {
+        const resObj = {
           success: false,
           status: this.state,
           missingAssets: assetResolution.missingAssets,
           jobId: job.jobId
         };
+        job.result = resObj;
+        defaultJobManager.failJob(job.jobId, new Error(`Thiếu ${assetResolution.missingAssets.length} tài nguyên bắt buộc`));
+        return resObj;
       }
       this.transitionTo(PRODUCTION_STATES.ASSETS_READY, 'Tài nguyên đầy đủ 100%');
 
@@ -226,19 +229,21 @@ export class ProductionOrchestrator {
       const qaResult = options.qaResult || defaultQaEngine.validateProject(qaCheckData);
       if (!qaResult.isValid && qaResult.blockers?.length > 0) {
         this.transitionTo(PRODUCTION_STATES.QA_BLOCKED, `Phát hiện ${qaResult.blockers.length} lỗi chặn`);
-        return {
+        const resObj = {
           success: false,
           status: this.state,
           qaResult,
           jobId: job.jobId
         };
+        job.result = resObj;
+        defaultJobManager.failJob(job.jobId, new Error(`QA Blocked: ${qaResult.blockers.length} lỗi chặn`));
+        return resObj;
       }
 
       // If Mode A, complete at Preview Ready
       if (mode === PRODUCTION_MODES.MODE_A_PREVIEW) {
         this.transitionTo(PRODUCTION_STATES.PREVIEW_READY, 'Preview hoàn tất (Mode A)');
-        defaultJobManager.completeJob(job.jobId, { previewReady: true });
-        return {
+        const resObj = {
           success: true,
           status: this.state,
           compiledScenes: buildResult.compiledScenes,
@@ -246,6 +251,9 @@ export class ProductionOrchestrator {
           qaResult,
           jobId: job.jobId
         };
+        job.result = resObj;
+        defaultJobManager.completeJob(job.jobId, { previewReady: true });
+        return resObj;
       }
 
       // 6. Real Shot Compilation & Rendering (Mode B / C) — ZERO demo video copy!
@@ -339,26 +347,30 @@ export class ProductionOrchestrator {
         qaResult.warnings?.length > 0 ? PRODUCTION_STATES.COMPLETED_WITH_WARNINGS : PRODUCTION_STATES.COMPLETED,
         'Hoàn tất 100%'
       );
-      defaultJobManager.completeJob(job.jobId, finalOutput);
-
-      return {
+      const resObj = {
         success: true,
         status: this.state,
         finalOutput,
         qaResult,
         jobId: job.jobId
       };
+      job.result = resObj;
+      defaultJobManager.completeJob(job.jobId, finalOutput);
+
+      return resObj;
     } catch (err) {
       if (this.state !== PRODUCTION_STATES.FAILED) {
         this.state = PRODUCTION_STATES.FAILED;
       }
-      defaultJobManager.failJob(job.jobId, err);
-      return {
+      const resObj = {
         success: false,
         status: this.state,
         error: err.message,
         jobId: job.jobId
       };
+      job.result = resObj;
+      defaultJobManager.failJob(job.jobId, err);
+      return resObj;
     }
   }
 }

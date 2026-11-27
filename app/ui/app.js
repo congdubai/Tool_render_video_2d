@@ -7368,50 +7368,22 @@ async function triggerOneClickProduction() {
     const res = await fetch('/api/v5/production/orchestrate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectData, mode })
+      body: JSON.stringify({ projectData, mode, async: true })
     });
 
     const data = await res.json();
-    if (!data.success && data.status === 'WAITING_FOR_ASSETS') {
-      if (stateBadge) {
-        stateBadge.textContent = 'WAITING_FOR_ASSETS';
-        stateBadge.style.backgroundColor = '#eab308';
-      }
-      const count = data.missingAssets?.length || 0;
-      if (stageLabel) stageLabel.textContent = `Tạm dừng: Thiếu ${count} tài nguyên bắt buộc.`;
-      
-      // Render full missing assets diagnostics with 1-click jump button
-      renderMissingAssetsInProductionUi(data.missingAssets || []);
-
-      showToast(`Thiếu ${count} tài nguyên bắt buộc. Vui lòng bổ sung tại Bước 2.`, 'warning');
+    if (!data.success && !data.async) {
+      handleProductionTerminalResult(data);
       return;
     }
 
-    // If success, clear any previous missing asset warnings
-    renderMissingAssetsInProductionUi([]);
-
-    if (data.jobId) {
+    if (data.async && data.jobId) {
       currentProductionJobId = data.jobId;
       pollProductionJobProgress(data.jobId);
+      return;
     }
 
-    if (data.success) {
-      if (stateBadge) {
-        stateBadge.textContent = data.status || 'COMPLETED';
-        stateBadge.style.backgroundColor = '#22c55e';
-      }
-      if (stageLabel) stageLabel.textContent = '🎉 Đã sản xuất video thành công 100%!';
-      if (progressBar) progressBar.style.width = '100%';
-      if (progressPercent) progressPercent.textContent = '100%';
-
-      if (data.finalOutput) {
-        updateFinalOutputUi(data.finalOutput);
-      }
-      if (data.qaResult) {
-        renderQaResultInUi(data.qaResult);
-      }
-      showToast('🎉 Tự động sản xuất video hoàn tất và đã kiểm định hợp lệ!', 'success');
-    }
+    handleProductionTerminalResult(data);
   } catch (err) {
     if (stateBadge) {
       stateBadge.textContent = 'FAILED';
@@ -7419,9 +7391,66 @@ async function triggerOneClickProduction() {
     }
     if (stageLabel) stageLabel.textContent = `Lỗi sản xuất: ${err.message}`;
     showToast(`Lỗi sản xuất: ${err.message}`, 'error');
-  } finally {
     if (btnStart) btnStart.disabled = false;
   }
+}
+
+function handleProductionTerminalResult(data) {
+  const stateBadge = document.getElementById('prodStateBadge');
+  const stageLabel = document.getElementById('prodStageLabel');
+  const progressBar = document.getElementById('prodProgressBar');
+  const progressPercent = document.getElementById('prodProgressPercent');
+  const btnStart = document.getElementById('btnStartOneClickProduction');
+  const btnPause = document.getElementById('btnPauseProdJob');
+  const btnCancel = document.getElementById('btnCancelProdJob');
+
+  if (btnStart) btnStart.disabled = false;
+  if (btnPause) btnPause.disabled = true;
+  if (btnCancel) btnCancel.disabled = true;
+
+  if (!data) return;
+
+  if (!data.success && data.status === 'WAITING_FOR_ASSETS') {
+    if (stateBadge) {
+      stateBadge.textContent = 'WAITING_FOR_ASSETS';
+      stateBadge.style.backgroundColor = '#eab308';
+    }
+    const count = data.missingAssets?.length || 0;
+    if (stageLabel) stageLabel.textContent = `Tạm dừng: Thiếu ${count} tài nguyên bắt buộc.`;
+    renderMissingAssetsInProductionUi(data.missingAssets || []);
+    showToast(`Thiếu ${count} tài nguyên bắt buộc. Vui lòng bổ sung tại Bước 2.`, 'warning');
+    return;
+  }
+
+  if (!data.success) {
+    if (stateBadge) {
+      stateBadge.textContent = data.status || 'FAILED';
+      stateBadge.style.backgroundColor = '#ef4444';
+    }
+    const errMsg = data.error || (data.qaResult?.blockers?.length ? `Phát hiện ${data.qaResult.blockers.length} lỗi chặn QA` : 'Sản xuất thất bại');
+    if (stageLabel) stageLabel.textContent = `Lỗi: ${errMsg}`;
+    if (data.qaResult) renderQaResultInUi(data.qaResult);
+    showToast(`❌ ${errMsg}`, 'error');
+    return;
+  }
+
+  // Success!
+  renderMissingAssetsInProductionUi([]);
+  if (stateBadge) {
+    stateBadge.textContent = data.status || 'COMPLETED';
+    stateBadge.style.backgroundColor = '#22c55e';
+  }
+  if (stageLabel) stageLabel.textContent = '🎉 Đã sản xuất video thành công 100%!';
+  if (progressBar) progressBar.style.width = '100%';
+  if (progressPercent) progressPercent.textContent = '100%';
+
+  if (data.finalOutput) {
+    updateFinalOutputUi(data.finalOutput);
+  }
+  if (data.qaResult) {
+    renderQaResultInUi(data.qaResult);
+  }
+  showToast('🎉 Tự động sản xuất video hoàn tất và đã kiểm định hợp lệ!', 'success');
 }
 
 /**
@@ -7563,16 +7592,27 @@ function pollProductionJobProgress(jobId) {
       const progressBar = document.getElementById('prodProgressBar');
       const progressPercent = document.getElementById('prodProgressPercent');
 
-      if (stageLabel) stageLabel.textContent = `[${job.stage}] ${job.logs[job.logs.length - 1] || ''}`;
-      if (progressBar) progressBar.style.width = `${job.progressPercent}%`;
-      if (progressPercent) progressPercent.textContent = `${job.progressPercent}%`;
+      if (stageLabel) {
+        const lastLog = job.logs && job.logs.length > 0 ? job.logs[job.logs.length - 1] : '';
+        stageLabel.textContent = `[${job.stage}] ${lastLog}`;
+      }
+      if (progressBar) progressBar.style.width = `${Math.max(10, job.progressPercent || 0)}%`;
+      if (progressPercent) progressPercent.textContent = `${Math.max(10, job.progressPercent || 0)}%`;
 
       if (job.status === 'Completed' || job.status === 'Failed' || job.status === 'Cancelled') {
         clearInterval(productionPollingInterval);
         productionPollingInterval = null;
+
+        if (job.result) {
+          handleProductionTerminalResult(job.result);
+        } else if (job.status === 'Completed') {
+          handleProductionTerminalResult({ success: true, status: 'COMPLETED', finalOutput: job.outputDetails });
+        } else {
+          handleProductionTerminalResult({ success: false, status: job.status.toUpperCase(), error: job.errorDetails || 'Job kết thúc với lỗi.' });
+        }
       }
     } catch {}
-  }, 1000);
+  }, 800);
 }
 
 async function pauseCurrentProductionJob() {

@@ -29,7 +29,7 @@ export class ProductionJobManager {
   }
 
   createJob(projectId, projectRevision = '1.0', mode = 'MODE_B_FULL_AUTO', options = {}) {
-    const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const jobId = options.jobId || `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const job = {
       jobId,
       projectId,
