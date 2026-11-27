@@ -25,6 +25,17 @@ const server = http.createServer((req, res) => {
   const url = decodeURIComponent(req.url.split('?')[0]);
   if (url === '/__manifest') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(listScenes(path.join(PROJECT, 'scenes'), '/project/scenes'))); }
   const projectRoot = path.dirname(ROOT);
+  if (url === '/__characters') {
+    const charsDir = path.join(projectRoot, 'data', 'characters');
+    const chars = [];
+    if (fs.existsSync(charsDir)) {
+      for (const f of fs.readdirSync(charsDir).filter(x => x.endsWith('.json'))) {
+        try { chars.push(JSON.parse(fs.readFileSync(path.join(charsDir, f), 'utf8'))); } catch {}
+      }
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    return res.end(JSON.stringify(chars));
+  }
   let p;
   if (url.startsWith('/project/')) {
     p = path.join(PROJECT, url.slice(9));

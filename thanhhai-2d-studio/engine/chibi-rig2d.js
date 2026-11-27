@@ -94,17 +94,23 @@ export const CHIBI_PRESETS = {
 /**
  * Ánh xạ trang phục sang Character Identity V2 hoàn chỉnh
  */
-export function resolveCharacterIdentity(o) {
+export function resolveCharacterIdentity(o = {}) {
   const of = o.outfit || {};
+  const explicitId = o.characterId || o.id || of.characterId || of.id;
+  if (explicitId) {
+    const res = resolveCharacter(o.character || o.profile || o);
+    if (res.resolved && res.profile) return res.profile;
+    // NEVER silently substitute CHIBI_PRESETS.chibi_max for an unresolved explicit ID!
+    return null;
+  }
+
   let base = null;
-  if (of.id && CHIBI_PRESETS[of.id]) base = CHIBI_PRESETS[of.id];
-  else if (of.characterId && CHIBI_PRESETS[of.characterId]) base = CHIBI_PRESETS[of.characterId];
-  else if (of.name && CHIBI_PRESETS[`chibi_${of.name.toLowerCase()}`]) base = CHIBI_PRESETS[`chibi_${of.name.toLowerCase()}`];
+  if (of.name && CHIBI_PRESETS[`chibi_${of.name.toLowerCase()}`]) base = CHIBI_PRESETS[`chibi_${of.name.toLowerCase()}`];
   else if (of.top === 'hoodie' || of.color === '#d64a33') base = CHIBI_PRESETS.chibi_max;
   else if (of.head === 'cap' || of.top === 'tshirt' || of.color === '#3a6ea5' || of.color === '#3b82f6') base = CHIBI_PRESETS.chibi_jake;
   else if (of.top === 'labcoat' || of.face === 'glasses') base = CHIBI_PRESETS.chibi_doc;
   else if (of.top === 'dress' || of.hair === 'twintails') base = CHIBI_PRESETS.chibi_luna;
-  else base = CHIBI_PRESETS.chibi_max;
+  else return null;
 
   return { ...base, ...of };
 }
@@ -829,7 +835,7 @@ export function drawChibiFigure(g, o) {
   const dir = normalizeViewDirection(o.direction || o.view || (o.front ? 'front' : null), facing);
   const poseName = typeof o.pose === 'string' ? o.pose : (o.action || (o.sit ? 'sit_chair' : 'stand'));
 
-  const res = resolveCharacter(o.characterId || o.profile || o);
+  const res = resolveCharacter(o.characterId || o.profile || o, { strict: o.strict === true });
   if (res.resolved && res.profile) {
     return drawUnifiedCharacter(g, {
       ...o,
@@ -842,8 +848,13 @@ export function drawChibiFigure(g, o) {
     });
   }
 
-  // Fallback only if explicit non-registered inline outfit object was provided
+  // Never silently substitute a fallback character when an explicit ID failed to resolve
   const char = resolveCharacterIdentity(o);
+  if (!char) {
+    const err = res.error || `Character could not be resolved in drawChibiFigure (silent fallback disabled).`;
+    if (o.strict === true) throw new Error(err);
+    return { rendered: false, isFallback: true, error: err };
+  }
   return drawUnifiedCharacter(g, {
     ...o,
     character: char,

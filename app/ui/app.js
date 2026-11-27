@@ -1928,6 +1928,9 @@ async function loadCharacterLibrary() {
     if (!data.success) throw new Error(data.error);
 
     characterState.characters = data.characters || [];
+    if (window.UnifiedCharacterRenderer) {
+      window.UnifiedCharacterRenderer.registerCharacterProfiles(characterState.characters);
+    }
     renderCharacterCards();
 
     // Chọn nhân vật đầu tiên nếu chưa chọn
@@ -3301,6 +3304,9 @@ async function saveCurrentEditingCharacter() {
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
 
+    if (window.UnifiedCharacterRenderer && (data.character || charData)) {
+      window.UnifiedCharacterRenderer.registerCharacterProfile(data.character || charData);
+    }
     showToast(`💾 ${data.message}`);
     await loadCharacterLibrary();
     selectCharacterForEditing(charData.id);

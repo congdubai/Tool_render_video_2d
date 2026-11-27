@@ -493,28 +493,62 @@ export function resolveCharacter(input, options = {}) {
     return { resolved: false, isFallback: true, profile: null, error: err };
   }
 
-  // 2. Object with characterId / id / outfit
+  // 2. Object with characterId / id / live profile / outfit
   if (input && typeof input === 'object') {
     const candidateId = input.characterId || input.id || input.outfit?.characterId || input.outfit?.id;
+    const isLiveInlineProfile = Boolean(
+      input.skinColor || input.skin ||
+      (input.hair && typeof input.hair === 'object') ||
+      (input.face && typeof input.face === 'object') ||
+      (input.proportions && typeof input.proportions === 'object') ||
+      input.parts || input.sourceImage || input.type === 'imported' || input.type === 'builtin'
+    );
+
     if (candidateId) {
       const registered = getRegisteredCharacter(candidateId);
       if (registered) {
-        // Continuity lock: preserve identity (id, skin, hair, face, proportions, artStyle),
-        // allow scene-level outfit override if explicitly provided
+        if (isLiveInlineProfile) {
+          // Live profile (e.g. Tab 3 editor or updated library record) overrides registry fields!
+          const merged = {
+            ...registered,
+            ...input,
+            id: registered.id,
+            hair: { ...(registered.hair || {}), ...(typeof input.hair === 'object' ? input.hair : {}) },
+            face: { ...(registered.face || {}), ...(typeof input.face === 'object' ? input.face : {}) },
+            proportions: { ...(registered.proportions || {}), ...(typeof input.proportions === 'object' ? input.proportions : {}) },
+            outfit: {
+              ...(registered.outfit || {}),
+              ...(typeof input.outfit === 'object' ? input.outfit : {}),
+              ...(typeof input.outfitOverride === 'object' ? input.outfitOverride : {})
+            }
+          };
+          return { resolved: true, isFallback: false, profile: normalizeCharacterProfile(merged), error: null };
+        }
+        // ID reference (e.g. scene descriptor): use registered library profile + optional outfit override
         const merged = {
           ...registered,
           outfit: input.outfitOverride
             ? { ...registered.outfit, ...input.outfitOverride }
-            : (input.outfit && typeof input.outfit === 'object' && input.outfit.topColor ? { ...registered.outfit, ...input.outfit } : registered.outfit)
+            : (input.outfit && typeof input.outfit === 'object' && (input.outfit.topColor || input.outfit.type) ? { ...registered.outfit, ...input.outfit } : registered.outfit)
         };
         return { resolved: true, isFallback: false, profile: normalizeCharacterProfile(merged), error: null };
       }
+
+      // Explicit ID not found in registry: ONLY allow if input itself is a complete inline profile; NEVER silent fallback!
+      if (isLiveInlineProfile) {
+        return { resolved: true, isFallback: false, profile: normalizeCharacterProfile(input), error: null };
+      }
+      const err = `Character ID "${candidateId}" not found in Character Registry (silent fallback disabled).`;
+      if (strict) throw new Error(err);
+      return { resolved: false, isFallback: true, profile: null, error: err };
     }
-    // If the object itself is a complete character definition (e.g. live Tab 3 editor state or Mode B character)
-    if (input.skinColor || input.hair || input.parts || input.sourceImage || input.type === 'imported' || input.type === 'builtin') {
+
+    // Complete inline character definition without a registered ID
+    if (isLiveInlineProfile) {
       return { resolved: true, isFallback: false, profile: normalizeCharacterProfile(input), error: null };
     }
-    // Legacy outfit heuristic ONLY if explicitly has top/color (never silent fallback for unknown ID!)
+
+    // Legacy outfit heuristic ONLY when no explicit characterId was given
     if (input.outfit && (input.outfit.top || input.outfit.color || input.outfit.face)) {
       const of = input.outfit;
       let inferredId = null;
