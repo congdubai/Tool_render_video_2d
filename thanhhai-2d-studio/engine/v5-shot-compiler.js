@@ -10,6 +10,7 @@ import { listCharacters } from '../../lib/character-library.mjs';
 import { generateProceduralBackground } from './v5-procedural-backgrounds.js';
 import { generateProceduralProp } from './v5-procedural-props.js';
 import { resolveLightingProfile } from './v5-style-engine.js';
+import { compileCharacterActingTracks } from './v5-character-acting-engine.js';
 
 /**
  * Computes Smart Composition character scale & ground position based on camera shotType.
@@ -140,6 +141,31 @@ export function compileProjectToShots(projectDir, payload = {}) {
       const secondaryEmotion = planChar.secondaryEmotion || planScene.secondaryEmotion || null;
       const view = planChar.facing || planChar.view || (typeof c.facing === 'string' ? c.facing : (c.facing === -1 ? 'three_quarter_left' : 'three_quarter_right'));
       const scale = computeSmartCharacterScale(shotType, planChar.scale || c.scale);
+      const targetX = planChar.targetPosition
+        ? (planChar.targetPosition[0] <= 1.5 ? Math.round(planChar.targetPosition[0] * 1280) : Math.round(planChar.targetPosition[0]))
+        : (action.includes('walk') || action.includes('run') ? Math.min(960, posX + 260) : posX);
+
+      // Collect per-character declarative actions from planChar.actions or planScene.actions matching target
+      const charActions = [
+        ...(Array.isArray(planChar.actions) ? planChar.actions : []),
+        ...(Array.isArray(planScene.actions) ? planScene.actions.filter(a => !a.target || a.target === charId || a.target === planChar.id || a.target === c.id) : [])
+      ].map(a => ({
+        ...a,
+        fromX: a.fromX !== undefined ? (a.fromX <= 1.5 ? Math.round(a.fromX * 1280) : a.fromX) : (a.type === 'walk' || a.type === 'walk_in' ? posX : undefined),
+        toX: a.toX !== undefined ? (a.toX <= 1.5 ? Math.round(a.toX * 1280) : a.toX) : (a.targetX !== undefined ? (a.targetX <= 1.5 ? Math.round(a.targetX * 1280) : a.targetX) : (a.type === 'walk' || a.type === 'walk_in' ? targetX : undefined))
+      }));
+
+      const actingTrack = compileCharacterActingTracks({
+        characterId: charId,
+        x: posX,
+        y: posY,
+        targetX,
+        view,
+        action,
+        emotion,
+        secondaryEmotion,
+        actions: charActions
+      }, duration, sceneSeed + cIdx * 31);
 
       return {
         characterId: charId,
@@ -150,9 +176,8 @@ export function compileProjectToShots(projectDir, payload = {}) {
         action,
         emotion,
         secondaryEmotion,
-        targetX: planChar.targetPosition
-          ? (planChar.targetPosition[0] <= 1.5 ? Math.round(planChar.targetPosition[0] * 1280) : Math.round(planChar.targetPosition[0]))
-          : (action.includes('walk') || action.includes('run') ? Math.min(960, posX + 260) : posX)
+        targetX,
+        actingTrack
       };
     });
 
@@ -253,6 +278,7 @@ import {
   registerCharacterProfiles
 } from '/engine/unified-character-renderer.js';
 import { renderToCanvas2d } from '/engine/v5-vector-canvas.js';
+import { evaluateActingFrame } from '/engine/v5-character-acting-engine.js';
 import { cast } from '../cast.js';
 
 registerCharacterProfiles(cast.characters || []);
@@ -296,22 +322,40 @@ function renderCompiledScene(ctx, scene, t) {
     ctx.restore();
   }
 
-  // 3. Render Characters via Unified Character Renderer (V5.2 Phase 1)
+  // 3. Render Characters via Unified Character Renderer + Acting Engine (V5.2 Phase 3)
   for (let i = 0; i < chars.length; i++) {
     const c = chars[i];
-    const isMoving = c.action.includes('walk') || c.action.includes('run');
-    const curX = isMoving ? (c.x + (c.targetX - c.x) * progress) : c.x;
-    const expr = (c.secondaryEmotion && t >= scene.duration * 0.5) ? c.secondaryEmotion : c.emotion;
+    const acting = c.actingTrack
+      ? evaluateActingFrame(c.actingTrack, t)
+      : {
+          x: (c.action.includes('walk') || c.action.includes('run')) ? (c.x + (c.targetX - c.x) * progress) : c.x,
+          y: c.y,
+          view: c.view || 'three_quarter_right',
+          expression: (c.secondaryEmotion && t >= scene.duration * 0.5) ? c.secondaryEmotion : (c.emotion || 'neutral'),
+          look: [0, 0],
+          talk: 0,
+          blink: isBlinking,
+          squashStretch: [1, 1],
+          visible: true,
+          jointAngles: null
+        };
+
+    if (i === 0) primaryCharX = acting.x;
+    if (!acting.visible) continue;
 
     drawUnifiedCharacter(ctx, {
       characterId: c.characterId,
-      x: curX,
-      y: c.y,
+      x: acting.x,
+      y: acting.y,
       s: c.scale || 2.45,
-      view: c.view || 'three_quarter_right',
+      view: acting.view,
       pose: c.action || 'stand',
-      expr: expr || 'neutral',
-      blink: isBlinking,
+      jointAngles: acting.jointAngles,
+      squashStretch: acting.squashStretch,
+      expr: acting.expression,
+      look: acting.look,
+      talk: acting.talk,
+      blink: acting.blink,
       t,
       shadow: true,
       debug: false,
@@ -323,7 +367,7 @@ function renderCompiledScene(ctx, scene, t) {
       ctx.save();
       ctx.fillStyle = scene.lighting.characterTint;
       ctx.beginPath();
-      ctx.ellipse(curX, c.y - 75 * (c.scale || 2.45), 42 * (c.scale || 2.45), 82 * (c.scale || 2.45), 0, 0, Math.PI * 2);
+      ctx.ellipse(acting.x, acting.y - 75 * (c.scale || 2.45), 42 * (c.scale || 2.45), 82 * (c.scale || 2.45), 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }

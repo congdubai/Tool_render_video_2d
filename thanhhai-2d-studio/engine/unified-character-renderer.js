@@ -851,8 +851,10 @@ export function solveCharacterRig(profile, options = {}) {
 
   // Subtle idle breathing if standing/thinking/inspecting
   const breath = Math.sin(t * 2.6) * 0.9;
-  const customAngles = (options.pose && typeof options.pose === 'object' && options.pose.angles) ? options.pose.angles : (options.jointAngles || {});
-  const a = { ...baseAngles, ...customAngles };
+  const customAngles = options.jointAngles
+    ? options.jointAngles
+    : ((options.pose && typeof options.pose === 'object' && options.pose.angles) ? options.pose.angles : {});
+  const a = options.jointAngles ? { ...customAngles } : { ...baseAngles, ...customAngles };
 
   // Facing sign for horizontal swing (+1 = facing right, -1 = facing left, 0 = front/back symmetric)
   const isFront = view === 'front';
@@ -2242,7 +2244,8 @@ export function drawUnifiedCharacter(ctx, options = {}) {
   }
 
   ctx.translate(x, y);
-  ctx.scale(scale, scale);
+  const sq = Array.isArray(options.squashStretch) ? options.squashStretch : [1, 1];
+  ctx.scale(scale * (sq[0] || 1), scale * (sq[1] || 1));
 
   const poseName = typeof options.pose === 'string' ? options.pose.toLowerCase() : String(options.action || '');
 
