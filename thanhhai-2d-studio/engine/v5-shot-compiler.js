@@ -245,6 +245,11 @@ export function compileProjectToShots(projectDir, payload = {}) {
       characters,
       props: compiledProps,
       vfx,
+      diagram: planScene.diagram || scene.diagram || null,
+      comparison: planScene.comparison || scene.comparison || null,
+      timeline: planScene.timeline || scene.timeline || null,
+      graphics: planScene.graphics || scene.graphics || [],
+      texts: planScene.texts || scene.texts || [],
       storytelling,
       cameraTrack
     };
@@ -298,6 +303,7 @@ import {
   applyCameraTransform
 } from '/engine/v5-camera-engine.js';
 import { computeLayerParallaxShift } from '/engine/v5-visual-storytelling.js';
+import { renderEducationalGraphics } from '/engine/v5-educational-graphics.js';
 import { cast } from '../cast.js';
 
 registerCharacterProfiles(cast.characters || []);
@@ -543,6 +549,12 @@ function renderCompiledScene(ctx, scene, t) {
     }
   }
 
+  ctx.restore();
+
+  // 6. Render Screen-Space Educational Graphics, Diagrams, Comparisons, Timelines & Animated Text
+  ctx.save();
+  ctx.scale(1.5, 1.5);
+  renderEducationalGraphics(ctx, scene, t, 1280, 720);
   ctx.restore();
 }
 
