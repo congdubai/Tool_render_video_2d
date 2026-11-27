@@ -83,7 +83,11 @@ async function renderVideo() {
   const list = path.join(partsDir, 'list.txt'); fs.writeFileSync(list, parts.map(p => `file '${p.replace(/\\/g, '/').replace(/'/g, "'\\''")}'`).join('\n'));
   const out = path.resolve(args.out || path.join(BUILD, args.from || args.to ? 'preview.mp4' : 'video_silent.mp4'));
   await new Promise((res, rej) => spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', '-movflags', '+faststart', out], { stdio: 'inherit' }).on('close', c => (c ? rej(new Error('concat failed')) : res())));
-  if (errs.size) { console.log(`\n${errs.size} shot error(s):`); [...errs].slice(0, 40).forEach(e => console.log('  ' + e)); }
+  if (errs.size) {
+    console.log(`\n${errs.size} shot error(s):`);
+    [...errs].slice(0, 40).forEach(e => console.log('  ' + e));
+    throw new Error(`Render thất bại vì chứa ${errs.size} lỗi shot/cảnh: ${[...errs].join('; ')}`);
+  }
   console.log(`\nDone: ${out}  (${fmtT((Date.now() - t0) / 1000)})`);
 }
 // grid of labelled images, laid out by the browser (works on every OS)

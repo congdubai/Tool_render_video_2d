@@ -140,9 +140,7 @@ async function run15sProceduralDemo() {
 
   // Step 7: Canvas Scene Renderer embedding procedural assets
   const sceneShotCode = `
-import { registerShot } from '../../engine/core.js';
-import fs from 'node:fs';
-import path from 'node:path';
+import { registerShot } from '/engine/core.js';
 
 // Load image buffers into memory
 let bgImg = null;
@@ -397,6 +395,16 @@ registerShot('s001', {
     );
   }
 });
+registerShot('scene_001', {
+  draw(ctx, t) {
+    drawProceduralScene(
+      ctx, t, 's001',
+      'Cảnh 1: Doc Bước Vào Phòng Lab (Vector Code)',
+      'Phòng thí nghiệm hiện đại được sinh 100% bằng mã nguồn toán học',
+      'Walk Locomotion'
+    );
+  }
+});
 
 registerShot('s002', {
   draw(ctx, t) {
@@ -408,8 +416,28 @@ registerShot('s002', {
     );
   }
 });
+registerShot('scene_002', {
+  draw(ctx, t) {
+    drawProceduralScene(
+      ctx, t, 's002',
+      'Cảnh 2: Máy Tính Cổ Điển & Khói Thử Nghiệm',
+      'Máy tính ENIAC cổ điển với đèn chân không nhấp nháy và khói bốc lên',
+      'Inspect & Smoke'
+    );
+  }
+});
 
 registerShot('s003', {
+  draw(ctx, t) {
+    drawProceduralScene(
+      ctx, t, 's003',
+      'Cảnh 3: Doc Nảy Ra Ý Tưởng Phát Sáng',
+      'Bóng đèn ý tưởng phát sáng với các tia năng lượng rực rỡ trên đỉnh đầu Doc',
+      'Eureka Idea Bulb'
+    );
+  }
+});
+registerShot('scene_003', {
   draw(ctx, t) {
     drawProceduralScene(
       ctx, t, 's003',

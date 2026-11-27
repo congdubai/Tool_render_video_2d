@@ -124,7 +124,37 @@ export function blurLayer(g, amount, fn, cam = null, depth = 1) {
 
 // ---------- shot registry ----------
 const SHOTS = {};
+function getAliases(id) {
+  const aliases = [id];
+  const sMatch = String(id).match(/^s(\d+)$/i);
+  if (sMatch) {
+    const num = parseInt(sMatch[1], 10);
+    aliases.push(`scene_${String(num).padStart(3, '0')}`);
+    aliases.push(`scene_${num}`);
+  }
+  const sceneMatch = String(id).match(/^scene_?(\d+)$/i);
+  if (sceneMatch) {
+    const num = parseInt(sceneMatch[1], 10);
+    aliases.push(`s${String(num).padStart(3, '0')}`);
+    aliases.push(`s${num}`);
+  }
+  return aliases;
+}
+
 // registerShot('s012', { kind: '2d' | '3d', draw(g, t, info), init?(T, info), overlay?(g, t, info) })
-export function registerShot(id, def) { SHOTS[id] = { kind: '2d', ...def }; }
-export const getShot = id => SHOTS[id];
+export function registerShot(id, def) {
+  const item = { kind: '2d', ...def };
+  const aliases = getAliases(id);
+  for (const a of aliases) {
+    SHOTS[a] = item;
+  }
+}
+export const getShot = id => {
+  if (SHOTS[id]) return SHOTS[id];
+  const aliases = getAliases(id);
+  for (const a of aliases) {
+    if (SHOTS[a]) return SHOTS[a];
+  }
+  return undefined;
+};
 export const allShots = () => SHOTS;

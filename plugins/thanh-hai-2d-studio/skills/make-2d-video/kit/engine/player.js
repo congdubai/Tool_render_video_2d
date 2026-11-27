@@ -59,6 +59,7 @@ async function boot() {
   const dur = story.duration || E.shots[E.shots.length - 1].end;
   window.DURATION = dur; window.TOTAL_FRAMES = Math.ceil(dur * E.fps); window.OUT = [outW, outH];
   window.SHOT_LIST = E.shots.map(s => ({ id: s.id, start: s.start, end: s.end, ok: !!getShot(s.id) }));
+  E.shots.forEach(s => { if (!getShot(s.id)) { const msg = `MISSING SHOT ${s.id}`; if (!errors.includes(msg)) errors.push(msg); } });
   window.READY = true;
 }
 
@@ -91,7 +92,14 @@ function drawShot(buf, shot, lt) {
   g.fillStyle = '#000'; g.fillRect(0, 0, buf.width, buf.height); g.setTransform(E.PX, 0, 0, E.PX, 0, 0);
   const def = getShot(shot.id); const dur = shot.end - shot.start;
   const info = { ...(shot.params || {}), shot, dur, globalT: shot.start + lt, p: clamp(lt / dur), line: shot.line };
-  if (!def) { g.fillStyle = '#20141c'; g.fillRect(0, 0, E.W, E.H); text(g, `MISSING SHOT ${shot.id}`, E.W / 2, E.H / 2 - 30, { size: 60, color: '#ff6f61' }); text(g, (shot.line || '').slice(0, 80), E.W / 2, E.H / 2 + 50, { size: 30, color: '#fff', font: FONTS.ui, weight: 800 }); return; }
+  if (!def) {
+    const msg = `MISSING SHOT ${shot.id}`;
+    if (!errors.includes(msg) && errors.length < 200) errors.push(msg);
+    g.fillStyle = '#20141c'; g.fillRect(0, 0, E.W, E.H);
+    text(g, msg, E.W / 2, E.H / 2 - 30, { size: 60, color: '#ff6f61' });
+    text(g, (shot.line || '').slice(0, 80), E.W / 2, E.H / 2 + 50, { size: 30, color: '#fff', font: FONTS.ui, weight: 800 });
+    return;
+  }
   try {
     if (def.kind === '3d') {
       const st = state3D(shot, def, info); def.draw(st, lt, info, three); (st.stage || st).render();

@@ -195,14 +195,48 @@ export class FfmpegAssembler {
           }
         }
 
+        // Kiểm tra nội dung khung hình thực tế (Tránh lỗi video chỉ chứa màn hình MISSING SHOT)
+        let hasMissingShotError = false;
+        try {
+          const sampleSec = Math.max(1, Math.min(2, duration / 2));
+          const sampleRes = spawnSync(this.ffmpegPath, [
+            '-ss', String(sampleSec),
+            '-i', outputFilePath,
+            '-vframes', '1',
+            '-vf', 'scale=16:9',
+            '-f', 'rawvideo',
+            '-pix_fmt', 'rgb24',
+            'pipe:1'
+          ], { windowsHide: true, maxBuffer: 1024 * 1024 });
+
+          if (sampleRes.status === 0 && sampleRes.stdout && sampleRes.stdout.length >= 16 * 9 * 3) {
+            const bytes = sampleRes.stdout;
+            let missingShotPixels = 0;
+            const totalPixels = 16 * 9;
+            for (let i = 0; i < bytes.length; i += 3) {
+              const r = bytes[i];
+              const g = bytes[i + 1];
+              const b = bytes[i + 2];
+              // Màu nền #20141c của MISSING SHOT trong player.js: r~32, g~20, b~28
+              if (r >= 26 && r <= 38 && g >= 14 && g <= 26 && b >= 22 && b <= 34) {
+                missingShotPixels++;
+              }
+            }
+            if (missingShotPixels / totalPixels > 0.6) {
+              hasMissingShotError = true;
+            }
+          }
+        } catch (e) {}
+
         const checks = {
           hasVideo: !!videoStream,
           hasAudio: !!audioStream,
           durationValid: duration > 0,
-          resolutionValid: width > 0 && height > 0
+          resolutionValid: width > 0 && height > 0,
+          noMissingShot: !hasMissingShotError
         };
 
-        const isValid = checks.hasVideo && checks.durationValid && checks.resolutionValid;
+        const isValid = checks.hasVideo && checks.durationValid && checks.resolutionValid && checks.noMissingShot;
 
         return {
           isValid,
@@ -212,7 +246,8 @@ export class FfmpegAssembler {
           fps: frameRate,
           videoCodec: videoStream?.codec_name,
           audioCodec: audioStream?.codec_name,
-          checks
+          checks,
+          error: hasMissingShotError ? 'Video chứa khung hình lỗi MISSING SHOT!' : null
         };
       }
     } catch {}

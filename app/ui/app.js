@@ -6958,6 +6958,10 @@ function renderStoryboardGrid() {
     const charCount = (s.characters || []).length;
     const propCount = (s.props || []).length;
     const bgName = s.background?.assetId || s.background?.id || 'bg_lab_modern';
+    const resolvedBgId = (smartAssetState?.bindings?.[`REQ_BG_${bgName}`]?.resolvedAssetId) ||
+                         (smartAssetState?.bindings?.[bgName]?.resolvedAssetId) ||
+                         'proc_req_bg_background_laboratory';
+    const bgUrl = `/public/assets/background/${resolvedBgId}.png`;
 
     return `
       <div class="card" style="background: #0f172a; border: 1px solid ${isLocked ? '#a855f7' : '#0284c7'}; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
@@ -6968,11 +6972,17 @@ function renderStoryboardGrid() {
           </span>
         </div>
 
-        <!-- Thumbnail giả lập hoặc preview -->
+        <!-- Thumbnail xem trước cảnh thực tế (Background procedural + Nhân vật) -->
         <div style="height: 120px; background: #1e293b; border-radius: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid #334155; position: relative; overflow: hidden;">
-          <div style="font-size: 24px;">🏙️</div>
-          <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">${bgName}</div>
-          <div style="position: absolute; bottom: 6px; right: 8px; font-size: 11px; background: rgba(0,0,0,0.7); padding: 2px 6px; border-radius: 4px; color: #cbd5e1;">
+          <img src="${bgUrl}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" style="width: 100%; height: 100%; object-fit: cover;" alt="${bgName}" />
+          <div style="display: none; text-align: center;">
+            <div style="font-size: 24px;">🔬</div>
+            <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">${bgName}</div>
+          </div>
+          <div style="position: absolute; bottom: 6px; left: 8px; font-size: 10px; background: rgba(0,0,0,0.75); padding: 2px 6px; border-radius: 4px; color: #38bdf8; font-weight: 600;">
+            Doc (Scientist)
+          </div>
+          <div style="position: absolute; bottom: 6px; right: 8px; font-size: 11px; background: rgba(0,0,0,0.75); padding: 2px 6px; border-radius: 4px; color: #cbd5e1;">
             ${duration.toFixed(1)}s
           </div>
         </div>
