@@ -7854,6 +7854,22 @@ function refreshAnimationInspectorUi() {
 window.onAnimInspectorSeek = onAnimInspectorSeek;
 window.refreshAnimationInspectorUi = refreshAnimationInspectorUi;
 
+function updateCameraInspectorOverride() {
+  const shotType = document.getElementById('v5CamShotSelect')?.value || 'medium';
+  const transition = document.getElementById('v5CamTransitionSelect')?.value || 'hard_cut';
+  const locked = !!document.getElementById('v5CamLockToggle')?.checked;
+  window.v5CameraInspectorOverride = { shotType, transition, locked };
+  refreshAnimationInspectorUi();
+}
+
+function rebuildCameraOnlyUi() {
+  updateCameraInspectorOverride();
+  if (typeof triggerIncrementalRebuild === 'function') triggerIncrementalRebuild();
+}
+
+window.updateCameraInspectorOverride = updateCameraInspectorOverride;
+window.rebuildCameraOnlyUi = rebuildCameraOnlyUi;
+
 // ============================================================================
 // PROCEDURAL ASSET GENERATOR UI CONTROLLER (V5.1)
 // ============================================================================

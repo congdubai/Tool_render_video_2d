@@ -251,7 +251,9 @@ export function compileProjectToShots(projectDir, payload = {}) {
       graphics: planScene.graphics || scene.graphics || [],
       texts: planScene.texts || scene.texts || [],
       storytelling,
-      cameraTrack
+      cameraTrack,
+      transitionIn: planScene.transitionIn || planScene.transition || scene.transition || 'hard_cut',
+      transitionOut: planScene.transitionOut || 'hard_cut'
     };
   });
 
@@ -304,6 +306,11 @@ import {
 } from '/engine/v5-camera-engine.js';
 import { computeLayerParallaxShift } from '/engine/v5-visual-storytelling.js';
 import { renderEducationalGraphics } from '/engine/v5-educational-graphics.js';
+import {
+  evaluateSceneTransition,
+  applyTransitionPre,
+  applyTransitionPost
+} from '/engine/v5-transition-engine.js';
 import { cast } from '../cast.js';
 
 registerCharacterProfiles(cast.characters || []);
@@ -311,6 +318,9 @@ registerCharacterProfiles(cast.characters || []);
 const COMPILED_SCENES = ${JSON.stringify(compiledRenderDescriptors, null, 2)};
 
 function renderCompiledScene(ctx, scene, t) {
+  const trState = evaluateSceneTransition(scene.transitionIn, scene.transitionOut, t, scene.duration);
+  ctx.save();
+  applyTransitionPre(ctx, trState, 1920, 1080);
   ctx.save();
   ctx.scale(1.5, 1.5); // 1280x720 logical design space -> 1920x1080 output
 
@@ -555,6 +565,8 @@ function renderCompiledScene(ctx, scene, t) {
   ctx.save();
   ctx.scale(1.5, 1.5);
   renderEducationalGraphics(ctx, scene, t, 1280, 720);
+  ctx.restore();
+  applyTransitionPost(ctx, trState, 1920, 1080);
   ctx.restore();
 }
 

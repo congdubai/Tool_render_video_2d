@@ -384,3 +384,60 @@ export function applyCameraTransform(ctx, camState, viewportW = 1280, viewportH 
   ctx.translate(-(camState.x ?? viewportW * 0.5), -(camState.y ?? viewportH * 0.5));
 }
 
+// ============================================================================
+// 5. CAMERA & VISUAL QA VALIDATION (ERROR / WARNING / INFO)
+// ============================================================================
+
+export function validateCameraAndVisuals(scene = {}, cameraTrack = {}, context = {}) {
+  const issues = [];
+  const duration = Number(scene.duration || 4);
+  const shots = cameraTrack?.shots || [];
+  const entityIds = new Set([
+    ...(scene.characters || []).map(c => c.characterId || c.id),
+    ...(scene.props || []).map(p => p.assetId || p.id),
+    'camera', 'lab', 'computer', 'board'
+  ].filter(Boolean));
+
+  let prevEnd = 0;
+  for (const sh of shots) {
+    if (sh.endSec <= sh.startSec) {
+      issues.push({ level: 'ERROR', code: 'INVALID_SHOT_DURATION', shotId: sh.id, message: `Shot ${sh.id} end (${sh.endSec}) <= start (${sh.startSec}).` });
+    }
+    if (sh.startSec > prevEnd + 0.05) {
+      issues.push({ level: 'WARNING', code: 'SHOT_GAP', shotId: sh.id, message: `Gap between ${prevEnd}s and ${sh.startSec}s before shot ${sh.id}.` });
+    }
+    if (sh.startSec < prevEnd - 0.05) {
+      issues.push({ level: 'WARNING', code: 'SHOT_OVERLAP', shotId: sh.id, message: `Shot ${sh.id} overlaps previous shot at ${sh.startSec}s.` });
+    }
+    prevEnd = Math.max(prevEnd, sh.endSec);
+
+    for (const tid of (sh.targetIds || [])) {
+      if (entityIds.size > 0 && !entityIds.has(tid) && context.strictTargets) {
+        issues.push({ level: 'WARNING', code: 'MISSING_CAMERA_TARGET', shotId: sh.id, message: `Camera target "${tid}" not found in scene entities.` });
+      }
+    }
+    const mov = sh.movement || {};
+    if ((mov.zoomTo && mov.zoomTo > 3.0) || (mov.zoomFrom && mov.zoomFrom < 1.0)) {
+      issues.push({ level: 'WARNING', code: 'ZOOM_OUT_OF_BOUNDS', shotId: sh.id, message: `Zoom clamped to safe bounds [1.0..3.0] on shot ${sh.id}.` });
+    }
+    if (Number(mov.intensity || 0) > 2.5 && String(mov.type || '').includes('shake')) {
+      issues.push({ level: 'WARNING', code: 'EXCESSIVE_SHAKE', shotId: sh.id, message: `Camera shake intensity (${mov.intensity}) exceeds comfort limit 2.5.` });
+    }
+  }
+
+  for (const txt of (scene.texts || [])) {
+    const tx = txt.x !== undefined ? (txt.x <= 1.5 ? txt.x * 1280 : txt.x) : 640;
+    const ty = txt.y !== undefined ? (txt.y <= 1.5 ? txt.y * 720 : txt.y) : 100;
+    if (tx < 60 || tx > 1220 || ty < 40 || ty > 680) {
+      issues.push({ level: 'WARNING', code: 'TEXT_OUTSIDE_SAFE_AREA', message: `Text "${txt.text || ''}" positioned near/outside safe area.` });
+    }
+  }
+
+  const trDur = Number(scene.transition?.duration ?? 0);
+  if (trDur > duration * 0.5) {
+    issues.push({ level: 'WARNING', code: 'TRANSITION_EXCEEDS_HALF_SCENE', message: `Transition duration (${trDur}s) exceeds 50% of scene (${duration}s).` });
+  }
+
+  return issues;
+}
+

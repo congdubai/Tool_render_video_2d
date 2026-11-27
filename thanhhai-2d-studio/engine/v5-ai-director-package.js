@@ -3,6 +3,11 @@
 
 import { CAPABILITY_REGISTRY as AI_CAPABILITY_REGISTRY } from './v5-capability-registry.js';
 import { BUILTIN_STYLE_PROFILES as STYLE_PROFILES } from './v5-style-profiles.js';
+import { SHOT_LIBRARY, CAMERA_MOVEMENTS } from './v5-camera-engine.js';
+import { SCENE_TYPES, COMPOSITION_TEMPLATES } from './v5-visual-storytelling.js';
+import { TRANSITION_TYPES } from './v5-transition-engine.js';
+import { SUPPORTED_GRAPHIC_TYPES, SUPPORTED_TEXT_ANIMATIONS } from './v5-educational-graphics.js';
+import { SUPPORTED_ACTING_EXPRESSIONS } from './v5-character-acting-engine.js';
 
 export class AiDirectorPackageManager {
   /**
@@ -12,7 +17,7 @@ export class AiDirectorPackageManager {
     const styleProfile = STYLE_PROFILES[styleProfileId] || STYLE_PROFILES.educational_cartoon || Object.values(STYLE_PROFILES)[0] || { id: 'default', name: 'Mặc định' };
 
     const manifest = {
-      packageVersion: '5.0',
+      packageVersion: '5.2',
       exportedAt: new Date().toISOString(),
       script: scriptText,
       audioDuration: timelineData.totalDuration || 0,
@@ -26,14 +31,17 @@ export class AiDirectorPackageManager {
       capabilities: {
         actions: AI_CAPABILITY_REGISTRY.actions || [],
         compositeActions: [
-          'composite_fight_cloud',
-          'composite_cartoon_chase',
-          'composite_funny_fall',
-          'composite_power_up',
-          'composite_cartoon_argument'
+          'fight_cloud', 'cartoon_chase', 'funny_fall', 'power_up',
+          'shock_reaction', 'angry_argument', 'experiment_failure', 'idea_discovery'
         ],
-        expressions: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'scared', 'confused', 'thinking', 'dizzy'],
-        cameraMovements: ['static', 'zoom_in', 'zoom_out', 'pan_left', 'pan_right', 'follow_target', 'camera_shake'],
+        expressions: SUPPORTED_ACTING_EXPRESSIONS,
+        cameraShots: Object.keys(SHOT_LIBRARY),
+        cameraMovements: CAMERA_MOVEMENTS,
+        sceneTypes: SCENE_TYPES,
+        compositionTemplates: Object.keys(COMPOSITION_TEMPLATES),
+        transitions: TRANSITION_TYPES,
+        educationalGraphics: SUPPORTED_GRAPHIC_TYPES,
+        textAnimations: SUPPORTED_TEXT_ANIMATIONS,
         vfx: ['cartoon_dust', 'sparks', 'sweat_drops', 'question_mark', 'exclamation_mark', 'thought_bubble', 'rain', 'snow']
       },
       instructionsForAi: `

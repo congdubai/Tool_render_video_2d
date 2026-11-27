@@ -1787,6 +1787,29 @@
                   Biên độ: <input id="v5AnimIntensitySlider" type="range" min="0.5" max="1.5" step="0.1" value="1.0" onchange="refreshAnimationInspectorUi()" style="width: 90px;" />
                 </label>
               </div>
+              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid #1e293b; padding-top: 8px;">
+                <select id="v5CamShotSelect" onchange="updateCameraInspectorOverride()" style="background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;padding:3px 6px;font-size:12px;">
+                  <option value="wide">Wide Shot</option>
+                  <option value="full_body">Full Body</option>
+                  <option value="medium" selected>Medium Shot</option>
+                  <option value="medium_closeup">Medium Close-up</option>
+                  <option value="closeup">Close-up</option>
+                  <option value="object_closeup">Object Close-up</option>
+                  <option value="two_shot">Two Shot</option>
+                  <option value="diagram_shot">Diagram Shot</option>
+                </select>
+                <select id="v5CamTransitionSelect" onchange="updateCameraInspectorOverride()" style="background:#1e293b;color:#f8fafc;border:1px solid #334155;border-radius:4px;padding:3px 6px;font-size:12px;">
+                  <option value="hard_cut">Hard Cut</option>
+                  <option value="cross_dissolve">Cross Dissolve</option>
+                  <option value="fade_to_black">Fade to Black</option>
+                  <option value="wipe_left">Wipe Left</option>
+                  <option value="circle_reveal">Circle Reveal</option>
+                </select>
+                <label style="font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 4px;">
+                  <input id="v5CamLockToggle" type="checkbox" onchange="updateCameraInspectorOverride()" /> 🔒 Khóa Camera
+                </label>
+                <button class="btn btn-outline" style="padding:2px 8px;font-size:11px;" onclick="rebuildCameraOnlyUi()">🎥 Dựng Lại Camera</button>
+              </div>
             </div>
             <div id="v5AnimInspectorSummary" style="background: #1e293b; border-radius: 6px; padding: 8px 10px; font-size: 12px; color: #94a3b8; max-height: 110px; overflow-y: auto;">
               Chọn hoặc dựng cảnh để xem danh sách Action, Bone Channels & Validation Warnings.
