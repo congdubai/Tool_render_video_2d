@@ -11,6 +11,7 @@ import { generateProceduralBackground } from './v5-procedural-backgrounds.js';
 import { generateProceduralProp } from './v5-procedural-props.js';
 import { resolveLightingProfile } from './v5-style-engine.js';
 import { compileCharacterActingTracks } from './v5-character-acting-engine.js';
+import { compileSceneCameraTrack } from './v5-camera-engine.js';
 
 /**
  * Computes Smart Composition character scale & ground position based on camera shotType.
@@ -227,6 +228,7 @@ export function compileProjectToShots(projectDir, payload = {}) {
     });
 
     const vfx = Array.isArray(scene.vfx) && scene.vfx.length > 0 ? scene.vfx : (planScene.vfx || []);
+    const cameraTrack = compileSceneCameraTrack(scene, planScene, duration);
 
     return {
       id: scene.id,
@@ -237,7 +239,8 @@ export function compileProjectToShots(projectDir, payload = {}) {
       backgroundSpec: bgAsset.vectorSpec,
       characters,
       props: compiledProps,
-      vfx
+      vfx,
+      cameraTrack
     };
   });
 
@@ -284,6 +287,10 @@ import {
   evaluateObjectInteractions,
   resolveSceneChoreography
 } from '/engine/v5-character-acting-engine.js';
+import {
+  evaluateCameraFrame,
+  applyCameraTransform
+} from '/engine/v5-camera-engine.js';
 import { cast } from '../cast.js';
 
 registerCharacterProfiles(cast.characters || []);
@@ -294,11 +301,6 @@ function renderCompiledScene(ctx, scene, t) {
   ctx.save();
   ctx.scale(1.5, 1.5); // 1280x720 logical design space -> 1920x1080 output
 
-  // 1. Render Multi-Layer Procedural Background Vector Spec
-  if (scene.backgroundSpec) {
-    renderToCanvas2d(ctx, scene.backgroundSpec, { useLayers: true });
-  }
-
   const progress = Math.min(1, Math.max(0, t / Math.max(0.1, scene.duration)));
   const blinkCycle = t % 3.4;
   const isBlinking = blinkCycle > 3.22 && blinkCycle < 3.36;
@@ -307,6 +309,7 @@ function renderCompiledScene(ctx, scene, t) {
   const choreography = resolveSceneChoreography(chars, t);
   const actingFrames = {};
   const charTracksList = [];
+  const camEntities = {};
   for (let i = 0; i < chars.length; i++) {
     const c = chars[i];
     if (c.actingTrack) charTracksList.push({ ...c.actingTrack, scale: c.scale || 2.45 });
@@ -326,6 +329,19 @@ function renderCompiledScene(ctx, scene, t) {
           jointAngles: null
         };
     actingFrames[c.characterId] = acting;
+    camEntities[c.characterId] = { x: acting.x, y: acting.y, width: 140, height: Math.round(160 * (c.scale || 2.45)) };
+  }
+  for (const prop of (scene.props || [])) {
+    camEntities[prop.assetId] = { x: prop.x, y: prop.y, width: prop.width || 180, height: prop.height || 180 };
+  }
+
+  // Apply Unified 2D Camera Transform to Scene Graph (clamped to never expose blank canvas)
+  const camState = evaluateCameraFrame(scene.cameraTrack, t, { entities: camEntities });
+  applyCameraTransform(ctx, camState, 1280, 720);
+
+  // 1. Render Multi-Layer Procedural Background Vector Spec
+  if (scene.backgroundSpec) {
+    renderToCanvas2d(ctx, scene.backgroundSpec, { useLayers: true });
   }
 
   let primaryCharX = chars.length > 0 ? actingFrames[chars[0].characterId].x : 510;
