@@ -265,8 +265,12 @@ export class BatchSceneBuilder {
           id: resolvedBgId,
           assetId: resolvedBgId,
           type: 'library',
+          lighting: sceneDescriptor.lighting || sceneDescriptor.timeOfDay || sceneDescriptor.background?.lighting || this.projectContext?.scenePlan?.lighting || 'day',
           groundY: Math.round(composition.groundY * 720)
         },
+        lighting: sceneDescriptor.lighting || sceneDescriptor.timeOfDay || sceneDescriptor.background?.lighting || this.projectContext?.scenePlan?.lighting || 'day',
+        styleProfile: sceneDescriptor.styleProfile || this.projectContext?.styleProfile || this.projectContext?.scenePlan?.style?.profileId || 'educational_cartoon',
+        detailLevel: sceneDescriptor.detailLevel || this.projectContext?.scenePlan?.detailLevel || 'medium',
         characters: v4Characters,
         props: v4Props,
         camera: cameraConfig,

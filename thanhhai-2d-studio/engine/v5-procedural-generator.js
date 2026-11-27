@@ -112,11 +112,14 @@ export function generateProceduralAsset(requirement = {}, options = {}) {
     if (template === 'modern_lab') template = 'lab_modern';
     if (template === 'city_street') template = 'street';
 
+    const lighting = options.lighting || options.timeOfDay || requirement.lighting || requirement.timeOfDay || (targetId.includes('night') ? 'night' : 'day');
     const bg = generateProceduralBackground(template, {
       ...options,
       styleProfile,
       seed,
-      timeOfDay: targetId.includes('night') ? 'night' : (options.timeOfDay || 'day')
+      lighting,
+      timeOfDay: lighting,
+      detailLevel: options.detailLevel || requirement.detailLevel || 'medium'
     });
     bg.id = `proc_${reqId.toLowerCase().replace(/[^a-z0-9_]/g, '_')}`;
     return bg;

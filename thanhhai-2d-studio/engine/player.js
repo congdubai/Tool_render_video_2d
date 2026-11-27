@@ -68,7 +68,9 @@ async function boot() {
   for (const f of list) { try { await import(f); } catch (e) { errors.push(`import ${f}: ${e.message}`); console.log('IMPORT ERROR', f, e.message); } }
   if (E.shots.some(s => getShot(s.id)?.kind === '3d')) { three = await import('./three-kit.js'); glCanvas = mk(outW, outH); three.getRenderer(glCanvas); }
   const dur = story.duration || E.shots[E.shots.length - 1].end;
-  window.DURATION = dur; window.TOTAL_FRAMES = Math.ceil(dur * E.fps); window.OUT = [outW, outH];
+  const rawFrames = dur * E.fps;
+  const exactFrames = Math.abs(rawFrames - Math.round(rawFrames)) < 0.01 ? Math.round(rawFrames) : Math.ceil(rawFrames);
+  window.DURATION = dur; window.TOTAL_FRAMES = exactFrames; window.OUT = [outW, outH];
   window.SHOT_LIST = E.shots.map(s => ({ id: s.id, start: s.start, end: s.end, ok: !!getShot(s.id) }));
   E.shots.forEach(s => { if (!getShot(s.id)) { const msg = `MISSING SHOT ${s.id}`; if (!errors.includes(msg)) errors.push(msg); } });
   window.READY = true;
