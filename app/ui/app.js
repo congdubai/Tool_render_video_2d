@@ -2060,6 +2060,7 @@ function selectCharacterForEditing(id) {
   const modeBEditor = document.getElementById("modeBEditorContainer");
   const modeAPreview = document.getElementById("modeAPreviewControls");
   const modeBPreview = document.getElementById("modeBPreviewControls");
+  const liveUnifiedCanvas = document.getElementById("liveCharacterCanvas");
   const liveSvg = document.getElementById("liveCharacterSvg");
   const liveCanvas = document.getElementById("liveModeBCanvas");
   const canvasOverlay = document.getElementById("modeBCanvasOverlay");
@@ -2069,6 +2070,7 @@ function selectCharacterForEditing(id) {
     if (modeBEditor) modeBEditor.classList.remove("hidden");
     if (modeAPreview) modeAPreview.classList.add("hidden");
     if (modeBPreview) modeBPreview.classList.remove("hidden");
+    if (liveUnifiedCanvas) liveUnifiedCanvas.classList.add("hidden");
     if (liveSvg) liveSvg.classList.add("hidden");
     if (liveCanvas) liveCanvas.classList.remove("hidden");
     if (canvasOverlay) canvasOverlay.classList.remove("hidden");
@@ -2079,7 +2081,12 @@ function selectCharacterForEditing(id) {
     if (modeBEditor) modeBEditor.classList.add("hidden");
     if (modeAPreview) modeAPreview.classList.remove("hidden");
     if (modeBPreview) modeBPreview.classList.add("hidden");
-    if (liveSvg) liveSvg.classList.remove("hidden");
+    if (liveUnifiedCanvas && window.UnifiedCharacterRenderer) {
+      liveUnifiedCanvas.classList.remove("hidden");
+      if (liveSvg) liveSvg.classList.add("hidden");
+    } else if (liveSvg) {
+      liveSvg.classList.remove("hidden");
+    }
     if (liveCanvas) liveCanvas.classList.add("hidden");
     if (canvasOverlay) canvasOverlay.classList.add("hidden");
 
@@ -3465,8 +3472,8 @@ function renderShoeSvg({ x, y, shoeType, shoeColor, ink, isFront, isSide, isLeft
 }
 
 function updateLivePreview() {
+  const unifiedCanvas = document.getElementById("liveCharacterCanvas");
   const svg = document.getElementById("liveCharacterSvg");
-  if (!svg) return;
 
   const skin = document.getElementById("charEditorSkin")?.value || "#ffdfc4";
   const hairStyle = document.getElementById("charEditorHairStyle")?.value || "short";
@@ -3476,7 +3483,7 @@ function updateLivePreview() {
   const glasses = !!document.getElementById("charEditorGlasses")?.checked;
   const outfitType = document.getElementById("charEditorOutfitType")?.value || "hoodie";
   const bottomType = document.getElementById("charEditorBottomType")?.value || (outfitType === "dress" ? "skirt" : "pants");
-  const shoeType = document.getElementById("charEditorShoeType")?.value || (outfitType === "suit" ? "casual" : "sneakers");
+  const shoeType = document.getElementById("charEditorShoeType")?.value || (outfitType === "suit" || outfitType === "labcoat" ? "casual" : "sneakers");
   const topColor = document.getElementById("charEditorTopColor")?.value || "#d64a33";
   const pantsColor = document.getElementById("charEditorPantsColor")?.value || "#2e384d";
   const shoeColor = document.getElementById("charEditorShoeColor")?.value || "#1e1e24";
@@ -3488,6 +3495,89 @@ function updateLivePreview() {
   const talk = parseFloat(document.getElementById("charPreviewTalk")?.value) || 0;
   const blink = !!document.getElementById("charPreviewBlink")?.checked;
   const showShadow = !!document.getElementById("charPreviewShadow")?.checked;
+
+  // V5.2 Unified Character Renderer (identical Canvas engine as Tab 2, Tab 4 & Final MP4 Renderer)
+  if (unifiedCanvas && window.UnifiedCharacterRenderer) {
+    unifiedCanvas.classList.remove("hidden");
+    if (svg) svg.classList.add("hidden");
+    const ctx = unifiedCanvas.getContext("2d");
+    const w = unifiedCanvas.width;
+    const h = unifiedCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Subtle ground reference line (editor preview only)
+    const groundY = h - 52;
+    ctx.save();
+    ctx.strokeStyle = "#334155";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(40, groundY);
+    ctx.lineTo(w - 40, groundY);
+    ctx.stroke();
+    ctx.restore();
+
+    const active = characterState.activeCharacter || {};
+    const accessories = [];
+    if (glasses) accessories.push("glasses");
+    if (outfitType === "labcoat") accessories.push("pen");
+
+    const liveProfile = {
+      id: active.id || "live_preview_char",
+      name: active.name || "Character",
+      type: "builtin",
+      characterEngine: "chibi",
+      skinColor: skin,
+      hair: {
+        style: hairStyle,
+        color: hairColor,
+        highlight: active.hair?.highlight
+      },
+      face: {
+        eyeStyle,
+        eyeColor: active.face?.eyeColor || "#1b1d24",
+        blush
+      },
+      proportions: {
+        headScale,
+        torsoLength: active.proportions?.torsoLength || 36,
+        armLength: active.proportions?.armLength || 34,
+        legLength: active.proportions?.legLength || 46
+      },
+      outfit: {
+        type: outfitType,
+        bottomType,
+        shoeType,
+        topColor,
+        topColor2: active.outfit?.topColor2,
+        pantsColor,
+        shoeColor,
+        headwear: active.outfit?.headwear || "none",
+        headwearColor: active.outfit?.headwearColor || "#f2c21a",
+        accessories
+      },
+      defaultExpression: expr,
+      defaultFacing: facing
+    };
+
+    window.UnifiedCharacterRenderer.drawUnifiedCharacter(ctx, {
+      character: liveProfile,
+      x: w / 2,
+      y: groundY,
+      s: 1.75,
+      view: facing,
+      pose,
+      expr,
+      talk,
+      blink,
+      shadow: showShadow,
+      t: 0,
+      debug: false
+    });
+    return;
+  }
+
+  if (!svg) return;
 
   const isLeft = facing === "three_quarter_left" || facing === "side_left";
   const isFront = facing === "front";

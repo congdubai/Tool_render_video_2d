@@ -9,6 +9,7 @@
 // - Kinematic pose retargeting from Thanh Hai POSES preserving animation and scenery contact.
 
 import { E, S, clamp, lerp, seg, circle, ring, alpha, shade, mix, rr, poly, ease } from './core.js';
+import { drawUnifiedCharacter, resolveCharacter, normalizeViewDirection } from './unified-character-renderer.js';
 
 export const CHIBI_SKINS = {
   light: ['#ffdfc4', '#fca5a5'],
@@ -823,84 +824,35 @@ function drawChibiProp(g, prop, hand, inkCol, facing) {
  */
 export function drawChibiFigure(g, o) {
   const st = S();
-  const inkCol = o.ink || st.ink || '#191918';
-  const char = resolveCharacterIdentity(o);
-
+  const inkCol = o.ink || st.ink || '#1b1d24';
   const facing = o.facing ?? 1;
-  const s = (o.s ?? 1) * (char.kid ? 0.72 : 1);
-  const dir = resolveFacingDirection(o, facing);
-  const isFront = dir === 'front';
+  const dir = normalizeViewDirection(o.direction || o.view || (o.front ? 'front' : null), facing);
+  const poseName = typeof o.pose === 'string' ? o.pose : (o.action || (o.sit ? 'sit_chair' : 'stand'));
 
-  // Retargeting pose
-  const rawPose = o.pose || {};
-  const p = retargetPoseToChibi(rawPose, o);
-  const HR = 42;
-
-  g.save();
-  if (o.alpha != null) g.globalAlpha *= o.alpha;
-
-  // Bóng đổ tiếp đất
-  if (o.shadow !== false && !o.rot) {
-    g.fillStyle = 'rgba(0, 0, 0, 0.28)';
-    g.beginPath();
-    g.ellipse(o.x, o.y + 2, (isFront ? 38 : 34) * s, 8 * s, 0, 0, Math.PI * 2);
-    g.fill();
+  const res = resolveCharacter(o.characterId || o.profile || o);
+  if (res.resolved && res.profile) {
+    return drawUnifiedCharacter(g, {
+      ...o,
+      character: res.profile,
+      view: dir,
+      pose: poseName,
+      expr: o.expr || o.expression || res.profile.defaultExpression || 'neutral',
+      ink: inkCol,
+      debug: o.debug === true
+    });
   }
 
-  g.translate(o.x, o.y);
-  g.scale(facing * s, s);
-  if (o.rot) {
-    g.translate(p.hip[0], p.hip[1]);
-    g.rotate(o.rot);
-    g.translate(-p.hip[0], -p.hip[1]);
-  }
-
-  const topCol = char.color || '#d64a33';
-  const pantsCol = char.legs || '#2e384d';
-  const shoeCol = char.shoes || '#1e1e24';
-  const shoeType = char.shoeType || 'sneakers';
-  const isPants = char.top !== 'dress';
-
-  // 1. Far Limbs
-  drawChibiLeg(g, p.hip, p.kB, p.fB, shade(pantsCol, -0.2), inkCol, isPants, char);
-  drawChibiShoe(g, p.fB[0], p.fB[1], shoeType, shade(shoeCol, -0.2), inkCol, isFront, false, false, p.fB[1] < 0 ? -12 : 0, p.fB[1] === 0);
-  drawChibiArm(g, p.sh, p.eB, p.hB, shade(topCol, -0.2), inkCol, char, o.prop?.hand === 'B' ? o.prop : null, facing);
-
-  // 2. Neck
-  drawChibiNeck(g, p.head[0], p.head[1], p.sh[0], p.sh[1], HR, char, inkCol, dir);
-
-  // 3. Torso
-  drawChibiTorso(g, p, char, inkCol, dir, p.isSit);
-
-  // 4. Near Limbs
-  drawChibiLeg(g, p.hip, p.kF, p.fF, pantsCol, inkCol, isPants, char);
-  drawChibiShoe(g, p.fF[0], p.fF[1], shoeType, shoeCol, inkCol, isFront, true, true, p.fF[1] < 0 ? -12 : 0, p.fF[1] === 0);
-  drawChibiArm(g, p.sh, p.eF, p.hF, topCol, inkCol, char, o.prop?.hand !== 'B' ? o.prop : null, facing);
-
-  // 5. Head, Skull, Hair, Eyes & Accessories
-  drawChibiHead(g, p.head[0], p.head[1], HR, char, inkCol, dir);
-  drawChibiHair(g, p.head[0], p.head[1], HR, char, inkCol, dir);
-  drawChibiEyes(g, p.head[0], p.head[1], HR, o, dir, inkCol);
-
-  if (char.face === 'glasses') {
-    const sHead = HR / 36;
-    g.save();
-    g.translate(p.head[0], p.head[1]);
-    g.scale(sHead, sHead);
-    g.strokeStyle = '#0f172a';
-    g.lineWidth = 3;
-    for (const dx of [-14, 14]) {
-      g.beginPath();
-      g.arc(dx, 2, 9, 0, Math.PI * 2);
-      g.stroke();
-    }
-    g.beginPath(); g.moveTo(-5, 2); g.lineTo(5, 2); g.stroke();
-    g.restore();
-  }
-
-  drawChibiHeadwear(g, p.head[0], p.head[1], HR, char, inkCol, dir);
-
-  g.restore();
+  // Fallback only if explicit non-registered inline outfit object was provided
+  const char = resolveCharacterIdentity(o);
+  return drawUnifiedCharacter(g, {
+    ...o,
+    character: char,
+    view: dir,
+    pose: poseName,
+    expr: o.expr || o.expression || 'neutral',
+    ink: inkCol,
+    debug: o.debug === true
+  });
 }
 
 /**

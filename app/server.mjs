@@ -153,6 +153,13 @@ app.use("/public", express.static(path.join(projectRoot, "public")));
 app.use("/out", express.static(path.join(projectRoot, "out")));
 app.use("/imported_projects", express.static(path.join(projectRoot, "imported_projects")));
 app.use("/data", express.static(path.join(projectRoot, "data")));
+app.use("/engine", express.static(path.join(projectRoot, "thanhhai-2d-studio", "engine"), {
+  etag: false,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+  }
+}));
 
 // Biến lưu trạng thái render hiện tại và cờ hủy
 let currentRenderCancellation = false;

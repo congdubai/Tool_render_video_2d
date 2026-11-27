@@ -4,6 +4,7 @@
 //         kF/fF = near knee/foot, kB/fB = far knee/foot.
 import { E, S, clamp, lerp, mixVal, seg, circle, ring, alpha, shade, mix, rr, poly, ease } from './core.js';
 import { drawChibiFigure, drawChibiBigFace } from './chibi-rig2d.js';
+import { drawUnifiedCharacter, resolveCharacter, solveCharacterRig, CHARACTER_RENDER_MODES } from './unified-character-renderer.js';
 import { drawImportedFigure } from './imported-rig2d.js';
 import { drawHandAttachedProp, drawSceneProp, solvePropTimelineState, normalizePropSpec } from './prop-v4.js';
 import { drawFacialExpressionV4, normalizeExpressionName } from './expression-v4.js';
@@ -22,6 +23,10 @@ import {
 } from './white-cartoon-rig2d.js';
 
 export {
+  drawUnifiedCharacter,
+  resolveCharacter,
+  solveCharacterRig,
+  CHARACTER_RENDER_MODES,
   drawChibiFigure,
   drawChibiBigFace,
   drawImportedFigure,
@@ -226,14 +231,15 @@ function sleeveColor(o, far) { const c = o.top === 'labcoat' ? '#f3f0f6' : o.top
 // drawFigure(g, { x, y, s, facing, pose, rot, outfit, expr, talk, blink, look, rim:{dir:[x,y], color, w}, dim, alpha, prop, shadow })
 export function drawFigure(g, o) {
   const charEngine = o?.character || o?.outfit?.character || o?.outfit?.type || E.character || E.cfg?.character || 'white_cartoon';
-  if (charEngine === 'imported' || o?.outfit?.parts || o?.parts) {
-    return drawImportedFigure(g, o);
+  if (charEngine === 'unified' || charEngine === 'chibi' || charEngine === 'chibi_v9' ||
+      (typeof o?.characterId === 'string' && o.characterId.startsWith('chibi_'))) {
+    return drawUnifiedCharacter(g, o);
+  }
+  if (charEngine === 'imported' || o?.outfit?.parts || o?.parts || o?.sourceImage) {
+    return drawUnifiedCharacter(g, o);
   }
   if (charEngine === 'white_cartoon' || charEngine === 'white-cartoon' || charEngine === 'white-cartoon-2d' || charEngine === 'white_cartoon_2d') {
     return drawWhiteCartoonFigure(g, o);
-  }
-  if (charEngine === 'chibi' || charEngine === 'chibi_v9') {
-    return drawChibiFigure(g, o);
   }
   const st = S(), ink = o.ink || st.ink, far = o.inkFar || st.inkFar;
   const p = o.pose || POSES.stand, s = (o.s ?? 1) * (o.outfit?.kid ? 0.72 : 1), f = o.facing ?? 1;

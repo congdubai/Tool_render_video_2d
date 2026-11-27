@@ -113,13 +113,15 @@ export class SmartAssetManager {
   }
 
   autoLinkModeACharacters(canonicalReqs = []) {
-    const knownChars = ['doc', 'jake', 'chibi_doc'];
+    const knownChars = ['chibi_doc', 'chibi_max', 'chibi_jake', 'chibi_luna', 'doc', 'jake', 'max', 'luna'];
     for (const req of canonicalReqs) {
       if (req.type === 'character') {
         const binding = this.bindingRegistry.getBinding(req.id);
         const resolvedId = binding?.resolvedAssetId || req.resolvedAssetId || req.targetAssetId || '';
-        const matchedChar = knownChars.find(c => resolvedId.toLowerCase().includes(c)) ||
-                            (resolvedId.toLowerCase().includes('scientist') ? 'doc' : null);
+        const lowerRes = resolvedId.toLowerCase();
+        let matchedChar = knownChars.find(c => lowerRes === c || lowerRes.includes(c)) ||
+                          (lowerRes.includes('scientist') ? 'chibi_doc' : null);
+        if (matchedChar === 'doc') matchedChar = 'chibi_doc';
         if (matchedChar) {
           const isChibi = matchedChar.startsWith('chibi');
           // 1. Auto-link character rig (matching either charId or character requirement ID)

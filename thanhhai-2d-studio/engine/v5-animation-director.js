@@ -40,6 +40,8 @@ export const EMOTIONS = {
   SCARED: 'scared',
   CONFUSED: 'confused',
   THINKING: 'thinking',
+  EXCITED: 'excited',
+  TIRED: 'tired',
   DIZZY: 'dizzy'
 };
 

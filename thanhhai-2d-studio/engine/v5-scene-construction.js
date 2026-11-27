@@ -73,14 +73,17 @@ export function lookupResolvedBinding(resolvedBindings = {}, rawId = '', type = 
     }
   }
 
-  // 6. Semantic fallback for scientist -> doc
+  // 6. Semantic mapping for scientist / doc -> canonical Tab 3 chibi_doc
   if (type === 'char' || type === 'character') {
-    if (lowerId.includes('scientist') || lowerId.includes('bac_si') || lowerId.includes('giao_su')) {
+    if (lowerId === 'doc' || lowerId === 'chibi_doc' || lowerId.includes('scientist') || lowerId.includes('bac_si') || lowerId.includes('giao_su')) {
       return {
-        resolvedAssetId: lowerId.includes('chibi') ? 'chibi_doc' : 'doc',
+        resolvedAssetId: 'chibi_doc',
         binding: null
       };
     }
+    if (lowerId === 'max' || lowerId === 'chibi_max') return { resolvedAssetId: 'chibi_max', binding: null };
+    if (lowerId === 'jake' || lowerId === 'chibi_jake') return { resolvedAssetId: 'chibi_jake', binding: null };
+    if (lowerId === 'luna' || lowerId === 'chibi_luna') return { resolvedAssetId: 'chibi_luna', binding: null };
   }
 
   // 7. Default fallback to raw ID
