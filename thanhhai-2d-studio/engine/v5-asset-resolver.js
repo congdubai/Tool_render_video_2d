@@ -64,7 +64,7 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
 
   // Character Resolution (Exact ID + Semantic Role & Identity Matching)
   if (reqType === 'character') {
-    const knownChars = ['doc', 'jake', 'chibi_doc'];
+    const knownChars = ['chibi_doc', 'chibi_max', 'chibi_jake', 'chibi_luna', 'doc', 'max', 'jake', 'luna'];
     const normTarget = targetId.toLowerCase();
     const normName = (requirement.name || '').toLowerCase();
     const normDesc = (requirement.description || '').toLowerCase();
@@ -100,7 +100,7 @@ export function resolveAssetRequirement(requirement = {}, projectBindings = {}, 
 
   // Built-in Character Rig for Mode A / Chibi Characters (Doc, Jake, Chibi Doc)
   if (reqType === 'character_rig') {
-    const knownChars = ['doc', 'jake', 'chibi_doc'];
+    const knownChars = ['chibi_doc', 'chibi_max', 'chibi_jake', 'chibi_luna', 'doc', 'max', 'jake', 'luna'];
     const normTarget = targetId.toLowerCase();
     let matchedChar = knownChars.find(c => normTarget === c || normTarget.includes(c));
     if (!matchedChar && (normTarget.includes('scientist') || normTarget.includes('khoa_hoc'))) {
