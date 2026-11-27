@@ -12,6 +12,7 @@ import { generateProceduralProp } from './v5-procedural-props.js';
 import { resolveLightingProfile } from './v5-style-engine.js';
 import { compileCharacterActingTracks } from './v5-character-acting-engine.js';
 import { compileSceneCameraTrack } from './v5-camera-engine.js';
+import { compileVisualStorytellingPlan } from './v5-visual-storytelling.js';
 
 /**
  * Computes Smart Composition character scale & ground position based on camera shotType.
@@ -228,7 +229,11 @@ export function compileProjectToShots(projectDir, payload = {}) {
     });
 
     const vfx = Array.isArray(scene.vfx) && scene.vfx.length > 0 ? scene.vfx : (planScene.vfx || []);
-    const cameraTrack = compileSceneCameraTrack(scene, planScene, duration);
+    const storytelling = compileVisualStorytellingPlan(scene, planScene, duration);
+    const cameraTrack = compileSceneCameraTrack(scene, {
+      ...planScene,
+      shots: (Array.isArray(planScene.shots) && planScene.shots.length > 0) ? planScene.shots : storytelling.autoShots
+    }, duration);
 
     return {
       id: scene.id,
@@ -240,6 +245,7 @@ export function compileProjectToShots(projectDir, payload = {}) {
       characters,
       props: compiledProps,
       vfx,
+      storytelling,
       cameraTrack
     };
   });
@@ -291,6 +297,7 @@ import {
   evaluateCameraFrame,
   applyCameraTransform
 } from '/engine/v5-camera-engine.js';
+import { computeLayerParallaxShift } from '/engine/v5-visual-storytelling.js';
 import { cast } from '../cast.js';
 
 registerCharacterProfiles(cast.characters || []);
@@ -339,9 +346,19 @@ function renderCompiledScene(ctx, scene, t) {
   const camState = evaluateCameraFrame(scene.cameraTrack, t, { entities: camEntities });
   applyCameraTransform(ctx, camState, 1280, 720);
 
-  // 1. Render Multi-Layer Procedural Background Vector Spec
+  // 1. Render Multi-Layer Procedural Background Vector Spec (with real layer parallax when layers exist)
   if (scene.backgroundSpec) {
-    renderToCanvas2d(ctx, scene.backgroundSpec, { useLayers: true });
+    if (Array.isArray(scene.backgroundSpec.layers) && scene.backgroundSpec.layers.length > 1) {
+      for (const lyr of scene.backgroundSpec.layers) {
+        const [px, py] = computeLayerParallaxShift(lyr.id || lyr.name || '', camState);
+        ctx.save();
+        ctx.translate(px, py);
+        renderToCanvas2d(ctx, { ...scene.backgroundSpec, layers: [lyr] }, { useLayers: true });
+        ctx.restore();
+      }
+    } else {
+      renderToCanvas2d(ctx, scene.backgroundSpec, { useLayers: true });
+    }
   }
 
   let primaryCharX = chars.length > 0 ? actingFrames[chars[0].characterId].x : 510;
