@@ -7822,6 +7822,39 @@ window.handlePickerSearch = handlePickerSearch;
 window.confirmPickerBinding = confirmPickerBinding;
 
 // ============================================================================
+// ANIMATION INSPECTOR CONTROLLER (V5.2 PHASE 3D)
+// ============================================================================
+function onAnimInspectorSeek(val) {
+  const lbl = document.getElementById('v5AnimSeekLabel');
+  if (lbl) lbl.textContent = `${Number(val || 0).toFixed(2)}s`;
+  refreshAnimationInspectorUi();
+}
+
+function refreshAnimationInspectorUi() {
+  const box = document.getElementById('v5AnimInspectorSummary');
+  if (!box) return;
+  const slider = document.getElementById('v5AnimSeekSlider');
+  const t = Number(slider?.value || 0);
+  const dbg = !!document.getElementById('v5AnimDebugSkeleton')?.checked;
+  const spd = Number(document.getElementById('v5AnimSpeedSlider')?.value || 1.0);
+  const inten = Number(document.getElementById('v5AnimIntensitySlider')?.value || 1.0);
+  const tracks = window.v5CompiledAnimationTracks || window.v5ProjectState?.animationTracks || {};
+  const sceneIds = Object.keys(tracks);
+  if (sceneIds.length === 0) {
+    box.innerHTML = `<div>t = <strong>${t.toFixed(2)}s</strong> | Debug Skeleton: <strong>${dbg ? 'ON' : 'OFF'}</strong> | Speed: ${spd}x | Intensity: ${inten}x</div><div style="margin-top:4px;color:#64748b;">Chưa có track diễn hoạt được biên dịch.</div>`;
+    return;
+  }
+  const firstScene = tracks[sceneIds[0]];
+  const issues = firstScene?.validationIssues || [];
+  const charList = Object.keys(firstScene?.characterTracks || {});
+  box.innerHTML = `<div><strong>${sceneIds.length} cảnh</strong> | Nhân vật: ${charList.join(', ') || '--'} | t = ${t.toFixed(2)}s | Debug: ${dbg ? 'ON' : 'OFF'}</div>`
+    + `<div style="margin-top:4px;">Validation: ${issues.length === 0 ? '<span style="color:#4ade80;">0 lỗi</span>' : issues.map(i => `<span style="color:#fbbf24;">[${i.level}] ${i.message}</span>`).join('<br/>')}</div>`;
+}
+
+window.onAnimInspectorSeek = onAnimInspectorSeek;
+window.refreshAnimationInspectorUi = refreshAnimationInspectorUi;
+
+// ============================================================================
 // PROCEDURAL ASSET GENERATOR UI CONTROLLER (V5.1)
 // ============================================================================
 

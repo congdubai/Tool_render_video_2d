@@ -12,6 +12,14 @@ import {
   EASINGS,
   evaluateCustomKeyframeTrack
 } from './v5-universal-motion-engine.js';
+import {
+  SEMANTIC_BONES_20,
+  SEMANTIC_TO_RIG15,
+  getRigCapabilities,
+  compileCharacterActingTracks,
+  evaluateActingFrame,
+  evaluateMotionPrimitive
+} from './v5-character-acting-engine.js';
 
 export const POSE_PRESETS = {
   stand: { label: 'Đứng nghiêm', torsoAngle: 0, leftArmAngle: 15, rightArmAngle: -15, leftLegAngle: 0, rightLegAngle: 0 },
@@ -121,31 +129,84 @@ export function generateLocomotionTrack(actionType = 'walk', startPos = [0, 0], 
 }
 
 /**
- * Compiles dynamic animation tracks for a single scene
+ * Validates scene animation tracks, bone names, rig capabilities, and floor penetration.
  */
-export function compileSceneAnimations(scene = {}, scenePlanItem = {}, defaultDuration = 4) {
+export function validateSceneAnimation(scene = {}, characterTracks = {}, renderMode = 'procedural_rig') {
+  const issues = [];
+  const caps = getRigCapabilities(renderMode);
+  const groundY = Number(scene.groundY || 620);
+
+  for (const [charId, tr] of Object.entries(characterTracks)) {
+    const acting = tr.actingTrack;
+    if (!acting) continue;
+    if (acting.baseY > groundY + 4) {
+      issues.push({ level: 'WARNING', code: 'FLOOR_PENETRATION', characterId: charId, message: `Character ${charId} baseY (${acting.baseY}) exceeds groundY (${groundY}).` });
+    }
+    for (const act of (acting.actions || [])) {
+      const probe = evaluateMotionPrimitive(act, 0.1, 0.2);
+      if (!probe.supported) {
+        issues.push({ level: 'WARNING', code: 'UNSUPPORTED_ACTION', characterId: charId, message: probe.warning || `Unsupported action "${act.type}"` });
+      }
+      if (!caps.skeletalAnimation && ['walk', 'run', 'wave', 'jump', 'fight_cloud'].includes(act.type)) {
+        issues.push({ level: 'INFO', code: 'SINGLE_PNG_FALLBACK', characterId: charId, message: `Mode ${renderMode} uses root/squash-stretch only for "${act.type}" (no fake limb deformation).` });
+      }
+      if (Array.isArray(act.keyframes)) {
+        for (const kf of act.keyframes) {
+          for (const bName of Object.keys(kf.bones || kf.angles || {})) {
+            if (!SEMANTIC_BONES_20.includes(bName) && !Object.values(SEMANTIC_TO_RIG15).includes(bName) && bName !== 'hipY') {
+              issues.push({ level: 'ERROR', code: 'UNKNOWN_BONE', characterId: charId, message: `Unknown bone "${bName}" in custom animation keyframes.` });
+            }
+          }
+        }
+      }
+    }
+  }
+  return issues;
+}
+
+/**
+ * Compiles dynamic animation tracks for a single scene with V5.2 Phase 3 acting tracks,
+ * cross-scene continuity, custom animation JSON, and validation.
+ */
+export function compileSceneAnimations(scene = {}, scenePlanItem = {}, defaultDuration = 4, prevContinuity = null) {
   const duration = Number(scene.duration || scenePlanItem.duration || defaultDuration);
   const characters = Array.isArray(scene.characters) ? scene.characters : (scenePlanItem.characters || []);
   const props = Array.isArray(scene.props) ? scene.props : (scenePlanItem.props || []);
-  const cameraPlan = scenePlanItem.camera || {};
-  const vfxPlan = scenePlanItem.vfx || [];
+  const cameraPlan = scenePlanItem.camera || scene.camera || {};
+  const vfxPlan = scenePlanItem.vfx || scene.vfx || [];
 
   const characterTracks = {};
   const propTracks = {};
   const vfxTracks = [];
   const cameraTracks = [];
 
-  // 1. Process character animation
+  // 1. Process character animation + Acting Tracks + Continuity
   characters.forEach((char, idx) => {
-    const charId = char.id || `char_${idx + 1}`;
-    const action = (char.action || scenePlanItem.action || 'stand').toLowerCase();
-    const emotion = (char.emotion || scenePlanItem.emotion || EMOTIONS.NEUTRAL).toLowerCase();
+    const charId = char.characterId || char.id || `char_${idx + 1}`;
+    const prevCharState = prevContinuity?.characters?.[charId] || null;
+    const action = (char.action || scenePlanItem.action || prevCharState?.pose || 'stand').toLowerCase();
+    const emotion = (char.emotion || scenePlanItem.emotion || prevCharState?.expression || EMOTIONS.NEUTRAL).toLowerCase();
+    const startPos = char.position || (prevCharState ? [prevCharState.x / 1280, prevCharState.y / 720] : [0.2 + idx * 0.25, 0.78]);
+    const endPos = char.targetPosition || startPos;
+    const view = char.view || prevCharState?.view || 'three_quarter_right';
 
-    // Default pose keyframes
+    const actingTrack = compileCharacterActingTracks({
+      ...char,
+      characterId: charId,
+      position: startPos,
+      targetX: Array.isArray(endPos) ? endPos[0] : undefined,
+      view,
+      action,
+      emotion,
+      secondaryEmotion: char.secondaryEmotion || scenePlanItem.secondaryEmotion || null,
+      actions: Array.isArray(char.actions) ? char.actions : undefined
+    }, duration, 101 + idx * 31);
+
+    const endFrame = evaluateActingFrame(actingTrack, duration);
+
     const poseKeyframes = [];
     const basePose = POSE_PRESETS[action] || POSE_PRESETS.stand;
 
-    // Start of scene
     poseKeyframes.push({
       time: 0,
       timeMs: 0,
@@ -153,36 +214,26 @@ export function compileSceneAnimations(scene = {}, scenePlanItem = {}, defaultDu
       ...basePose
     });
 
-    // Locomotion if moving
     let locomotion = null;
     if (action.includes('walk') || action.includes('run') || action.includes('approach')) {
-      const startX = char.position?.[0] ?? (char.x ?? 0.2);
-      const startY = char.position?.[1] ?? (char.y ?? 0.65);
-      const endX = char.targetPosition?.[0] ?? (startX + 0.2);
-      const endY = char.targetPosition?.[1] ?? startY;
-
       locomotion = generateLocomotionTrack(
         action.includes('run') ? 'run' : 'walk',
-        [startX, startY],
-        [endX, endY],
+        startPos,
+        endPos,
         0,
         Math.min(duration, 3.5)
       );
     }
 
-    // Emotion timeline
-    const emotionKeyframes = [
-      { time: 0, emotion, intensity: 1.0 }
-    ];
-    if (scenePlanItem.secondaryEmotion) {
+    const emotionKeyframes = [{ time: 0, emotion, intensity: 1.0 }];
+    if (scenePlanItem.secondaryEmotion || char.secondaryEmotion) {
       emotionKeyframes.push({
         time: duration * 0.5,
-        emotion: scenePlanItem.secondaryEmotion,
+        emotion: char.secondaryEmotion || scenePlanItem.secondaryEmotion,
         intensity: 1.0
       });
     }
 
-    // Procedural idle breathing and blinking
     const idleTrack = generateProceduralIdleTrack(duration, idx * 37);
 
     characterTracks[charId] = {
@@ -192,14 +243,23 @@ export function compileSceneAnimations(scene = {}, scenePlanItem = {}, defaultDu
       locomotion,
       emotionKeyframes,
       idleTrack,
-      isTalking: !!(scenePlanItem.narration || scene.narration)
+      actingTrack,
+      endState: {
+        x: endFrame.x,
+        y: endFrame.y,
+        view: endFrame.view,
+        expression: endFrame.expression,
+        pose: action
+      },
+      isTalking: !!(scenePlanItem.narration || scene.narration || (char.actions || []).some(a => a.type === 'talk'))
     };
   });
 
   // 2. Process Prop interactions
   props.forEach((prop, idx) => {
-    const propId = prop.id || `prop_${idx + 1}`;
-    const attachedTo = prop.attachedTo || prop.characterId || null;
+    const propId = prop.id || prop.assetId || `prop_${idx + 1}`;
+    const prevProp = prevContinuity?.props?.[propId] || null;
+    const attachedTo = prop.attachedTo || prop.characterId || prevProp?.attachedTo || null;
     const isHeld = !!attachedTo;
 
     propTracks[propId] = {
@@ -208,12 +268,11 @@ export function compileSceneAnimations(scene = {}, scenePlanItem = {}, defaultDu
       isHeld,
       zeroJumpPreserved: true,
       keyframes: [
-        { time: 0, position: prop.position || [0.5, 0.5], scale: prop.scale || 1.0, rotation: 0 }
+        { time: 0, position: prop.position || prevProp?.position || [0.5, 0.5], scale: prop.scale || 1.0, rotation: 0 }
       ]
     };
 
     if (prop.action === 'drop' || prop.action === 'fall') {
-      // Parabolic fall and bounce
       propTracks[propId].keyframes.push(
         { time: 1.0, position: prop.position || [0.5, 0.5], easing: 'easeIn' },
         { time: 1.8, position: [(prop.position?.[0] || 0.5), 0.72], easing: 'bounce' }
@@ -227,8 +286,8 @@ export function compileSceneAnimations(scene = {}, scenePlanItem = {}, defaultDu
       vfxTracks.push({
         type: v.type || 'cartoon_dust',
         targetId: v.targetId || null,
-        startTime: v.startTime || 0,
-        endTime: Math.min(duration, (v.startTime || 0) + (v.duration || 1.5)),
+        startTime: v.startTime || v.start || 0,
+        endTime: Math.min(duration, (v.end || ((v.startTime || 0) + (v.duration || 1.5)))),
         position: v.position || [0.5, 0.5]
       });
     });
@@ -263,6 +322,13 @@ export function compileSceneAnimations(scene = {}, scenePlanItem = {}, defaultDu
     });
   }
 
+  const validationIssues = validateSceneAnimation(scene, characterTracks, scene.renderMode || 'procedural_rig');
+
+  const continuityOut = {
+    characters: Object.fromEntries(Object.entries(characterTracks).map(([cid, t]) => [cid, t.endState])),
+    props: Object.fromEntries(Object.entries(propTracks).map(([pid, p]) => [pid, { attachedTo: p.attachedTo, position: p.keyframes[p.keyframes.length - 1]?.position }]))
+  };
+
   return {
     sceneId: scene.id || scenePlanItem.id || 'scene_001',
     duration,
@@ -270,25 +336,43 @@ export function compileSceneAnimations(scene = {}, scenePlanItem = {}, defaultDu
     propTracks,
     vfxTracks,
     cameraTracks,
+    validationIssues,
+    continuityOut,
     compiledAt: new Date().toISOString()
   };
 }
 
 /**
- * Compiles dynamic animation tracks for all scenes in a project
+ * Compiles dynamic animation tracks for all scenes in a project with cross-scene continuity
+ * and incremental rebuild support for locked scenes.
  */
-export function compileProjectAnimations(compiledScenes = [], scenePlan = {}) {
+export function compileProjectAnimations(compiledScenes = [], scenePlan = {}, options = {}) {
   const planItems = scenePlan.scenes || [];
+  const lockedSceneIds = new Set(options.lockedSceneIds || []);
+  const previousTracks = options.previousTracks || {};
   const results = {};
+  const allIssues = [];
+  let continuity = null;
 
   compiledScenes.forEach((scene, idx) => {
-    const planItem = planItems[idx] || {};
-    results[scene.id] = compileSceneAnimations(scene, planItem, scene.duration || 4);
+    const planItem = planItems.find(p => p.id === scene.id) || planItems[idx] || {};
+    if (lockedSceneIds.has(scene.id) && previousTracks[scene.id]) {
+      results[scene.id] = previousTracks[scene.id];
+      continuity = results[scene.id].continuityOut || continuity;
+    } else {
+      const compiled = compileSceneAnimations(scene, planItem, scene.duration || 4, continuity);
+      results[scene.id] = compiled;
+      continuity = compiled.continuityOut;
+    }
+    for (const iss of (results[scene.id].validationIssues || [])) {
+      allIssues.push({ sceneId: scene.id, ...iss });
+    }
   });
 
   return {
     success: true,
     compiledCount: Object.keys(results).length,
+    validationIssues: allIssues,
     scenes: results
   };
 }

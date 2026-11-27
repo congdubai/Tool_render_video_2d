@@ -757,6 +757,43 @@ export function evaluateMotionPrimitive(action, tLocal, u, context = {}) {
     return { supported: true, channels: {} };
   }
 
+  // --- DECLARATIVE CUSTOM ANIMATION JSON (ZERO EVAL) ---
+  if (type === 'custom_animation' || Array.isArray(action.keyframes)) {
+    const kfs = Array.isArray(action.keyframes) ? action.keyframes : [];
+    if (kfs.length === 0) return { supported: true, channels: {} };
+    const sorted = [...kfs].sort((a, b) => Number(a.time ?? a.t ?? 0) - Number(b.time ?? b.t ?? 0));
+    let k0 = sorted[0];
+    let k1 = sorted[sorted.length - 1];
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const tA = Number(sorted[i].time ?? sorted[i].t ?? 0);
+      const tB = Number(sorted[i + 1].time ?? sorted[i + 1].t ?? 0);
+      if (tLocal >= tA && tLocal <= tB) {
+        k0 = sorted[i];
+        k1 = sorted[i + 1];
+        break;
+      }
+    }
+    const t0 = Number(k0.time ?? k0.t ?? 0);
+    const t1 = Number(k1.time ?? k1.t ?? 0);
+    const span = Math.max(0.001, t1 - t0);
+    const ku = tLocal <= t0 ? 0 : (tLocal >= t1 ? 1 : applyEasing((tLocal - t0) / span, k1.easing || action.easing || 'easeInOut'));
+    const b0 = k0.bones || k0.angles || {};
+    const b1 = k1.bones || k1.angles || {};
+    const interpAngles = {};
+    const allKeys = new Set([...Object.keys(b0), ...Object.keys(b1)]);
+    for (const k of allKeys) {
+      const mapped = SEMANTIC_TO_RIG15[k] || k;
+      interpAngles[mapped] = lerp(Number(b0[k] ?? 0), Number(b1[k] ?? b0[k] ?? 0), ku) * intensity;
+    }
+    return {
+      supported: true,
+      expression: k1.expression || k0.expression || undefined,
+      channels: {
+        custom: { weight, mode: 'override', angles: interpAngles }
+      }
+    };
+  }
+
   // Unknown / unsupported action — reported explicitly (NEVER silently swallowed as horizontal slide!)
   return {
     supported: false,
