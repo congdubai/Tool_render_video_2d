@@ -1791,13 +1791,19 @@ app.get("/api/v5/procedural/templates", (req, res) => {
       backgrounds: BACKGROUND_CATEGORIES,
       props: PROP_CATALOG,
       styles: [
-        { id: "white_cartoon", name: "Hoạt Hình Nét Trắng (White Cartoon)" },
-        { id: "chibi_cartoon", name: "Chibi Dễ Thương (Chibi Cartoon)" },
-        { id: "flat_vector", name: "Đồ Họa Phẳng Hiện Đại (Flat Vector)" },
-        { id: "minimal_educational", name: "Tối Giản Giáo Dục (Minimal Educational)" },
-        { id: "historical_cartoon", name: "Lịch Sử Cổ Điển (Historical Vintage)" },
-        { id: "doodle", name: "Nét Vẽ Tay Phác Thảo (Doodle Sketch)" }
-      ]
+        { id: "clean_cartoon", name: "Clean Cartoon 2D" },
+        { id: "educational_cartoon", name: "Educational Cartoon" },
+        { id: "flat_vector", name: "Flat Vector" },
+        { id: "chibi_cartoon", name: "Chibi Cartoon" },
+        { id: "minimal_white_cartoon", name: "Minimal White Cartoon" },
+        { id: "historical_cartoon", name: "Historical Cartoon (1940–1980)" },
+        { id: "soft_pastel", name: "Soft Pastel" },
+        { id: "comic_illustration", name: "Comic Illustration" }
+      ],
+      lightingModes: [
+        "morning", "daylight", "afternoon", "sunset", "night", "cloudy", "indoor_warm", "indoor_cool"
+      ],
+      detailLevels: ["low", "medium", "high"]
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

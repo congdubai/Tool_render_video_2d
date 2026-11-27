@@ -7939,8 +7939,11 @@ async function updateProceduralPreviewUi() {
   if (!templateSelect || !svgWrapper) return;
 
   const template = templateSelect.value;
-  const styleProfileId = styleSelect ? styleSelect.value : 'flat_vector';
-  const timeOfDay = timeOfDaySelect ? timeOfDaySelect.value : 'day';
+  const styleProfileId = styleSelect ? styleSelect.value : 'educational_cartoon';
+  const timeOfDay = timeOfDaySelect ? timeOfDaySelect.value : 'daylight';
+  const detailLevel = document.getElementById('procDetailSelect')?.value || 'medium';
+  const perspective = document.getElementById('procPerspectiveSelect')?.value || 'one_point';
+  const primaryColor = document.getElementById('procPrimaryColorInput')?.value || null;
   const seed = seedInput ? parseInt(seedInput.value, 10) || 12345 : 12345;
 
   // Tự động nhận diện loại tài nguyên từ template
@@ -7977,7 +7980,13 @@ async function updateProceduralPreviewUi() {
         type: activeType,
         template,
         styleProfileId,
-        options: { timeOfDay },
+        options: {
+          timeOfDay,
+          lighting: timeOfDay,
+          detailLevel,
+          perspective,
+          palette: primaryColor ? { primary: primaryColor } : undefined
+        },
         seed
       })
     });
@@ -8008,8 +8017,10 @@ async function updateProceduralPreviewUi() {
 
     if (dimText) dimText.textContent = `${data.asset.width}x${data.asset.height}`;
     if (layersText) {
-      const layerCount = (data.asset.layers || []).length;
-      layersText.textContent = layerCount > 0 ? `${layerCount} lớp tách rời` : 'Single vector surface';
+      const layerList = data.asset.layers || [];
+      layersText.textContent = layerList.length > 0
+        ? `${layerList.length} lớp: ${layerList.map(l => l.id).join(', ')}`
+        : 'Single vector surface';
     }
     if (anchorText) {
       const grip = data.asset.gripPoint;
@@ -8032,8 +8043,11 @@ async function saveAndBindCurrentProceduralAssetUi() {
   const seedInput = document.getElementById('procSeedInput');
 
   const template = templateSelect ? templateSelect.value : 'vintage_computer';
-  const styleProfileId = styleSelect ? styleSelect.value : 'flat_vector';
-  const timeOfDay = timeOfDaySelect ? timeOfDaySelect.value : 'day';
+  const styleProfileId = styleSelect ? styleSelect.value : 'educational_cartoon';
+  const timeOfDay = timeOfDaySelect ? timeOfDaySelect.value : 'daylight';
+  const detailLevel = document.getElementById('procDetailSelect')?.value || 'medium';
+  const perspective = document.getElementById('procPerspectiveSelect')?.value || 'one_point';
+  const primaryColor = document.getElementById('procPrimaryColorInput')?.value || null;
   const seed = seedInput ? parseInt(seedInput.value, 10) || 12345 : 12345;
 
   try {
@@ -8046,7 +8060,13 @@ async function saveAndBindCurrentProceduralAssetUi() {
         type: currentProcModalState.requirement?.type,
         template,
         styleProfileId,
-        options: { timeOfDay },
+        options: {
+          timeOfDay,
+          lighting: timeOfDay,
+          detailLevel,
+          perspective,
+          palette: primaryColor ? { primary: primaryColor } : undefined
+        },
         seed
       })
     });

@@ -6,7 +6,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { getCharacter } from '../../lib/character-library.mjs';
 
-export const RENDER_ENGINE_VERSION = '5.2.1';
+export const RENDER_ENGINE_VERSION = '5.2.2';
 const MIN_VALID_MP4_BYTES = 2048;
 
 function isValidMp4File(filePath) {
@@ -93,6 +93,10 @@ export class RenderCacheManager {
     const canonical = {
       sceneId: scene.id,
       sceneRevision: scene.revision || scene.updatedAt || renderSettings.sceneRevision || '1.0',
+      styleProfile: scene.styleProfile || renderSettings.styleProfile || 'educational_cartoon',
+      lighting: scene.lighting || scene.background?.lighting || renderSettings.lighting || 'daylight',
+      detailLevel: scene.detailLevel || renderSettings.detailLevel || 'medium',
+      seed: scene.seed ?? renderSettings.seed ?? 101,
       background: scene.background,
       characters: scene.characters,
       characterProfiles: resolvedCharProfiles,

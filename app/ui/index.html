@@ -2092,21 +2092,53 @@
             <div>
               <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Phong Cách (Style):</label>
               <select id="procStyleSelect" class="text-input" onchange="updateProceduralPreviewUi()">
-                <option value="flat_vector">Đồ họa phẳng (Flat Vector)</option>
-                <option value="white_cartoon">Hoạt hình nét trắng (White Cartoon)</option>
-                <option value="chibi_cartoon">Chibi dễ thương (Chibi Cartoon)</option>
-                <option value="minimal_educational">Tối giản giáo dục (Minimal)</option>
-                <option value="historical_cartoon">Lịch sử cổ điển (Historical)</option>
-                <option value="doodle">Nét vẽ tay phác thảo (Doodle)</option>
+                <option value="educational_cartoon">Educational Cartoon</option>
+                <option value="clean_cartoon">Clean Cartoon 2D</option>
+                <option value="flat_vector">Flat Vector</option>
+                <option value="chibi_cartoon">Chibi Cartoon</option>
+                <option value="minimal_white_cartoon">Minimal White Cartoon</option>
+                <option value="historical_cartoon">Historical Cartoon (1940–1980)</option>
+                <option value="soft_pastel">Soft Pastel</option>
+                <option value="comic_illustration">Comic Illustration</option>
               </select>
             </div>
             <div>
-              <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Thời Điểm (Lighting):</label>
+              <label style="font-size: 12px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 4px;">Ánh Sáng (Lighting):</label>
               <select id="procTimeOfDaySelect" class="text-input" onchange="updateProceduralPreviewUi()">
-                <option value="day">Ban ngày (Daylight)</option>
-                <option value="night">Ban đêm (Night Ambient)</option>
-                <option value="sunset">Hoàng hôn (Sunset Warmth)</option>
+                <option value="daylight">Ban ngày (Daylight)</option>
+                <option value="morning">Buổi sáng (Morning)</option>
+                <option value="afternoon">Buổi chiều (Afternoon)</option>
+                <option value="sunset">Hoàng hôn (Sunset)</option>
+                <option value="night">Ban đêm (Night)</option>
+                <option value="cloudy">Trời âm u (Cloudy)</option>
+                <option value="indoor_warm">Đèn ấm trong nhà (Indoor Warm)</option>
+                <option value="indoor_cool">Đèn lạnh trong nhà (Indoor Cool)</option>
               </select>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="font-size: 11px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 3px;">Chi Tiết (Detail):</label>
+              <select id="procDetailSelect" class="text-input" onchange="updateProceduralPreviewUi()">
+                <option value="low">Low (Nhanh)</option>
+                <option value="medium" selected>Medium (Chuẩn)</option>
+                <option value="high">High (Chi tiết cao)</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 3px;">Phối Cảnh:</label>
+              <select id="procPerspectiveSelect" class="text-input" onchange="updateProceduralPreviewUi()">
+                <option value="one_point" selected>One-Point</option>
+                <option value="three_quarter">Three-Quarter</option>
+                <option value="front">Front View</option>
+                <option value="side">Side View</option>
+                <option value="two_point">Two-Point</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 11px; color: #cbd5e1; font-weight: 600; display: block; margin-bottom: 3px;">Màu Chủ Đạo:</label>
+              <input type="color" id="procPrimaryColorInput" value="#0284c7" style="width: 100%; height: 34px; border: 1px solid #334155; border-radius: 4px; background: #0f172a; cursor: pointer;" onchange="updateProceduralPreviewUi()" />
             </div>
           </div>
 
