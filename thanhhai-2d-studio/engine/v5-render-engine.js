@@ -4,6 +4,26 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { getCharacter } from '../../lib/character-library.mjs';
+
+export const RENDER_ENGINE_VERSION = '5.2.1';
+const MIN_VALID_MP4_BYTES = 2048;
+
+function isValidMp4File(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) return false;
+  const stats = fs.statSync(filePath);
+  if (stats.size < MIN_VALID_MP4_BYTES) return false;
+  const fd = fs.openSync(filePath, 'r');
+  try {
+    const header = Buffer.alloc(12);
+    const bytesRead = fs.readSync(fd, header, 0, 12, 0);
+    if (bytesRead < 8) return false;
+    // ISO Base Media / MP4 must contain 'ftyp' box marker at bytes 4..8
+    return header.subarray(4, 8).toString('ascii') === 'ftyp';
+  } finally {
+    fs.closeSync(fd);
+  }
+}
 
 export const SCENE_APPROVAL_STATUS = {
   PENDING_REVIEW: 'pending_review',
@@ -28,13 +48,55 @@ export class RenderCacheManager {
   }
 
   /**
-   * Computes deterministic SHA-256 fingerprint for a scene render
+   * Computes deterministic SHA-256 fingerprint for a scene render.
+   * Incorporates rendererVersion, live characterProfiles, assetVersions, sceneRevision, and animation data.
    */
   computeFingerprint(scene = {}, animTracks = {}, renderSettings = {}) {
+    // Resolve live character profiles for every character in the scene so hair/skin/outfit edits invalidate cache
+    const resolvedCharProfiles = {};
+    const providedProfiles = renderSettings.characterProfiles || {};
+    for (const c of (scene.characters || [])) {
+      const cid = c.characterId || c.id;
+      if (!cid) continue;
+      if (providedProfiles[cid]) {
+        resolvedCharProfiles[cid] = providedProfiles[cid];
+      } else {
+        const liveProfile = getCharacter(cid) || (cid === 'doc' || cid === 'scientist_01' ? getCharacter('chibi_doc') : null) || (cid === 'max' ? getCharacter('chibi_max') : null);
+        if (liveProfile) {
+          resolvedCharProfiles[cid] = {
+            id: liveProfile.id,
+            skinColor: liveProfile.skinColor,
+            hair: liveProfile.hair,
+            face: liveProfile.face,
+            proportions: liveProfile.proportions,
+            outfit: liveProfile.outfit,
+            updatedAt: liveProfile.updatedAt
+          };
+        }
+      }
+    }
+
+    // Extract asset version map from bindings or explicit assetVersions
+    const assetVersions = { ...(renderSettings.assetVersions || {}) };
+    if (renderSettings.bindings && typeof renderSettings.bindings === 'object') {
+      for (const [k, b] of Object.entries(renderSettings.bindings)) {
+        if (b && typeof b === 'object') {
+          assetVersions[k] = {
+            resolvedAssetId: b.resolvedAssetId || b.assetId || null,
+            assetVersion: b.assetVersion || 1,
+            updatedAt: b.updatedAt || null
+          };
+        }
+      }
+    }
+
     const canonical = {
       sceneId: scene.id,
+      sceneRevision: scene.revision || scene.updatedAt || renderSettings.sceneRevision || '1.0',
       background: scene.background,
       characters: scene.characters,
+      characterProfiles: resolvedCharProfiles,
+      assetVersions,
       props: scene.props,
       camera: scene.camera,
       duration: scene.duration,
@@ -42,7 +104,8 @@ export class RenderCacheManager {
       resolution: renderSettings.resolution || '1920x1080',
       fps: renderSettings.fps || 30,
       codec: renderSettings.codec || 'libx264',
-      engineVersion: '5.0'
+      rendererVersion: renderSettings.rendererVersion || RENDER_ENGINE_VERSION,
+      engineVersion: RENDER_ENGINE_VERSION
     };
 
     const hash = crypto.createHash('sha256');
@@ -51,15 +114,11 @@ export class RenderCacheManager {
   }
 
   /**
-   * Checks if cached render file exists for fingerprint
+   * Checks if a REAL valid MP4 cached render file exists for fingerprint (rejects placeholders/empty files)
    */
   hasValidCache(fingerprint) {
     const cachedFile = path.join(this.cacheDir, `${fingerprint}.mp4`);
-    if (fs.existsSync(cachedFile)) {
-      const stats = fs.statSync(cachedFile);
-      return stats.size > 0;
-    }
-    return false;
+    return isValidMp4File(cachedFile);
   }
 
   getCachedFilePath(fingerprint) {
@@ -67,13 +126,14 @@ export class RenderCacheManager {
   }
 
   saveToCache(fingerprint, sourceFilePath) {
-    const targetFile = path.join(this.cacheDir, `${fingerprint}.mp4`);
-    if (fs.existsSync(sourceFilePath)) {
-      fs.copyFileSync(sourceFilePath, targetFile);
-      return targetFile;
+    if (!sourceFilePath || !fs.existsSync(sourceFilePath)) {
+      throw new Error(`RenderCache: Không thể lưu cache vì file nguồn không tồn tại (${sourceFilePath || 'empty'}). Placeholder đã bị vô hiệu hóa.`);
     }
-    // If mocking / creating placeholder for test
-    fs.writeFileSync(targetFile, Buffer.alloc(1024), 'utf8');
+    if (!isValidMp4File(sourceFilePath)) {
+      throw new Error(`RenderCache: File nguồn không phải MP4 hợp lệ (${sourceFilePath}).`);
+    }
+    const targetFile = path.join(this.cacheDir, `${fingerprint}.mp4`);
+    fs.copyFileSync(sourceFilePath, targetFile);
     return targetFile;
   }
 
