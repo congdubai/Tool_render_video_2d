@@ -6,6 +6,15 @@ import { defaultFfmpegAssembler } from './v5-ffmpeg-assembler.js';
 import { compileProjectToShots } from './v5-shot-compiler.js';
 import { renderThanhHaiVideo } from '../../lib/thanhhai-render-adapter.mjs';
 
+export function getMemoryMetrics() {
+  const mu = process.memoryUsage();
+  return {
+    rssMb: Number((mu.rss / (1024 * 1024)).toFixed(1)),
+    heapUsedMb: Number((mu.heapUsed / (1024 * 1024)).toFixed(1)),
+    heapTotalMb: Number((mu.heapTotal / (1024 * 1024)).toFixed(1))
+  };
+}
+
 export function loadRenderCheckpoint(checkpointFile) {
   if (!checkpointFile || !fs.existsSync(checkpointFile)) return { completedSegments: {} };
   try {
@@ -48,6 +57,8 @@ export async function renderSegmentedProject(projectData = {}, options = {}) {
   let renderedCount = 0;
   let resumedFromCacheCount = 0;
   let interrupted = false;
+  let peakRssMb = getMemoryMetrics().rssMb;
+  const tRenderStart = Date.now();
 
   for (let i = 0; i < compiledScenes.length; i++) {
     const scene = compiledScenes[i];
@@ -108,6 +119,9 @@ export async function renderSegmentedProject(projectData = {}, options = {}) {
     saveRenderCheckpoint(checkpointFile, checkpoint);
     segmentPaths.push(segOut);
     renderedCount++;
+    peakRssMb = Math.max(peakRssMb, getMemoryMetrics().rssMb);
+    // Cleanup temporary per-segment compile directory to keep disk & memory bounded on long videos
+    try { fs.rmSync(segProjDir, { recursive: true, force: true }); } catch {}
 
     if (options.simulateInterruptAfterScene && renderedCount >= options.simulateInterruptAfterScene) {
       interrupted = true;
@@ -126,10 +140,12 @@ export async function renderSegmentedProject(projectData = {}, options = {}) {
     };
   }
 
+  const tEncodeStart = Date.now();
   // 3. Assemble segments + audio via FFmpeg Assembler & Verify with FFprobe
   await defaultFfmpegAssembler.assembleSegments(segmentPaths, outputPath, options.audioPath || null, {
     forceCpu: options.forceCpu
   });
+  const encodingTimeMs = Date.now() - tEncodeStart;
 
   const expectedDur = compiledScenes.reduce((s, c) => s + Number(c.duration || 4), 0);
   const verification = await defaultFfmpegAssembler.verifyFinalOutput(outputPath, {
@@ -145,6 +161,9 @@ export async function renderSegmentedProject(projectData = {}, options = {}) {
     renderedCount,
     resumedFromCacheCount,
     cacheHitRatePercent: compiledScenes.length > 0 ? Math.round((resumedFromCacheCount / compiledScenes.length) * 100) : 0,
+    renderTimeMs: tEncodeStart - tRenderStart,
+    encodingTimeMs,
+    peakRssMb: Math.max(peakRssMb, getMemoryMetrics().rssMb),
     verification,
     hardware: defaultFfmpegAssembler.detectHardwareCapabilities()
   };
