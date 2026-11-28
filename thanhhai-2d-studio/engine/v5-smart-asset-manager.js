@@ -243,23 +243,31 @@ export function resolveAssetRequirements(scenePlan = {}, options = {}) {
 
   const result = manager.scanAndResolve(options);
   const canonicalMap = new Map((result?.dedup?.canonicalRequirements || []).map(c => [c.id, c]));
+  const finalBindings = result?.bindings || {};
 
-  const resolutions = (result?.resolution?.results || []).map(r => {
-    const canon = canonicalMap.get(r.requirementId) || {};
-    const isReady = r.status === 'READY' || (Boolean(r.resolvedAssetId) && r.status !== 'MISSING');
+  // Single Source of Truth: always read authoritative post-auto-link status from canonicalRequirements & finalBindings
+  const resolutions = (result?.dedup?.canonicalRequirements || []).map(canon => {
+    const rawRes = (result?.resolution?.results || []).find(r => r.requirementId === canon.id) || {};
+    const bound = finalBindings[canon.id];
+    const effectiveStatus = bound?.status || canon.status || rawRes.status || 'MISSING';
+    const effectiveAssetId = bound?.resolvedAssetId || canon.resolvedAssetId || rawRes.resolvedAssetId || null;
+    const isReady = effectiveStatus === 'READY' || (Boolean(effectiveAssetId) && effectiveStatus !== 'MISSING');
     return {
-      ...r,
-      id: r.requirementId,
-      requirementId: r.requirementId,
-      name: canon.name || r.name || r.requirementId,
-      category: canon.category || r.category || 'unknown',
-      type: canon.type || r.type || canon.category || 'unknown',
-      sceneUsages: canon.requiredByScenes || canon.sceneUsages || r.sceneUsages || [],
-      scenes: canon.requiredByScenes || canon.sceneUsages || r.sceneUsages || [],
+      ...rawRes,
+      id: canon.id,
+      requirementId: canon.id,
+      name: canon.name || rawRes.name || canon.id,
+      category: canon.category || rawRes.category || 'unknown',
+      type: canon.type || rawRes.type || canon.category || 'unknown',
+      resolvedAssetId: effectiveAssetId,
+      sceneUsages: canon.requiredByScenes || canon.sceneUsages || rawRes.sceneUsages || [],
+      scenes: canon.requiredByScenes || canon.sceneUsages || rawRes.sceneUsages || [],
       isResolved: isReady,
-      status: isReady ? 'READY' : (r.status || 'MISSING'),
-      reasons: r.reasons || (r.reason ? [r.reason] : ['Chưa được gán tài nguyên phù hợp']),
-      reason: (r.reasons && r.reasons.length > 0) ? r.reasons.join('; ') : (r.reason || 'Chưa được gán tài nguyên phù hợp')
+      status: isReady ? 'READY' : effectiveStatus,
+      reasons: canon.reasons || rawRes.reasons || (rawRes.reason ? [rawRes.reason] : ['Chưa được gán tài nguyên phù hợp']),
+      reason: ((canon.reasons || rawRes.reasons || []).length > 0)
+        ? (canon.reasons || rawRes.reasons).join('; ')
+        : (rawRes.reason || 'Chưa được gán tài nguyên phù hợp')
     };
   });
 
